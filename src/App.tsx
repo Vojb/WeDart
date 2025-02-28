@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Container } from "@mui/material";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import X01 from "./pages/X01";
@@ -15,20 +15,21 @@ function App() {
       sx={{
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
-        maxHeight: "-webkit-fill-available", // Fix for iOS Safari
+        minHeight: "100vh",
       }}
     >
       <Navbar />
-      <Box
+      <Container
         component="main"
         sx={{
           flexGrow: 1,
-          height: "calc(100vh - 56px)", // Subtract navbar height
-          overflow: "hidden",
+          p: { xs: 1, sm: 2, md: 3 }, // Responsive padding
           display: "flex",
           flexDirection: "column",
+          height: "calc(100vh - 56px)", // Subtract navbar height
+          overflow: "hidden",
         }}
+        maxWidth="lg"
       >
         <Routes>
           <Route path="/" element={<Home />} />
@@ -39,7 +40,7 @@ function App() {
           <Route path="/highscore" element={<Highscore />} />
           <Route path="/players" element={<Players />} />
         </Routes>
-      </Box>
+      </Container>
     </Box>
   );
 }

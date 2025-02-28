@@ -13,6 +13,7 @@ export default function DartInput({ onScore }: DartInputProps) {
   const [currentDarts, setCurrentDarts] = useState<number[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const pressTimer = useRef<number | null>(null);
+  const [isHolding, setIsHolding] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -26,18 +27,20 @@ export default function DartInput({ onScore }: DartInputProps) {
     number: number,
     event: React.MouseEvent | React.TouchEvent
   ) => {
+    event.preventDefault(); // Prevent default to avoid text selection
     if (currentDarts.length >= 3) return;
 
     const element = event.currentTarget as HTMLElement;
     setSelectedNumber(number);
     setAnchorEl(element);
+    setIsHolding(true);
 
     pressTimer.current = window.setTimeout(() => {
       setShowMultiplier(true);
-    }, 2000);
+    }, 500); // Reduced to 500ms for better UX
   };
 
-  const handleEnd = () => {
+  const handleEnd = (clearMultiplier: boolean = true) => {
     if (pressTimer.current) {
       window.clearTimeout(pressTimer.current);
       pressTimer.current = null;
@@ -46,6 +49,15 @@ export default function DartInput({ onScore }: DartInputProps) {
     if (selectedNumber !== null && currentDarts.length < 3 && !showMultiplier) {
       // Single score
       setCurrentDarts([...currentDarts, selectedNumber]);
+    }
+
+    if (clearMultiplier) {
+      setShowMultiplier(false);
+      setAnchorEl(null);
+    }
+
+    setIsHolding(false);
+    if (!showMultiplier) {
       setSelectedNumber(null);
     }
   };
@@ -53,10 +65,11 @@ export default function DartInput({ onScore }: DartInputProps) {
   const handleMultiplierSelect = (multiplier: Multiplier) => {
     if (selectedNumber !== null && currentDarts.length < 3) {
       setCurrentDarts([...currentDarts, selectedNumber * multiplier]);
-      setSelectedNumber(null);
     }
     setShowMultiplier(false);
     setAnchorEl(null);
+    setSelectedNumber(null);
+    setIsHolding(false);
   };
 
   const handleSubmitDarts = () => {
@@ -69,6 +82,10 @@ export default function DartInput({ onScore }: DartInputProps) {
 
   const handleClearDarts = () => {
     setCurrentDarts([]);
+    setShowMultiplier(false);
+    setSelectedNumber(null);
+    setAnchorEl(null);
+    setIsHolding(false);
   };
 
   return (
@@ -128,18 +145,19 @@ export default function DartInput({ onScore }: DartInputProps) {
               <Button
                 fullWidth
                 size="small"
-                variant="outlined"
+                variant={
+                  selectedNumber === num && isHolding ? "contained" : "outlined"
+                }
                 disabled={currentDarts.length >= 3}
                 onMouseDown={(e) => handleStart(num, e)}
-                onMouseUp={handleEnd}
-                onMouseLeave={() => {
-                  handleEnd();
-                  setShowMultiplier(false);
-                  setAnchorEl(null);
-                }}
+                onMouseUp={() => handleEnd()}
+                onMouseLeave={() => handleEnd()}
                 onTouchStart={(e) => handleStart(num, e)}
-                onTouchEnd={handleEnd}
-                sx={{ minHeight: "40px" }}
+                onTouchEnd={() => handleEnd()}
+                sx={{
+                  minHeight: { xs: "48px", sm: "40px" },
+                  transition: "background-color 0.2s",
+                }}
               >
                 {num}
               </Button>
@@ -149,18 +167,19 @@ export default function DartInput({ onScore }: DartInputProps) {
             <Button
               fullWidth
               size="small"
-              variant="outlined"
+              variant={
+                selectedNumber === 25 && isHolding ? "contained" : "outlined"
+              }
               disabled={currentDarts.length >= 3}
               onMouseDown={(e) => handleStart(25, e)}
-              onMouseUp={handleEnd}
-              onMouseLeave={() => {
-                handleEnd();
-                setShowMultiplier(false);
-                setAnchorEl(null);
-              }}
+              onMouseUp={() => handleEnd()}
+              onMouseLeave={() => handleEnd()}
               onTouchStart={(e) => handleStart(25, e)}
-              onTouchEnd={handleEnd}
-              sx={{ minHeight: "40px" }}
+              onTouchEnd={() => handleEnd()}
+              sx={{
+                minHeight: { xs: "48px", sm: "40px" },
+                transition: "background-color 0.2s",
+              }}
             >
               Bull (25)
             </Button>
@@ -187,14 +206,18 @@ export default function DartInput({ onScore }: DartInputProps) {
           <Button
             size="small"
             variant="contained"
+            color="secondary"
             onClick={() => handleMultiplierSelect(2)}
+            sx={{ minWidth: "80px" }}
           >
             Double
           </Button>
           <Button
             size="small"
             variant="contained"
+            color="secondary"
             onClick={() => handleMultiplierSelect(3)}
+            sx={{ minWidth: "80px" }}
           >
             Triple
           </Button>

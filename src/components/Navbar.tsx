@@ -11,6 +11,8 @@ import {
   ListItemIcon,
   useTheme,
   useMediaQuery,
+  Container,
+  Button,
 } from "@mui/material";
 import {
   Brightness4,
@@ -30,7 +32,7 @@ export default function Navbar() {
   const { themeMode, toggleTheme } = useStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const location = useLocation();
 
   const menuItems = [
@@ -51,22 +53,23 @@ export default function Navbar() {
   };
 
   const drawer = (
-    <Box sx={{ width: "100vw" }}>
-      <List>
+    <Box>
+      <List sx={{ pt: 2 }}>
         {menuItems.map((item) => (
           <ListItem
             key={item.text}
-            component={Link}
-            to={item.path}
-            onClick={handleDrawerToggle}
-            disabled={item.disabled}
-            selected={location.pathname === item.path}
+            component={item.disabled ? "div" : Link}
+            {...(item.disabled ? {} : { to: item.path })}
+            onClick={() => !item.disabled && handleDrawerToggle()}
             sx={{
+              py: 2,
+              px: 3,
               color: "text.primary",
               textDecoration: "none",
-              py: 2,
+              opacity: item.disabled ? 0.5 : 1,
+              pointerEvents: item.disabled ? "none" : "auto",
               "&.Mui-selected": {
-                bgcolor: "primary.main",
+                bgcolor: (theme) => theme.palette.primary.main,
                 color: "primary.contrastText",
                 "&:hover": {
                   bgcolor: "primary.dark",
@@ -80,7 +83,8 @@ export default function Navbar() {
                   location.pathname === item.path
                     ? "primary.contrastText"
                     : "inherit",
-                minWidth: 40,
+                minWidth: { xs: 40, sm: 56 },
+                opacity: item.disabled ? 0.5 : 1,
               }}
             >
               {item.icon}
@@ -88,8 +92,13 @@ export default function Navbar() {
             <ListItemText
               primary={item.text}
               primaryTypographyProps={{
-                variant: "h6",
-                sx: item.disabled ? { color: "text.disabled" } : {},
+                variant: "body1",
+                sx: (theme) => ({
+                  fontWeight: location.pathname === item.path ? 600 : 400,
+                  color: item.disabled
+                    ? theme.palette.text.disabled
+                    : "inherit",
+                }),
               }}
             />
           </ListItem>
@@ -99,54 +108,97 @@ export default function Navbar() {
   );
 
   return (
-    <AppBar position="static">
-      <Toolbar>
-        {isMobile ? (
-          <>
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              WeDart
-            </Typography>
-          </>
-        ) : (
-          <>
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{ flexGrow: 0, mr: 4 }}
-            >
-              WeDart
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2, flexGrow: 1 }}>
-              {menuItems.map((item) => (
-                <Typography
-                  key={item.text}
-                  component={Link}
-                  to={item.path}
-                  sx={{
-                    color: "inherit",
-                    textDecoration: "none",
-                    opacity: item.disabled ? 0.5 : 1,
-                    pointerEvents: item.disabled ? "none" : "auto",
-                  }}
-                >
-                  {item.text}
-                </Typography>
-              ))}
-            </Box>
-          </>
-        )}
-        <IconButton onClick={toggleTheme} color="inherit">
-          {themeMode === "dark" ? <Brightness7 /> : <Brightness4 />}
-        </IconButton>
-      </Toolbar>
+    <AppBar
+      position="sticky"
+      elevation={1}
+      sx={{
+        bgcolor: (theme) =>
+          theme.palette.mode === "light"
+            ? "#fff"
+            : theme.palette.background.default,
+      }}
+    >
+      <Container maxWidth="lg">
+        <Toolbar
+          disableGutters
+          sx={{
+            minHeight: { xs: 56, sm: 64 },
+            px: { xs: 1, sm: 2 },
+          }}
+        >
+          {isMobile ? (
+            <>
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2 }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Typography
+                variant="h6"
+                component={Link}
+                to="/"
+                sx={{
+                  flexGrow: 1,
+                  color: "inherit",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                WeDart
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography
+                variant="h6"
+                component={Link}
+                to="/"
+                sx={{
+                  mr: 4,
+                  color: "inherit",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                WeDart
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: { sm: 1, md: 2 },
+                  flexGrow: 1,
+                }}
+              >
+                {menuItems.map((item) => (
+                  <Button
+                    key={item.text}
+                    component={item.disabled ? "button" : Link}
+                    {...(item.disabled ? {} : { to: item.path })}
+                    disabled={item.disabled}
+                    startIcon={item.icon}
+                    color={
+                      location.pathname === item.path ? "primary" : "inherit"
+                    }
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: location.pathname === item.path ? 600 : 400,
+                      opacity: item.disabled ? 0.5 : 1,
+                    }}
+                  >
+                    {item.text}
+                  </Button>
+                ))}
+              </Box>
+            </>
+          )}
+          <IconButton onClick={toggleTheme} color="inherit" sx={{ ml: 1 }}>
+            {themeMode === "dark" ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
+        </Toolbar>
+      </Container>
 
       <Drawer
         variant="temporary"
@@ -154,11 +206,11 @@ export default function Navbar() {
         open={mobileOpen}
         onClose={handleDrawerToggle}
         ModalProps={{
-          keepMounted: true, // Better mobile performance
+          keepMounted: true,
         }}
         PaperProps={{
           sx: {
-            width: "100vw",
+            width: { xs: "100%", sm: 320 },
             bgcolor: "background.default",
           },
         }}
