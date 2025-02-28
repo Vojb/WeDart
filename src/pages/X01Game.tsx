@@ -32,103 +32,95 @@ export default function X01Game() {
 
   if (!currentGame) return null;
 
+  const initialScore = parseInt(currentGame.gameType);
+  const pointsScored =
+    initialScore - currentGame.players[currentGame.currentPlayerIndex].score;
+  const dartsThrown =
+    currentGame.players[currentGame.currentPlayerIndex].dartsThrown || 1; // Avoid division by zero
+  const roundsPlayed = Math.ceil(dartsThrown / 3);
+
+  const avgPerDart = (pointsScored / dartsThrown).toFixed(1);
+  const avgPerRound = (pointsScored / roundsPlayed || 0).toFixed(1);
+
   return (
-    <Box sx={{ p: 1, height: "100%" }}>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Paper
         sx={{
-          p: 2,
-          height: "100%",
           display: "flex",
           flexDirection: "column",
-          position: "relative",
+          height: "100%",
+          overflow: "hidden",
         }}
       >
+        {/* Players Section */}
         <Box
           sx={{
-            mb: 2,
-            maxHeight: "30vh",
-            overflow: "auto",
+            p: 1,
+            borderBottom: 1,
+            borderColor: "divider",
+            overflowX: "auto",
+            minHeight: "fit-content",
           }}
         >
           <Box
             sx={{
               display: "flex",
-              flexDirection: "row",
               gap: 1,
-              flex: "1 0 0",
+              minWidth: "fit-content",
             }}
           >
-            {currentGame.players.map((player, index) => {
-              const initialScore = parseInt(currentGame.gameType);
-              const pointsScored = initialScore - player.score;
-              const dartsThrown = player.dartsThrown || 1; // Avoid division by zero
-              const roundsPlayed = Math.ceil(dartsThrown / 3);
-
-              const avgPerDart = (pointsScored / dartsThrown).toFixed(1);
-              const avgPerRound = (pointsScored / roundsPlayed || 0).toFixed(1);
-
-              return (
-                <Paper
-                  key={player.id}
-                  sx={{
-                    p: 1,
-                    flex: "0.5",
-                    backgroundColor: (theme) =>
-                      index === currentGame.currentPlayerIndex
-                        ? alpha(theme.palette.primary.main, 0.1)
-                        : "transparent",
-                    borderLeft: (theme) =>
-                      index === currentGame.currentPlayerIndex
-                        ? `4px solid ${theme.palette.primary.main}`
-                        : "none",
-                  }}
-                >
+            {currentGame.players.map((player, index) => (
+              <Paper
+                key={player.id}
+                sx={{
+                  p: 1,
+                  flex: "1 0 150px",
+                  maxWidth: "200px",
+                  backgroundColor: (theme) =>
+                    index === currentGame.currentPlayerIndex
+                      ? alpha(theme.palette.primary.main, 0.1)
+                      : "transparent",
+                  borderLeft: (theme) =>
+                    index === currentGame.currentPlayerIndex
+                      ? `4px solid ${theme.palette.primary.main}`
+                      : "none",
+                }}
+              >
+                <Typography variant="body1" noWrap>
+                  {player.name}
+                </Typography>
+                <Typography variant="h5">{player.score}</Typography>
+                <Box sx={{ display: "flex", gap: 1 }}>
                   <Typography
-                    variant="subtitle1"
-                    color={
-                      index === currentGame.currentPlayerIndex
-                        ? "primary"
-                        : "text.primary"
-                    }
-                    noWrap
+                    variant="caption"
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => setShowRoundAvg(!showRoundAvg)}
                   >
-                    {player.name}
+                    Avg: {showRoundAvg ? avgPerRound : avgPerDart}
                   </Typography>
-                  <Typography variant="h5" sx={{ my: 0.5 }}>
-                    {player.score}
+                  <Typography variant="caption">
+                    Darts: {player.dartsThrown}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ cursor: "pointer" }}
-                      onClick={() => setShowRoundAvg(!showRoundAvg)}
-                    >
-                      Avg: {showRoundAvg ? avgPerRound : avgPerDart}
-                      <Typography
-                        component="span"
-                        variant="caption"
-                        sx={{ ml: 0.5, opacity: 0.7 }}
-                      >
-                        {showRoundAvg ? "/round" : "/dart"}
-                      </Typography>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Darts: {player.dartsThrown}
-                    </Typography>
-                  </Box>
-                </Paper>
-              );
-            })}
+                </Box>
+              </Paper>
+            ))}
           </Box>
         </Box>
 
+        {/* Input Section */}
         <Box
           sx={{
             flex: 1,
-            minHeight: 0,
             display: "flex",
             flexDirection: "column",
+            overflow: "hidden",
+            p: 1,
           }}
         >
           <Box sx={{ mb: 1 }}>
@@ -147,7 +139,7 @@ export default function X01Game() {
             </ToggleButtonGroup>
           </Box>
 
-          <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+          <Box sx={{ flex: 1, overflow: "auto" }}>
             {inputMode === "numeric" ? (
               <NumericInput onScore={recordScore} />
             ) : (
@@ -155,30 +147,30 @@ export default function X01Game() {
             )}
           </Box>
         </Box>
-
-        <SpeedDial
-          ariaLabel="game actions"
-          sx={{
-            position: "absolute",
-            bottom: 8,
-            right: 8,
-          }}
-          icon={<SpeedDialIcon />}
-        >
-          <SpeedDialAction
-            icon={<Undo />}
-            tooltipTitle="Undo"
-            onClick={() => {
-              /* TODO: Implement undo */
-            }}
-          />
-          <SpeedDialAction
-            icon={<Close />}
-            tooltipTitle="End Game"
-            onClick={() => navigate("/x01")}
-          />
-        </SpeedDial>
       </Paper>
+
+      <SpeedDial
+        ariaLabel="game actions"
+        sx={{
+          position: "absolute",
+          bottom: 8,
+          right: 8,
+        }}
+        icon={<SpeedDialIcon />}
+      >
+        <SpeedDialAction
+          icon={<Undo />}
+          tooltipTitle="Undo"
+          onClick={() => {
+            /* TODO: Implement undo */
+          }}
+        />
+        <SpeedDialAction
+          icon={<Close />}
+          tooltipTitle="End Game"
+          onClick={() => navigate("/x01")}
+        />
+      </SpeedDial>
     </Box>
   );
 }

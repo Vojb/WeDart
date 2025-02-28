@@ -11,9 +11,25 @@ import Players from "./pages/Players";
 
 function App() {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        maxHeight: "-webkit-fill-available", // Fix for iOS Safari
+      }}
+    >
       <Navbar />
-      <Box component="main" sx={{ flexGrow: 1, p: 1, overflow: "auto" }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          height: "calc(100vh - 56px)", // Subtract navbar height
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/x01" element={<X01 />} />
