@@ -1,11 +1,4 @@
-import {
-  Grid,
-  Button,
-  Dialog,
-  DialogContent,
-  Box,
-  Typography,
-} from "@mui/material";
+import { Grid, Button, Box, Typography, Paper, Popper } from "@mui/material";
 import { useState, useRef, useEffect } from "react";
 
 interface DartInputProps {
@@ -17,10 +10,10 @@ type Multiplier = 1 | 2 | 3;
 export default function DartInput({ onScore }: DartInputProps) {
   const [showMultiplier, setShowMultiplier] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
-  const [selectedMultiplier, setSelectedMultiplier] = useState<Multiplier>(1);
+  const [selectedMultiplier, setSelectedMultiplier] = useState<Multiplier>(2);
   const [currentDarts, setCurrentDarts] = useState<number[]>([]);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const pressTimer = useRef<number | null>(null);
-  const isDragging = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -30,45 +23,40 @@ export default function DartInput({ onScore }: DartInputProps) {
     };
   }, []);
 
-  const handleTouchStart = (number: number, event: React.TouchEvent) => {
-    event.preventDefault();
+  const handleStart = (
+    number: number,
+    event: React.MouseEvent | React.TouchEvent
+  ) => {
     if (currentDarts.length >= 3) return;
+
+    const element = event.currentTarget as HTMLElement;
     setSelectedNumber(number);
+    setAnchorEl(element);
+
     pressTimer.current = window.setTimeout(() => {
       setShowMultiplier(true);
-      isDragging.current = true;
-    }, 2000); // Changed to 2 seconds
+    }, 2000);
   };
 
-  const handleMouseDown = (number: number) => {
-    if (currentDarts.length >= 3) return;
-    setSelectedNumber(number);
-    pressTimer.current = window.setTimeout(() => {
-      setShowMultiplier(true);
-      isDragging.current = true;
-    }, 2000); // Changed to 2 seconds
-  };
-
-  const handleRelease = () => {
+  const handleEnd = () => {
     if (pressTimer.current) {
       window.clearTimeout(pressTimer.current);
       pressTimer.current = null;
     }
 
-    if (selectedNumber !== null && currentDarts.length < 3) {
-      if (!isDragging.current) {
-        // Quick press - single
-        setCurrentDarts([...currentDarts, selectedNumber]);
-      } else {
-        // Long press - with multiplier
-        setCurrentDarts([...currentDarts, selectedNumber * selectedMultiplier]);
-      }
+    if (selectedNumber !== null && currentDarts.length < 3 && !showMultiplier) {
+      setCurrentDarts([...currentDarts, selectedNumber]);
     }
+  };
 
-    isDragging.current = false;
+  const handleMultiplierSelect = (multiplier: Multiplier) => {
+    if (selectedNumber !== null) {
+      setSelectedMultiplier(multiplier);
+      setCurrentDarts([...currentDarts, selectedNumber * multiplier]);
+    }
     setShowMultiplier(false);
     setSelectedNumber(null);
-    setSelectedMultiplier(1);
+    setAnchorEl(null);
   };
 
   const handleSubmitDarts = () => {
@@ -130,11 +118,15 @@ export default function DartInput({ onScore }: DartInputProps) {
               fullWidth
               variant="outlined"
               disabled={currentDarts.length >= 3}
-              onMouseDown={() => handleMouseDown(num)}
-              onMouseUp={handleRelease}
-              onMouseLeave={handleRelease}
-              onTouchStart={(e) => handleTouchStart(num, e)}
-              onTouchEnd={handleRelease}
+              onMouseDown={(e) => handleStart(num, e)}
+              onMouseUp={handleEnd}
+              onMouseLeave={() => {
+                handleEnd();
+                setShowMultiplier(false);
+                setAnchorEl(null);
+              }}
+              onTouchStart={(e) => handleStart(num, e)}
+              onTouchEnd={handleEnd}
             >
               {num}
             </Button>
@@ -145,58 +137,52 @@ export default function DartInput({ onScore }: DartInputProps) {
             fullWidth
             variant="outlined"
             disabled={currentDarts.length >= 3}
-            onMouseDown={() => handleMouseDown(25)}
-            onMouseUp={handleRelease}
-            onMouseLeave={handleRelease}
-            onTouchStart={(e) => handleTouchStart(25, e)}
-            onTouchEnd={handleRelease}
+            onMouseDown={(e) => handleStart(25, e)}
+            onMouseUp={handleEnd}
+            onMouseLeave={() => {
+              handleEnd();
+              setShowMultiplier(false);
+              setAnchorEl(null);
+            }}
+            onTouchStart={(e) => handleStart(25, e)}
+            onTouchEnd={handleEnd}
           >
             Bull (25)
           </Button>
         </Grid>
       </Grid>
 
-      <Dialog
+      <Popper
         open={showMultiplier}
-        onClose={handleRelease}
-        PaperProps={{
-          sx: { pointerEvents: "none" },
-        }}
+        anchorEl={anchorEl}
+        placement="top"
+        sx={{ zIndex: 1300 }}
       >
-        <DialogContent>
-          <Box
-            id="multiplier-box"
-            sx={{
-              display: "flex",
-              gap: 1,
-              pointerEvents: "none",
-              "& > div": {
-                flex: 1,
-                p: 2,
-                textAlign: "center",
-                borderRadius: 1,
-              },
-            }}
+        <Paper
+          sx={{
+            display: "flex",
+            gap: 1,
+            p: 1,
+            bgcolor: "background.paper",
+            boxShadow: 3,
+          }}
+        >
+          <Button
+            variant="contained"
+            onClick={() => handleMultiplierSelect(2)}
+            color={selectedMultiplier === 2 ? "primary" : "inherit"}
           >
-            <Box
-              sx={{
-                bgcolor:
-                  selectedMultiplier === 2 ? "primary.main" : "action.hover",
-              }}
-            >
-              Double
-            </Box>
-            <Box
-              sx={{
-                bgcolor:
-                  selectedMultiplier === 3 ? "primary.main" : "action.hover",
-              }}
-            >
-              Triple
-            </Box>
-          </Box>
-        </DialogContent>
-      </Dialog>
+            Double
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => handleMultiplierSelect(3)}
+            color={selectedMultiplier === 3 ? "primary" : "inherit"}
+          >
+            Triple
+          </Button>
+        </Paper>
+      </Popper>
     </Box>
   );
 }

@@ -4,26 +4,11 @@ import {
   Typography,
   ToggleButton,
   ToggleButtonGroup,
-  Grid,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
   SpeedDial,
   SpeedDialAction,
   SpeedDialIcon,
 } from "@mui/material";
-import {
-  Backspace,
-  Calculate,
-  GridOn,
-  Undo,
-  Close,
-  LooksOne,
-  LooksTwo,
-  Looks3,
-} from "@mui/icons-material";
+import { Calculate, GridOn, Undo, Close } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import { useStore } from "../store/useStore";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +17,6 @@ import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
 
 type InputMode = "numeric" | "board";
-type MultiplierType = 1 | 2 | 3;
 
 export default function X01Game() {
   const navigate = useNavigate();
@@ -47,15 +31,6 @@ export default function X01Game() {
   }, [currentGame, navigate]);
 
   if (!currentGame) return null;
-
-  const currentPlayer = currentGame.players[currentGame.currentPlayerIndex];
-
-  const initialScore = parseInt(currentGame.gameType);
-  const pointsScored = initialScore - currentPlayer.score;
-  const pointsPerDart =
-    currentPlayer.dartsThrown > 0
-      ? (pointsScored / currentPlayer.dartsThrown).toFixed(1)
-      : "0.0";
 
   return (
     <Box sx={{ p: 1, height: "100%" }}>

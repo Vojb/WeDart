@@ -133,21 +133,20 @@ export const useStore = create<StoreState>()(
         set((state) => {
           if (!state.currentGame) return state;
 
-          const currentPlayer =
-            state.currentGame.players[state.currentGame.currentPlayerIndex];
-          const newScore = currentPlayer.score - score;
-
-          // Check if bust (below 0 or 1 with double out)
-          if (
-            newScore < 0 ||
-            (state.currentGame.isDoubleOut && newScore === 1)
-          ) {
-            return state;
-          }
-
           const updatedPlayers = state.currentGame.players.map(
             (player, index) => {
-              if (index !== state.currentGame.currentPlayerIndex) return player;
+              if (index !== state?.currentGame?.currentPlayerIndex)
+                return player;
+
+              const newScore = player.score - score;
+
+              // Check if bust (below 0 or 1 with double out)
+              if (
+                newScore < 0 ||
+                (state?.currentGame?.isDoubleOut && newScore === 1)
+              ) {
+                return player;
+              }
 
               return {
                 ...player,
@@ -172,15 +171,13 @@ export const useStore = create<StoreState>()(
             }
           );
 
-          const nextPlayerIndex =
-            (state.currentGame.currentPlayerIndex + 1) %
-            state.currentGame.players.length;
-
           return {
             currentGame: {
               ...state.currentGame,
               players: updatedPlayers,
-              currentPlayerIndex: nextPlayerIndex,
+              currentPlayerIndex:
+                (state.currentGame.currentPlayerIndex + 1) %
+                state.currentGame.players.length,
               isGameFinished: updatedPlayers.some((p) => p.score === 0),
             },
           };
