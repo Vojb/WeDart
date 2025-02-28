@@ -1,37 +1,31 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import appLogo from '/favicon.svg'
-import PWABadge from './PWABadge.tsx'
-import './App.css'
+import { Box } from "@mui/material";
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import X01 from "./pages/X01";
+import Home from "./pages/Home";
+import History from "./pages/History";
+import Highscore from "./pages/Highscore";
+import X01NewGame from "./pages/X01NewGame";
+import X01Game from "./pages/X01Game";
+import Players from "./pages/Players";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={appLogo} className="logo" alt="WeDart logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>WeDart</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-      <PWABadge />
-    </>
-  )
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      <Navbar />
+      <Box component="main" sx={{ flexGrow: 1, p: 1, overflow: "auto" }}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/x01" element={<X01 />} />
+          <Route path="/x01/new" element={<X01NewGame />} />
+          <Route path="/x01/game" element={<X01Game />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/highscore" element={<Highscore />} />
+          <Route path="/players" element={<Players />} />
+        </Routes>
+      </Box>
+    </Box>
+  );
 }
 
-export default App
+export default App;
