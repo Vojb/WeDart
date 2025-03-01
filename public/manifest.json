@@ -4,8 +4,8 @@
   "description": "WeDart Progressive Web Application",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#121212",
+  "theme_color": "#121212",
   "icons": [
     {
       "src": "favicon.svg",
