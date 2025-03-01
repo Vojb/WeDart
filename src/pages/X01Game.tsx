@@ -431,57 +431,6 @@ function PlayerBox({
         </Typography>
         <Typography variant="caption">Darts: {player.dartsThrown}</Typography>
       </Box>
-
-      <PlayerFavoriteDarts playerId={player.id} />
     </Paper>
-  );
-}
-
-// Component to display a player's all-time most hit darts
-function PlayerFavoriteDarts({ playerId }: { playerId: number }) {
-  const { getPlayerAllTimeMostFrequentDarts } = useStore();
-  const favoriteDarts = getPlayerAllTimeMostFrequentDarts(playerId, 3);
-
-  if (!favoriteDarts || favoriteDarts.length === 0) return null;
-
-  return (
-    <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: "0.6rem",
-          color: "text.secondary",
-          mr: 0.5,
-        }}
-      >
-        Favorites:
-      </Typography>
-      {favoriteDarts.map((dart: string, index: number) => {
-        // Extract multiplier info for styling
-        const isTriple = dart.startsWith("T");
-        const isDouble = dart.startsWith("D");
-
-        return (
-          <Typography
-            key={index}
-            variant="caption"
-            sx={{
-              bgcolor: isTriple
-                ? "success.main"
-                : isDouble
-                ? "primary.main"
-                : "background.paper",
-              px: 0.5,
-              borderRadius: 0.5,
-              fontSize: "0.65rem",
-              fontWeight: "bold",
-              color: isTriple || isDouble ? "white" : "text.secondary",
-            }}
-          >
-            {dart}
-          </Typography>
-        );
-      })}
-    </Box>
   );
 }
