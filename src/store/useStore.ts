@@ -7,8 +7,8 @@ interface Player {
   name: string;
   games: number;
   average: number;
-  totalDartsThrown: number; // Track total darts thrown across all games
-  totalPointsScored: number; // Track total points scored across all games
+  totalDartsThrown?: number; // Make these optional for backward compatibility
+  totalPointsScored?: number; // Make these optional for backward compatibility
 }
 
 interface Score {
@@ -142,41 +142,47 @@ export const useStore = create<StoreState>()(
       currentGame: null,
       startGame: (gameType, playerIds) => {
         const { players } = get();
-        const gamePlayers = playerIds
-          .map((id) => {
-            const player = players.find((p) => p.id === id);
-            if (!player) return null;
 
-            const initialScore = parseInt(gameType);
+        // Create empty array first with correct type
+        const gamePlayers: GamePlayer[] = [];
 
-            return {
-              ...player,
-              score: initialScore,
-              initialScore: initialScore, // Store initial score
-              scores: [],
-              dartsThrown: 0,
-              rounds100Plus: 0,
-              rounds140Plus: 0,
-              rounds180: 0,
-              checkoutAttempts: 0,
-              checkoutSuccess: 0,
-              avgPerDart: 0,
-              avgPerRound: 0,
-            };
-          })
-          .filter((p): p is GamePlayer => p !== null);
+        // Populate array with valid players only
+        for (const id of playerIds) {
+          const player = players.find((p) => p.id === id);
+          if (!player) continue;
 
-        set((state) => ({
+          const initialScore = parseInt(gameType);
+
+          // Add player to array with all required properties
+          gamePlayers.push({
+            ...player,
+            score: initialScore,
+            initialScore,
+            scores: [] as Score[],
+            dartsThrown: 0,
+            rounds100Plus: 0,
+            rounds140Plus: 0,
+            rounds180: 0,
+            checkoutAttempts: 0,
+            checkoutSuccess: 0,
+            avgPerDart: 0,
+            avgPerRound: 0,
+            totalDartsThrown: player.totalDartsThrown || 0,
+            totalPointsScored: player.totalPointsScored || 0,
+          });
+        }
+
+        set({
           currentGame: {
             gameType,
             players: gamePlayers,
             currentPlayerIndex: 0,
-            isDoubleOut: state.gameSettings.isDoubleOut,
-            isDoubleIn: state.gameSettings.isDoubleIn,
+            isDoubleOut: get().gameSettings.isDoubleOut,
+            isDoubleIn: get().gameSettings.isDoubleIn,
             isGameFinished: false,
             inputMode: "numeric",
           },
-        }));
+        });
       },
 
       setInputMode: (mode) => {
@@ -347,9 +353,9 @@ export const useStore = create<StoreState>()(
 
             // Update total stats
             const newTotalDartsThrown =
-              player.totalDartsThrown + gamePlayer.dartsThrown;
+              (player.totalDartsThrown || 0) + gamePlayer.dartsThrown;
             const newTotalPointsScored =
-              player.totalPointsScored + totalPointsThisGame;
+              (player.totalPointsScored || 0) + totalPointsThisGame;
 
             // Calculate new career average
             const newAverage =
