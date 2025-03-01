@@ -1,6 +1,7 @@
 import { Box, Typography, Paper } from "@mui/material";
+import React from "react";
 
-export default function History() {
+const History: React.FC = () => {
   return (
     <Box sx={{ p: 1, height: "100%" }}>
       <Paper sx={{ p: 2, height: "100%" }}>
@@ -11,4 +12,6 @@ export default function History() {
       </Paper>
     </Box>
   );
-}
+};
+
+export default History;

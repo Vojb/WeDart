@@ -32,7 +32,7 @@ import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 
 type InputMode = "numeric" | "board";
 
-export default function X01Game() {
+const X01Game: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentGame, recordScore, undoLastScore, endGame, startGame } =
@@ -393,7 +393,7 @@ export default function X01Game() {
       </Paper>
     </Box>
   );
-}
+};
 
 // Component to display player information in a box
 function PlayerBox({
@@ -480,3 +480,5 @@ function PlayerBox({
     </Paper>
   );
 }
+
+export default X01Game;

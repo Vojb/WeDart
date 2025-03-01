@@ -19,6 +19,7 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
+import React from "react";
 
 // Common color presets
 const colorPresets = {
@@ -116,16 +117,18 @@ const colorPresets = {
   ],
 };
 
-// Simple Color Picker component
-function SimpleColorPicker({
-  value,
-  onChange,
-  presets,
-}: {
+interface SimpleColorPickerProps {
   value: string;
   onChange: (color: string) => void;
   presets: string[];
-}) {
+}
+
+// Simple Color Picker component
+const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
+  value,
+  onChange,
+  presets,
+}) => {
   return (
     <Box>
       <Box
@@ -202,9 +205,9 @@ function SimpleColorPicker({
       />
     </Box>
   );
-}
+};
 
-export default function Settings() {
+const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { setThemeColors, themeColors, themeMode, toggleTheme } = useStore();
 
@@ -587,4 +590,6 @@ export default function Settings() {
       </Snackbar>
     </Container>
   );
-}
+};
+
+export default Settings;

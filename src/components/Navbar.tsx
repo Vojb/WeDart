@@ -28,8 +28,9 @@ import {
 import { useStore } from "../store/useStore";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import React from "react";
 
-export default function Navbar() {
+const Navbar: React.FC = () => {
   const { themeMode, toggleTheme } = useStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
@@ -229,4 +230,6 @@ export default function Navbar() {
       </Drawer>
     </AppBar>
   );
-}
+};
+
+export default Navbar;

@@ -1,7 +1,8 @@
 import { Box, Typography, Paper, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import React from "react";
 
-export default function X01() {
+const X01: React.FC = () => {
   const navigate = useNavigate();
 
   return (
@@ -22,4 +23,6 @@ export default function X01() {
       </Paper>
     </Box>
   );
-}
+};
+
+export default X01;

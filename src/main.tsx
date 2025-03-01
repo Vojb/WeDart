@@ -7,12 +7,12 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-function Root() {
+const Root: React.FC = () => {
   return (
     <React.StrictMode>
       <App />
     </React.StrictMode>
   );
-}
+};
 
 ReactDOM.createRoot(document.getElementById("root")!).render(<Root />);

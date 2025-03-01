@@ -1,31 +1,25 @@
-import { ReactNode } from "react";
-import { Box, Container } from "@mui/material";
+import { Box, CssBaseline } from "@mui/material";
 import Navbar from "./Navbar";
+import React, { PropsWithChildren } from "react";
 
-// Simple layout component that doesn't use Router hooks
-interface LayoutProps {
-  children: ReactNode;
-  isGameRoute?: boolean;
-}
-
-export default function Layout({ children, isGameRoute = false }: LayoutProps) {
+const Layout: React.FC<PropsWithChildren> = ({ children }) => {
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      {!isGameRoute && <Navbar />}
-      <Container
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      <CssBaseline />
+      <Navbar />
+      <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 1, sm: 2, md: 3 }, // Responsive padding
+          overflow: "auto",
           display: "flex",
           flexDirection: "column",
-          height: isGameRoute ? "100vh" : "calc(100vh - 56px)", // Full height for game, subtract navbar height otherwise
-          overflow: "hidden",
         }}
-        maxWidth="lg"
       >
         {children}
-      </Container>
+      </Box>
     </Box>
   );
-}
+};
+
+export default Layout;

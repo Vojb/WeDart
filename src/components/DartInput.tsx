@@ -368,8 +368,6 @@ export default function DartInput({ onScore }: DartInputProps) {
                     : "outlined"
                 }
                 disabled={currentDarts.length >= 3}
-                onMouseDown={(e) => handleStart(num, e)}
-                onMouseUp={() => handleEnd()}
                 onTouchStart={(e) => handleStart(num, e)}
                 onTouchEnd={() => handleEnd()}
                 sx={{
@@ -609,8 +607,8 @@ function FrequentDartButtons({
               variant="contained"
               color="secondary"
               sx={{
-                minWidth: "48px",
-                minHeight: { xs: "40px", sm: "36px" },
+                minWidth: "60px",
+                minHeight: { xs: "60px", sm: "46px" },
                 px: 1,
                 display: "flex",
                 flexDirection: "column",

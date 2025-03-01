@@ -1,6 +1,7 @@
 import { Box, Typography, Paper } from "@mui/material";
+import React from "react";
 
-export default function Highscore() {
+const Highscore: React.FC = () => {
   return (
     <Box sx={{ p: 1, height: "100%" }}>
       <Paper sx={{ p: 2, height: "100%" }}>
@@ -11,4 +12,6 @@ export default function Highscore() {
       </Paper>
     </Box>
   );
-}
+};
+
+export default Highscore;

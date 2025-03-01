@@ -14,8 +14,9 @@ import {
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
+import React from "react";
 
-export default function X01NewGame() {
+const X01NewGame: React.FC = () => {
   const navigate = useNavigate();
   const { players, gameSettings, updateGameSettings, startGame } = useStore();
   const [gameType, setGameType] = useState("501");
@@ -145,4 +146,6 @@ export default function X01NewGame() {
       </Paper>
     </Box>
   );
-}
+};
+
+export default X01NewGame;

@@ -22,11 +22,7 @@ const LayoutRoute = () => {
 
 // Create a game layout route that doesn't include the navbar
 const GameLayoutRoute = () => {
-  return (
-    <Layout isGameRoute>
-      <Outlet />
-    </Layout>
-  );
+  return <Outlet />;
 };
 
 export const router = createBrowserRouter([
@@ -69,7 +65,6 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  // Special route for game that needs full screen layout
   {
     path: "/x01/game",
     element: <GameLayoutRoute />,

@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useEffect } from "react";
+import React, { ReactNode, useMemo, useEffect } from "react";
 import {
   ThemeProvider as MuiThemeProvider,
   createTheme,
@@ -7,13 +7,11 @@ import {
 import { CssBaseline } from "@mui/material";
 import { useStore } from "../store/useStore";
 
-interface CustomThemeProviderProps {
+interface ThemeProviderProps {
   children: ReactNode;
 }
 
-export default function CustomThemeProvider({
-  children,
-}: CustomThemeProviderProps) {
+const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { themeColors, themeMode } = useStore();
 
   // Verify theme loading on component mount (for debugging)
@@ -84,4 +82,6 @@ export default function CustomThemeProvider({
       {children}
     </MuiThemeProvider>
   );
-}
+};
+
+export default ThemeProvider;

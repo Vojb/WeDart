@@ -16,8 +16,9 @@ import {
 import { Delete, Edit, Add } from "@mui/icons-material";
 import { useStore } from "../store/useStore";
 import { useState } from "react";
+import React from "react";
 
-export default function Players() {
+const Players: React.FC = () => {
   const { players, addPlayer, editPlayer, removePlayer } = useStore();
   const [newPlayerName, setNewPlayerName] = useState("");
   const [editingPlayer, setEditingPlayer] = useState<{
@@ -128,4 +129,6 @@ export default function Players() {
       </Paper>
     </Box>
   );
-}
+};
+
+export default Players;

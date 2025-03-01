@@ -1,12 +1,13 @@
 import { Grid, Button, IconButton, Typography, Box } from "@mui/material";
 import { Backspace } from "@mui/icons-material";
 import { useState } from "react";
+import React from "react";
 
 interface NumericInputProps {
   onScore: (score: number, darts: number) => void;
 }
 
-export default function NumericInput({ onScore }: NumericInputProps) {
+const NumericInput: React.FC<NumericInputProps> = ({ onScore }) => {
   const [currentInput, setCurrentInput] = useState<string>("");
 
   const handleNumericInput = (num: string) => {
@@ -69,4 +70,6 @@ export default function NumericInput({ onScore }: NumericInputProps) {
       </Grid>
     </Box>
   );
-}
+};
+
+export default NumericInput;
