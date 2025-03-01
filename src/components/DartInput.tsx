@@ -363,6 +363,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               <Button
                 variant="contained"
                 color="error"
+                disabled={currentDarts.length >= 3}
                 onClick={() => {
                   if (currentDarts.length < 3) {
                     recordDart(0, 1);
@@ -379,6 +380,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 Miss
               </Button>
               <Button
+                disabled={currentDarts.length >= 3}
                 variant="contained"
                 color="success"
                 onClick={() => {
@@ -398,6 +400,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               </Button>
               <Button
                 variant="contained"
+                disabled={currentDarts.length >= 3}
                 color="primary"
                 onClick={() => {
                   if (currentDarts.length < 3) {
@@ -560,7 +563,7 @@ function FrequentDartButtons({
                   </Typography>
                   {hitCount > 0 && (
                     <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
-                      {Math.floor(hitCount)}
+                      {hitCount}
                     </Typography>
                   )}
                 </Button>
