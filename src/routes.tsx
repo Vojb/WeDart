@@ -10,6 +10,7 @@ import X01Game from "./pages/X01Game";
 import History from "./pages/History";
 import Highscore from "./pages/Highscore";
 import Players from "./pages/Players";
+import { Box } from "@mui/material";
 
 // Create a layout route component that applies the layout to all children
 const LayoutRoute = () => {
@@ -22,7 +23,11 @@ const LayoutRoute = () => {
 
 // Create a game layout route that doesn't include the navbar
 const GameLayoutRoute = () => {
-  return <Outlet />;
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      <Outlet />
+    </Box>
+  );
 };
 
 export const router = createBrowserRouter([

@@ -11,16 +11,24 @@ import {
   FormControlLabel,
   Switch,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
+import { useX01Store } from "../store/useX01Store";
 import React from "react";
 
 const X01NewGame: React.FC = () => {
   const navigate = useNavigate();
-  const { players, gameSettings, updateGameSettings, startGame } = useStore();
+  const { players } = useStore();
+  const { gameSettings, updateGameSettings, startGame, setPlayers } =
+    useX01Store();
   const [gameType, setGameType] = useState("501");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+
+  // Update X01Store with players from main store
+  useEffect(() => {
+    setPlayers(players);
+  }, [players, setPlayers]);
 
   const handleGameTypeChange = (event: SelectChangeEvent) => {
     setGameType(event.target.value);

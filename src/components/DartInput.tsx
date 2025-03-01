@@ -3,9 +3,10 @@ console.log("DartInput component file loaded");
 
 import { Grid, Button, Box, Typography, Paper, Popper } from "@mui/material";
 import { useState, useRef, useEffect } from "react";
-import { useStore } from "../store/useStore";
+import { useX01Store } from "../store/useX01Store";
 import { alpha } from "@mui/material/styles";
 import { CircularProgress } from "@mui/material";
+import React from "react";
 
 interface DartInputProps {
   onScore: (score: number, dartsUsed: number) => void;
@@ -20,21 +21,22 @@ interface DartScore {
   value: number; // The actual score value (baseNumber × multiplier)
 }
 
-export default function DartInput({ onScore }: DartInputProps) {
+// Remove the checkout guide object from here as it's now imported from the utils file
+
+const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
   console.log("DartInput component rendering");
 
-  const { currentGame } = useStore();
+  const { currentGame, lastDartNotations } = useX01Store();
 
   console.log("Current game from store:", currentGame);
 
   const [showMultiplier, setShowMultiplier] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
   const [currentDarts, setCurrentDarts] = useState<DartScore[]>([]);
-  const [dartNotations, setDartNotations] = useState<string[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const pressTimer = useRef<number | null>(null);
   const [isHolding, setIsHolding] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting] = useState(false);
 
   useEffect(() => {
     console.log("DartInput mounted or updated");
@@ -103,116 +105,75 @@ export default function DartInput({ onScore }: DartInputProps) {
   };
 
   const recordDart = (baseNumber: number, multiplier: Multiplier) => {
-    console.log(`Recording dart: ${baseNumber} with multiplier ${multiplier}`);
-    const value = baseNumber * multiplier;
+    console.log(`Recording dart: ${baseNumber} × ${multiplier}`);
+    const dartValue = baseNumber * multiplier;
+    setCurrentDarts((prevDarts) => [
+      ...prevDarts,
+      { baseNumber, multiplier, value: dartValue },
+    ]);
 
-    // Create the dart notation (e.g., "T20", "D16", "25")
-    const notation = formatDartNotation({ baseNumber, multiplier, value });
+    // Track dart notations for player stats
+    const notation = formatDartNotation({
+      baseNumber,
+      multiplier,
+      value: dartValue,
+    });
 
-    setCurrentDarts((prev) => [...prev, { baseNumber, multiplier, value }]);
+    // Update from useStore to useX01Store
+    useX01Store.setState({
+      lastDartNotations: [...lastDartNotations, notation],
+    });
 
-    setDartNotations((prev) => [...prev, notation]);
-
-    // Close the multiplier selector if it's open
-    if (showMultiplier) {
-      setShowMultiplier(false);
-      setSelectedNumber(null);
-    }
+    console.log(`Added notation: ${notation}`);
   };
 
   const handleSubmitDarts = async () => {
-    if (currentDarts.length === 0) return;
-
     try {
-      setIsSubmitting(true);
-      console.log("Submitting darts:", dartNotations);
+      // For debugging
+      console.log("Submitting darts:", currentDarts);
+
+      if (currentDarts.length === 0) {
+        console.log("No darts to submit");
+        return;
+      }
 
       // Calculate total score
       const totalScore = currentDarts.reduce(
         (sum, dart) => sum + dart.value,
         0
       );
+      console.log(
+        `Total score: ${totalScore}, Darts thrown: ${currentDarts.length}`
+      );
 
-      // Log for debugging
-      console.log("Submitting dart notations:", dartNotations);
-
-      // IMPORTANT: Always record dart notations, even outside of dart input mode
-      // This ensures player stats are tracked across all games
-      useStore.setState({ lastDartNotations: [...dartNotations] });
-
-      // DEBUG: Log the current player's dartHits before recording
-      if (currentGame) {
-        const currentPlayer =
-          currentGame.players[currentGame.currentPlayerIndex];
-        console.log("BEFORE - Player dartHits:", { ...currentPlayer.dartHits });
-        console.log(
-          "Submitting darts:",
-          dartNotations,
-          "for total score:",
-          totalScore
-        );
+      // Get the current player
+      if (!currentGame) {
+        console.error("No active game found");
+        return;
       }
 
-      // Add a small delay to ensure the state is updated before recordScore processes it
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      const currentPlayer = currentGame.players[currentGame.currentPlayerIndex];
+      console.log(
+        `Current player: ${currentPlayer.name}, Score before: ${currentPlayer.score}`
+      );
 
-      // Then record the score which will use these notations
+      // Call the onScore callback to update the game state
       onScore(totalScore, currentDarts.length);
 
-      // DEBUG: Log the current player's dartHits after recording
-      setTimeout(() => {
-        if (currentGame) {
-          const currentPlayer =
-            useStore.getState().currentGame?.players[
-              currentGame.currentPlayerIndex
-            ] || null;
-          const prevPlayer =
-            useStore.getState().currentGame?.players[
-              (currentGame.currentPlayerIndex +
-                useStore.getState().currentGame!.players.length -
-                1) %
-                useStore.getState().currentGame!.players.length
-            ] || null;
-
-          console.log(
-            "AFTER - Previous Player dartHits:",
-            prevPlayer ? { ...prevPlayer.dartHits } : "No previous player"
-          );
-          console.log(
-            "AFTER - Current Player dartHits:",
-            currentPlayer ? { ...currentPlayer.dartHits } : "No current player"
-          );
-          console.log("Darts that should have been recorded:", dartNotations);
-        }
-      }, 100);
-
-      // Reset the local state
+      // Reset current darts after submission
       setCurrentDarts([]);
-      setDartNotations([]);
-      setShowMultiplier(false);
-      setSelectedNumber(null);
-      setAnchorEl(null);
-
-      // Force an immediate update of the favorite darts
-      // This ensures the UI updates right after throwing
-      setTimeout(() => {
-        // This will trigger a re-render of the FrequentDartButtons component
-        useStore.setState({ lastDartNotations: [] });
-      }, 100);
-    } catch (error) {
-      console.error("Error submitting darts:", error);
-    } finally {
-      setIsSubmitting(false);
+      console.log("Darts submitted and reset");
+    } catch (err) {
+      console.error("Error submitting darts:", err);
     }
   };
 
   const handleClearDarts = () => {
     setCurrentDarts([]);
-    setDartNotations([]);
-    setShowMultiplier(false);
-    setSelectedNumber(null);
-    setAnchorEl(null);
-    setIsHolding(false);
+    // Reset dart notations in store
+    useX01Store.setState({
+      lastDartNotations: [],
+    });
   };
 
   // Format a dart score to display notation like "15", "D15", "T15"
@@ -263,13 +224,9 @@ export default function DartInput({ onScore }: DartInputProps) {
       {/* Most frequently hit numbers at the top - always visible */}
       <Box
         sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 1,
           p: 1,
           borderBottom: 1,
           borderColor: "divider",
-          overflow: "auto",
           minHeight: "56px", // Ensure area is always visible even when empty
           backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.05),
         }}
@@ -348,41 +305,61 @@ export default function DartInput({ onScore }: DartInputProps) {
         </Box>
       </Box>
 
-      {/* Number Grid */}
+      {/* Number Grid - Updated to fill remaining space */}
       <Box
         sx={{
           flex: 1,
-          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
           p: 1,
+          height: "100%",
+          overflow: "hidden", // Add overflow hidden to prevent scrolling
         }}
       >
-        <Grid container spacing={1}>
-          {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
-            <Grid item xs={3} key={num}>
-              <Button
-                fullWidth
-                size="small"
-                variant={
-                  selectedNumber === num && (isHolding || showMultiplier)
-                    ? "contained"
-                    : "outlined"
-                }
-                disabled={currentDarts.length >= 3}
-                onTouchStart={(e) => handleStart(num, e)}
-                onTouchEnd={() => handleEnd()}
-                sx={{
-                  minHeight: { xs: "36px", sm: "38px" },
-                  transition: "background-color 0.2s",
-                }}
-              >
-                {num}
-              </Button>
+        <Grid
+          container
+          spacing={1}
+          sx={{
+            height: "100%", // Set full height
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Number buttons 1-20 */}
+          <Grid
+            item
+            xs={12}
+            sx={{ flex: 1, display: "flex", flexDirection: "column" }}
+          >
+            <Grid container spacing={1} sx={{ flex: 1 }}>
+              {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
+                <Grid item xs={3} key={num}>
+                  <Button
+                    fullWidth
+                    size="small"
+                    variant={
+                      selectedNumber === num && (isHolding || showMultiplier)
+                        ? "contained"
+                        : "outlined"
+                    }
+                    disabled={currentDarts.length >= 3}
+                    onTouchStart={(e) => handleStart(num, e)}
+                    onTouchEnd={() => handleEnd()}
+                    onMouseLeave={() => isHolding && handleEnd()}
+                    sx={{
+                      height: "100%",
+                      transition: "background-color 0.2s",
+                      fontSize: { xs: "1rem", sm: "1.1rem" },
+                    }}
+                  >
+                    {num}
+                  </Button>
+                </Grid>
+              ))}
             </Grid>
-          ))}
 
-          <Grid item xs={12}>
-            {/* Quick Action Buttons - Only shown in dart input mode */}
-            <Box sx={{ display: "flex", mb: 2, width: "100%" }}>
+            {/* Quick Action Buttons - Now positioned below the numbers */}
+            <Box sx={{ display: "flex", width: "100%", mt: 1 }}>
               <Button
                 variant="contained"
                 color="error"
@@ -394,9 +371,9 @@ export default function DartInput({ onScore }: DartInputProps) {
                 sx={{
                   flex: 1,
                   mr: 0.5,
-                  py: 1.5,
+                  py: 2,
                   fontWeight: "bold",
-                  fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
                 }}
               >
                 Miss
@@ -412,9 +389,9 @@ export default function DartInput({ onScore }: DartInputProps) {
                 sx={{
                   flex: 1,
                   mx: 0.5,
-                  py: 1.5,
+                  py: 2,
                   fontWeight: "bold",
-                  fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
                 }}
               >
                 Bull (25)
@@ -430,9 +407,9 @@ export default function DartInput({ onScore }: DartInputProps) {
                 sx={{
                   flex: 1,
                   ml: 0.5,
-                  py: 1.5,
+                  py: 2,
                   fontWeight: "bold",
-                  fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
                 }}
               >
                 D-Bull (50)
@@ -480,7 +457,7 @@ export default function DartInput({ onScore }: DartInputProps) {
       </Popper>
     </Box>
   );
-}
+};
 
 // Create a separate component to ensure it re-renders properly
 function FrequentDartButtons({
@@ -492,97 +469,55 @@ function FrequentDartButtons({
   currentDartsLength: number;
   recordDart: (baseNumber: number, multiplier: Multiplier) => void;
 }) {
-  console.log("FrequentDartButtons rendering");
-  const { currentGame, getPlayerMostFrequentDarts, lastDartNotations } =
-    useStore();
-  // Force re-render when lastDartNotations changes
-  const [, forceUpdate] = useState<any>();
-  const prevPlayerIndexRef = useRef(currentPlayerIndex);
+  const { currentGame, getPlayerMostFrequentDarts } = useX01Store();
 
-  // Re-render when it's a different player's turn or when dart notations change
+  // Re-compute frequent darts when currentPlayerIndex changes or darts are recorded
+  const [frequentDarts, setFrequentDarts] = useState<string[]>([]);
+
   useEffect(() => {
-    // Force a re-render to update the buttons
-    forceUpdate({});
+    // Get the current player's ID from the game
+    if (currentGame && currentGame.players[currentPlayerIndex]) {
+      const playerId = currentGame.players[currentPlayerIndex].id;
+      // Limit to 5 favorite darts
+      const frequent = getPlayerMostFrequentDarts(playerId, 5);
+      console.log(`Player ${playerId}'s frequent darts:`, frequent);
+      setFrequentDarts(frequent);
+    }
+  }, [currentPlayerIndex, currentGame, getPlayerMostFrequentDarts]);
 
-    // Check if player has changed
-    if (prevPlayerIndexRef.current !== currentPlayerIndex) {
-      console.log("Player changed, updating favorite darts");
-      prevPlayerIndexRef.current = currentPlayerIndex;
+  // Create dartCounts for tracking frequency
+  const dartCounts: Record<string, number> = {};
+
+  // Calculate dartCounts if the current player exists
+  if (currentGame && currentGame.players[currentPlayerIndex]) {
+    const currentPlayer = currentGame.players[currentPlayerIndex];
+    // Track counts for each frequent dart
+    frequentDarts.forEach((notation) => {
+      dartCounts[notation] = currentPlayer.dartHits[notation] || 0;
+    });
+  }
+
+  const handleFavoriteDartClick = (notation: string) => {
+    console.log(`Favorite dart clicked: ${notation}`);
+    // Process the notation to extract the base number and multiplier
+    let multiplier: Multiplier = 1;
+    let baseNumber = 0;
+
+    if (notation.startsWith("T")) {
+      multiplier = 3;
+      baseNumber = Number(notation.substring(1));
+    } else if (notation.startsWith("D")) {
+      multiplier = 2;
+      baseNumber = Number(notation.substring(1));
+    } else {
+      baseNumber = Number(notation);
     }
 
-    // No need for frequent polling - we'll update when it matters:
-    // 1. When player changes (currentPlayerIndex)
-    // 2. When darts are thrown (lastDartNotations)
-  }, [lastDartNotations, currentPlayerIndex]);
-
-  // Force a refresh when the component mounts
-  useEffect(() => {
-    forceUpdate({});
-
-    // Also add a one-time refresh after a short delay
-    // This helps ensure the component updates after any state changes
-    const timeoutId = setTimeout(() => {
-      forceUpdate({});
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  if (!currentGame) {
-    console.error("FrequentDartButtons: currentGame is null");
-    return null;
-  }
-
-  // Get the current player
-  const currentPlayer = currentGame.players[currentPlayerIndex];
-  if (!currentPlayer) {
-    console.error(
-      "FrequentDartButtons: currentPlayer is null, index:",
-      currentPlayerIndex
-    );
-    return null;
-  }
-
-  // Log the current player's dartHits for debugging
-  console.log(`Rendering favorite darts for player ${currentPlayer.name}:`, {
-    ...currentPlayer.dartHits,
-  });
-
-  // Get frequent darts
-  const frequentDarts = getPlayerMostFrequentDarts
-    ? getPlayerMostFrequentDarts(currentPlayer.id)
-    : [];
-
-  // Get hit counts for each dart
-  const dartCounts: Record<string, number> = {};
-  for (const notation of frequentDarts) {
-    dartCounts[notation] = currentPlayer.dartHits[notation] || 0;
-  }
-
-  console.log(
-    "FrequentDartButtons rendering with:",
-    frequentDarts,
-    "counts:",
-    dartCounts
-  );
-
-  // Helper to handle favorite dart clicks
-  const handleFavoriteDartClick = (notation: string) => {
-    // Extract the base number and multiplier from the notation
-    let multiplier: Multiplier = 1;
-    if (notation.startsWith("T")) multiplier = 3;
-    else if (notation.startsWith("D")) multiplier = 2;
-
-    // Extract the base number
-    let baseNumber = parseInt(notation.replace(/[DT]/g, ""));
-    if (isNaN(baseNumber)) baseNumber = 25; // Default to bullseye if parsing fails
-
-    console.log(
-      `Clicked favorite dart: ${notation}, baseNumber: ${baseNumber}, multiplier: ${multiplier}`
-    );
-
-    // Directly record the dart with the correct multiplier
-    recordDart(baseNumber, multiplier);
+    if (!isNaN(baseNumber) && baseNumber > 0) {
+      recordDart(baseNumber, multiplier);
+    } else {
+      console.error(`Invalid dart notation: ${notation}`);
+    }
   };
 
   // Always show buttons - even common defaults for new players
@@ -593,44 +528,49 @@ function FrequentDartButtons({
           Your favorite darts will appear here
         </Typography>
       ) : (
-        frequentDarts.map((notation, index) => {
-          // Get the hit count for this notation
-          const hitCount = dartCounts[notation] || 0;
+        <Grid container spacing={1} columns={5}>
+          {frequentDarts.slice(0, 5).map((notation, index) => {
+            // Get the hit count for this notation
+            const hitCount = dartCounts[notation] || 0;
 
-          let baseNumber = parseInt(notation.replace(/[DT]/g, ""));
-          if (isNaN(baseNumber)) baseNumber = 25;
+            let baseNumber = parseInt(notation.replace(/[DT]/g, ""));
+            if (isNaN(baseNumber)) baseNumber = 25;
 
-          return (
-            <Button
-              key={index}
-              size="small"
-              variant="contained"
-              color="secondary"
-              sx={{
-                minWidth: "60px",
-                minHeight: { xs: "60px", sm: "46px" },
-                px: 1,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                lineHeight: 1,
-              }}
-              disabled={currentDartsLength >= 3}
-              onClick={() => handleFavoriteDartClick(notation)}
-            >
-              <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                {notation}
-              </Typography>
-              {hitCount > 0 && (
-                <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
-                  {hitCount}
-                </Typography>
-              )}
-            </Button>
-          );
-        })
+            return (
+              <Grid item xs={1} key={index}>
+                <Button
+                  fullWidth
+                  size="small"
+                  variant="contained"
+                  color="secondary"
+                  sx={{
+                    height: { xs: "46px", sm: "42px" },
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    lineHeight: 1,
+                    p: 0.5,
+                  }}
+                  disabled={currentDartsLength >= 3}
+                  onClick={() => handleFavoriteDartClick(notation)}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: "bold" }}>
+                    {notation}
+                  </Typography>
+                  {hitCount > 0 && (
+                    <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+                      {Math.floor(hitCount)}
+                    </Typography>
+                  )}
+                </Button>
+              </Grid>
+            );
+          })}
+        </Grid>
       )}
     </>
   );
 }
+
+export default DartInput;

@@ -22,21 +22,34 @@ import {
   EmojiEvents,
   ExitToApp,
 } from "@mui/icons-material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
+import { useX01Store } from "../store/useX01Store";
+import { useHistoryStore } from "../store/useHistoryStore";
+import { v4 as uuidv4 } from "uuid";
 import { useNavigate, useLocation } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
+import checkoutGuide from "../utils/checkoutGuide";
 
 type InputMode = "numeric" | "board";
 
 const X01Game: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentGame, recordScore, undoLastScore, endGame, startGame } =
-    useStore();
+  const { players } = useStore();
+  const {
+    currentGame,
+    recordScore,
+    undoLastScore,
+    endGame,
+    startGame,
+    setInputMode: setStoreInputMode,
+    setPlayers,
+  } = useX01Store();
+  const { addCompletedGame } = useHistoryStore();
   const [inputMode, setInputMode] = useState<InputMode>("numeric");
   const [showRoundAvg, setShowRoundAvg] = useState(false);
 
@@ -46,6 +59,35 @@ const X01Game: React.FC = () => {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   // Add flag to prevent infinite loop
   const [isInitialized, setIsInitialized] = useState(false);
+  // Track game start time
+  const gameStartTimeRef = useRef<number>(Date.now());
+  // Track if game is saved to history
+  const gameSavedToHistoryRef = useRef<boolean>(false);
+
+  // Update cached players in X01Store
+  useEffect(() => {
+    setPlayers(players);
+  }, [players, setPlayers]);
+
+  useEffect(() => {
+    // Sync local inputMode with store inputMode
+    if (currentGame && !isInitialized) {
+      if (inputMode === "numeric") {
+        setStoreInputMode("numeric");
+      } else if (inputMode === "board") {
+        setStoreInputMode("dart");
+      }
+      setIsInitialized(true);
+    }
+  }, [currentGame, inputMode, setStoreInputMode, isInitialized]);
+
+  useEffect(() => {
+    // Initialize inputMode from store when currentGame is available
+    if (currentGame && currentGame.inputMode) {
+      const newMode = currentGame.inputMode === "numeric" ? "numeric" : "board";
+      setInputMode(newMode);
+    }
+  }, [currentGame]);
 
   useEffect(() => {
     if (!currentGame) {
@@ -53,8 +95,76 @@ const X01Game: React.FC = () => {
     } else if (currentGame.isGameFinished && !dialogOpen) {
       // Open dialog when game is finished
       setDialogOpen(true);
+
+      // Save the completed game to history if not already saved
+      if (!gameSavedToHistoryRef.current) {
+        saveGameToHistory();
+        gameSavedToHistoryRef.current = true;
+      }
     }
   }, [currentGame, navigate, dialogOpen]);
+
+  // Reset game start time and history flag when a new game starts
+  useEffect(() => {
+    if (currentGame && !currentGame.isGameFinished) {
+      gameStartTimeRef.current = Date.now();
+      gameSavedToHistoryRef.current = false;
+    }
+  }, [currentGame]);
+
+  // Save the completed game to history
+  const saveGameToHistory = () => {
+    if (!currentGame || !currentGame.isGameFinished) return;
+
+    // Find the winner (player with score of exactly 0)
+    const winner = currentGame.players.find((p) => p.score === 0);
+
+    // Calculate game duration in seconds
+    const gameDuration = Math.floor(
+      (Date.now() - gameStartTimeRef.current) / 1000
+    );
+
+    // Create the X01CompletedGame object
+    const completedGame = {
+      id: uuidv4(),
+      gameType: currentGame.gameType,
+      timestamp: Date.now(),
+      isDoubleOut: currentGame.isDoubleOut,
+      isDoubleIn: currentGame.isDoubleIn,
+      duration: gameDuration,
+      winnerId: winner ? winner.id : null,
+      players: currentGame.players.map((player) => {
+        const initialScore = player.initialScore;
+        const pointsScored = initialScore - player.score;
+
+        return {
+          id: player.id,
+          name: player.name,
+          initialScore: player.initialScore,
+          finalScore: player.score,
+          dartsThrown: player.dartsThrown,
+          rounds100Plus: player.rounds100Plus,
+          rounds140Plus: player.rounds140Plus,
+          rounds180: player.rounds180,
+          checkoutSuccess: player.checkoutSuccess,
+          checkoutAttempts: player.checkoutAttempts,
+          avgPerDart:
+            player.dartsThrown > 0 ? pointsScored / player.dartsThrown : 0,
+          avgPerRound:
+            player.dartsThrown > 0
+              ? pointsScored / Math.ceil(player.dartsThrown / 3)
+              : 0,
+          scores: player.scores.map((score) => ({
+            score: score.score,
+            darts: score.darts,
+          })),
+        };
+      }),
+    };
+
+    // Add the completed game to history
+    addCompletedGame(completedGame);
+  };
 
   // Handle back button and navigation attempts
   useEffect(() => {
@@ -82,27 +192,6 @@ const X01Game: React.FC = () => {
     };
   }, [currentGame, location.pathname]);
 
-  // FIXED: Replace the two useEffects that were creating an infinite loop with a single effect
-  // that only initializes the local state from the store once
-  useEffect(() => {
-    if (currentGame && !isInitialized) {
-      // Initialize local state from store only once
-      const storeInputMode = currentGame.inputMode;
-      // Handle the type mismatch - convert "dart" to "board" for local state
-      if (storeInputMode === "numeric" || storeInputMode === "dart") {
-        const localMode = storeInputMode === "numeric" ? "numeric" : "board";
-        setInputMode(localMode);
-        console.log(
-          "X01Game: Initialized local inputMode from store:",
-          storeInputMode,
-          "to local:",
-          localMode
-        );
-        setIsInitialized(true);
-      }
-    }
-  }, [currentGame, isInitialized]);
-
   // Handle changes to inputMode without creating an infinite loop
   const handleInputModeChange = (newMode: InputMode) => {
     setInputMode(newMode);
@@ -115,7 +204,7 @@ const X01Game: React.FC = () => {
 
       // Fix: Use setInputMode method from the store instead of direct state update
       if (currentGame) {
-        useStore.getState().setInputMode(storeMode);
+        useX01Store.getState().setInputMode(storeMode);
         console.log("X01Game: Updated store inputMode to", storeMode);
       }
     }
@@ -395,7 +484,7 @@ const X01Game: React.FC = () => {
   );
 };
 
-// Component to display player information in a box
+// Move PlayerBox to its own dedicated component
 function PlayerBox({
   player,
   isCurrentPlayer,
@@ -418,6 +507,10 @@ function PlayerBox({
   const playerAvgPerRound = (
     playerPointsScored / playerRoundsPlayed || 0
   ).toFixed(1);
+
+  // Check if we need to display checkout guide (score below 170)
+  const showCheckoutGuide = player.score <= 170 && player.score > 1;
+  const checkoutPath = showCheckoutGuide ? checkoutGuide[player.score] : null;
 
   return (
     <Paper
@@ -477,6 +570,39 @@ function PlayerBox({
         </Typography>
         <Typography variant="caption">Darts: {player.dartsThrown}</Typography>
       </Box>
+
+      {/* Checkout guide */}
+      {showCheckoutGuide && checkoutPath && (
+        <Box
+          sx={{
+            mt: 1,
+            p: 0.75,
+            borderRadius: 1,
+            backgroundColor: (theme) => alpha(theme.palette.success.main, 0.08),
+            border: "1px dashed",
+            borderColor: "success.main",
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              fontWeight: "bold",
+              color: "success.main",
+              fontSize: "0.7rem",
+              mb: 0.25,
+            }}
+          >
+            CHECKOUT
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: "medium", lineHeight: 1.2 }}
+          >
+            {checkoutPath}
+          </Typography>
+        </Box>
+      )}
     </Paper>
   );
 }
