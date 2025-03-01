@@ -1,3 +1,6 @@
+// Add console logging at the top of the file
+console.log("DartInput component file loaded");
+
 import { Grid, Button, Box, Typography, Paper, Popper } from "@mui/material";
 import { useState, useRef, useEffect } from "react";
 import { useStore } from "../store/useStore";
@@ -18,7 +21,12 @@ interface DartScore {
 }
 
 export default function DartInput({ onScore }: DartInputProps) {
+  console.log("DartInput component rendering");
+
   const { currentGame } = useStore();
+
+  console.log("Current game from store:", currentGame);
+
   const [showMultiplier, setShowMultiplier] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
   const [currentDarts, setCurrentDarts] = useState<DartScore[]>([]);
@@ -29,12 +37,21 @@ export default function DartInput({ onScore }: DartInputProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    console.log("DartInput mounted or updated");
     return () => {
+      console.log("DartInput unmounting");
       if (pressTimer.current) {
         window.clearTimeout(pressTimer.current);
       }
     };
   }, []);
+
+  // Add a check to make sure currentGame exists
+  useEffect(() => {
+    if (!currentGame) {
+      console.error("DartInput: currentGame is null or undefined");
+    }
+  }, [currentGame]);
 
   const handleStart = (
     number: number,
@@ -86,6 +103,7 @@ export default function DartInput({ onScore }: DartInputProps) {
   };
 
   const recordDart = (baseNumber: number, multiplier: Multiplier) => {
+    console.log(`Recording dart: ${baseNumber} with multiplier ${multiplier}`);
     const value = baseNumber * multiplier;
 
     // Create the dart notation (e.g., "T20", "D16", "25")
@@ -216,8 +234,22 @@ export default function DartInput({ onScore }: DartInputProps) {
 
   // Calculate the remaining score after the current darts
   const currentPlayerScore =
-    currentGame?.players[currentGame.currentPlayerIndex].score || 0;
+    currentGame?.players[currentGame.currentPlayerIndex]?.score || 0;
   const remainingScore = currentPlayerScore - totalScore;
+
+  // Check if we have essential data
+  if (!currentGame) {
+    console.error("DartInput: currentGame not available");
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography color="error">
+          Game data not available. Please start a new game.
+        </Typography>
+      </Box>
+    );
+  }
+
+  console.log("DartInput rendering complete UI");
 
   return (
     <Box
@@ -462,6 +494,7 @@ function FrequentDartButtons({
   currentDartsLength: number;
   recordDart: (baseNumber: number, multiplier: Multiplier) => void;
 }) {
+  console.log("FrequentDartButtons rendering");
   const { currentGame, getPlayerMostFrequentDarts, lastDartNotations } =
     useStore();
   // Force re-render when lastDartNotations changes
@@ -497,10 +530,20 @@ function FrequentDartButtons({
     return () => clearTimeout(timeoutId);
   }, []);
 
-  if (!currentGame) return null;
+  if (!currentGame) {
+    console.error("FrequentDartButtons: currentGame is null");
+    return null;
+  }
 
   // Get the current player
   const currentPlayer = currentGame.players[currentPlayerIndex];
+  if (!currentPlayer) {
+    console.error(
+      "FrequentDartButtons: currentPlayer is null, index:",
+      currentPlayerIndex
+    );
+    return null;
+  }
 
   // Log the current player's dartHits for debugging
   console.log(`Rendering favorite darts for player ${currentPlayer.name}:`, {
@@ -508,7 +551,10 @@ function FrequentDartButtons({
   });
 
   // Get frequent darts
-  const frequentDarts = getPlayerMostFrequentDarts(currentPlayer.id);
+  const frequentDarts = getPlayerMostFrequentDarts
+    ? getPlayerMostFrequentDarts(currentPlayer.id)
+    : [];
+
   // Get hit counts for each dart
   const dartCounts: Record<string, number> = {};
   for (const notation of frequentDarts) {
@@ -551,6 +597,7 @@ function FrequentDartButtons({
       ) : (
         frequentDarts.map((notation, index) => {
           // Get the hit count for this notation
+          const hitCount = dartCounts[notation] || 0;
 
           let baseNumber = parseInt(notation.replace(/[DT]/g, ""));
           if (isNaN(baseNumber)) baseNumber = 25;
@@ -577,6 +624,11 @@ function FrequentDartButtons({
               <Typography variant="caption" sx={{ fontWeight: "bold" }}>
                 {notation}
               </Typography>
+              {hitCount > 0 && (
+                <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
+                  {hitCount}
+                </Typography>
+              )}
             </Button>
           );
         })

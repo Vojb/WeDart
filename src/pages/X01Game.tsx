@@ -28,6 +28,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
+import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 
 type InputMode = "numeric" | "board";
 
@@ -43,6 +44,8 @@ export default function X01Game() {
   const [dialogOpen, setDialogOpen] = useState(false);
   // Handle navigation confirmation dialog
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  // Add flag to prevent infinite loop
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     if (!currentGame) {
@@ -78,6 +81,45 @@ export default function X01Game() {
       window.removeEventListener("popstate", handleBackButton);
     };
   }, [currentGame, location.pathname]);
+
+  // FIXED: Replace the two useEffects that were creating an infinite loop with a single effect
+  // that only initializes the local state from the store once
+  useEffect(() => {
+    if (currentGame && !isInitialized) {
+      // Initialize local state from store only once
+      const storeInputMode = currentGame.inputMode;
+      // Handle the type mismatch - convert "dart" to "board" for local state
+      if (storeInputMode === "numeric" || storeInputMode === "dart") {
+        const localMode = storeInputMode === "numeric" ? "numeric" : "board";
+        setInputMode(localMode);
+        console.log(
+          "X01Game: Initialized local inputMode from store:",
+          storeInputMode,
+          "to local:",
+          localMode
+        );
+        setIsInitialized(true);
+      }
+    }
+  }, [currentGame, isInitialized]);
+
+  // Handle changes to inputMode without creating an infinite loop
+  const handleInputModeChange = (newMode: InputMode) => {
+    setInputMode(newMode);
+
+    // Update the store with the appropriate value
+    if (currentGame) {
+      // Convert "board" to "dart" for the store
+      const storeMode: "numeric" | "dart" =
+        newMode === "numeric" ? "numeric" : "dart";
+
+      // Fix: Use setInputMode method from the store instead of direct state update
+      if (currentGame) {
+        useStore.getState().setInputMode(storeMode);
+        console.log("X01Game: Updated store inputMode to", storeMode);
+      }
+    }
+  };
 
   if (!currentGame) return null;
 
@@ -320,7 +362,9 @@ export default function X01Game() {
                 value={inputMode}
                 exclusive
                 size="small"
-                onChange={(_, newMode) => newMode && setInputMode(newMode)}
+                onChange={(_, newMode) =>
+                  newMode && handleInputModeChange(newMode)
+                }
               >
                 <ToggleButton value="numeric">
                   <Calculate />
@@ -340,7 +384,9 @@ export default function X01Game() {
             {inputMode === "numeric" ? (
               <NumericInput onScore={recordScore} />
             ) : (
-              <DartInput onScore={recordScore} />
+              <DartInputErrorBoundary>
+                <DartInput onScore={recordScore} />
+              </DartInputErrorBoundary>
             )}
           </Box>
         </Box>
