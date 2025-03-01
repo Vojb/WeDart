@@ -67,6 +67,10 @@ interface StoreState {
   setInputMode: (mode: "numeric" | "dart") => void;
 }
 
+// Add this at the top level, outside any function
+let lastScoreTimestamp = 0;
+const DEBOUNCE_DELAY = 300; // milliseconds
+
 // Calculate a player's game statistics
 function calculatePlayerAverages(player: GamePlayer): {
   avgPerDart: number;
@@ -200,6 +204,14 @@ export const useStore = create<StoreState>()(
       // Improved recordScore function with correct average calculations
       recordScore: (score, dartsUsed) => {
         try {
+          // Add debounce to prevent duplicate score registrations
+          const now = Date.now();
+          if (now - lastScoreTimestamp < DEBOUNCE_DELAY) {
+            console.log("Prevented duplicate score registration");
+            return; // Ignore rapid repeated calls
+          }
+          lastScoreTimestamp = now;
+
           set((state) => {
             // Guard clauses
             if (!state.currentGame) return state;
