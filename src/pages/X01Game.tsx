@@ -20,7 +20,7 @@ type InputMode = "numeric" | "board";
 
 export default function X01Game() {
   const navigate = useNavigate();
-  const { currentGame, recordScore } = useStore();
+  const { currentGame, recordScore, undoLastScore } = useStore();
   const [inputMode, setInputMode] = useState<InputMode>("numeric");
   const [showRoundAvg, setShowRoundAvg] = useState(false);
 
@@ -41,6 +41,12 @@ export default function X01Game() {
 
   const avgPerDart = (pointsScored / dartsThrown).toFixed(1);
   const avgPerRound = (pointsScored / roundsPlayed || 0).toFixed(1);
+
+  const handleUndo = () => {
+    if (currentGame) {
+      undoLastScore();
+    }
+  };
 
   return (
     <Box
@@ -160,10 +166,8 @@ export default function X01Game() {
       >
         <SpeedDialAction
           icon={<Undo />}
-          tooltipTitle="Undo"
-          onClick={() => {
-            /* TODO: Implement undo */
-          }}
+          tooltipTitle={inputMode === "numeric" ? "Undo Round" : "Undo Dart"}
+          onClick={handleUndo}
         />
         <SpeedDialAction
           icon={<Close />}

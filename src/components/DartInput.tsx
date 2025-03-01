@@ -7,10 +7,17 @@ interface DartInputProps {
 
 type Multiplier = 1 | 2 | 3;
 
+// Define a type to track both the score and how it was achieved
+interface DartScore {
+  baseNumber: number;
+  multiplier: Multiplier;
+  value: number; // The actual score value (baseNumber × multiplier)
+}
+
 export default function DartInput({ onScore }: DartInputProps) {
   const [showMultiplier, setShowMultiplier] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
-  const [currentDarts, setCurrentDarts] = useState<number[]>([]);
+  const [currentDarts, setCurrentDarts] = useState<DartScore[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const pressTimer = useRef<number | null>(null);
   const [isHolding, setIsHolding] = useState(false);
@@ -27,8 +34,15 @@ export default function DartInput({ onScore }: DartInputProps) {
     number: number,
     event: React.MouseEvent | React.TouchEvent
   ) => {
-    event.preventDefault(); // Prevent default to avoid text selection
+    event.preventDefault();
     if (currentDarts.length >= 3) return;
+
+    // If clicking a new number while multiplier is shown, clear the previous state
+    if (showMultiplier && selectedNumber !== number) {
+      setShowMultiplier(false);
+      setAnchorEl(null);
+      setSelectedNumber(null);
+    }
 
     const element = event.currentTarget as HTMLElement;
     setSelectedNumber(number);
@@ -37,34 +51,41 @@ export default function DartInput({ onScore }: DartInputProps) {
 
     pressTimer.current = window.setTimeout(() => {
       setShowMultiplier(true);
-    }, 500); // Reduced to 500ms for better UX
+    }, 500);
   };
 
-  const handleEnd = (clearMultiplier: boolean = true) => {
+  const handleEnd = () => {
     if (pressTimer.current) {
       window.clearTimeout(pressTimer.current);
       pressTimer.current = null;
     }
 
+    // Only register single score if not showing multiplier
     if (selectedNumber !== null && currentDarts.length < 3 && !showMultiplier) {
-      // Single score
-      setCurrentDarts([...currentDarts, selectedNumber]);
-    }
-
-    if (clearMultiplier) {
-      setShowMultiplier(false);
-      setAnchorEl(null);
+      setCurrentDarts([
+        ...currentDarts,
+        {
+          baseNumber: selectedNumber,
+          multiplier: 1,
+          value: selectedNumber,
+        },
+      ]);
+      setSelectedNumber(null);
     }
 
     setIsHolding(false);
-    if (!showMultiplier) {
-      setSelectedNumber(null);
-    }
   };
 
   const handleMultiplierSelect = (multiplier: Multiplier) => {
     if (selectedNumber !== null && currentDarts.length < 3) {
-      setCurrentDarts([...currentDarts, selectedNumber * multiplier]);
+      setCurrentDarts([
+        ...currentDarts,
+        {
+          baseNumber: selectedNumber,
+          multiplier: multiplier,
+          value: selectedNumber * multiplier,
+        },
+      ]);
     }
     setShowMultiplier(false);
     setAnchorEl(null);
@@ -74,9 +95,15 @@ export default function DartInput({ onScore }: DartInputProps) {
 
   const handleSubmitDarts = () => {
     if (currentDarts.length > 0) {
-      const totalScore = currentDarts.reduce((sum, score) => sum + score, 0);
+      const totalScore = currentDarts.reduce(
+        (sum, dart) => sum + dart.value,
+        0
+      );
       onScore(totalScore, currentDarts.length);
       setCurrentDarts([]);
+      setShowMultiplier(false);
+      setSelectedNumber(null);
+      setAnchorEl(null);
     }
   };
 
@@ -87,6 +114,23 @@ export default function DartInput({ onScore }: DartInputProps) {
     setAnchorEl(null);
     setIsHolding(false);
   };
+
+  // Format a dart score to display notation like "15", "D15", "T15"
+  const formatDartNotation = (dart: DartScore): string => {
+    switch (dart.multiplier) {
+      case 1:
+        return `${dart.baseNumber}`;
+      case 2:
+        return `D${dart.baseNumber}`;
+      case 3:
+        return `T${dart.baseNumber}`;
+      default:
+        return `${dart.value}`;
+    }
+  };
+
+  // Calculate the total score of all darts
+  const totalScore = currentDarts.reduce((sum, dart) => sum + dart.value, 0);
 
   return (
     <Box
@@ -107,9 +151,15 @@ export default function DartInput({ onScore }: DartInputProps) {
           borderColor: "divider",
         }}
       >
-        <Typography variant="body2">
-          Darts: {currentDarts.map((d) => d.toString()).join(" + ") || "0"}
-        </Typography>
+        <Box>
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            {currentDarts.map((dart) => formatDartNotation(dart)).join(" + ") ||
+              "None"}
+          </Typography>
+          <Typography variant="body1" fontWeight="bold">
+            Total: {totalScore}
+          </Typography>
+        </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
             size="small"
@@ -146,12 +196,13 @@ export default function DartInput({ onScore }: DartInputProps) {
                 fullWidth
                 size="small"
                 variant={
-                  selectedNumber === num && isHolding ? "contained" : "outlined"
+                  selectedNumber === num && (isHolding || showMultiplier)
+                    ? "contained"
+                    : "outlined"
                 }
                 disabled={currentDarts.length >= 3}
                 onMouseDown={(e) => handleStart(num, e)}
                 onMouseUp={() => handleEnd()}
-                onMouseLeave={() => handleEnd()}
                 onTouchStart={(e) => handleStart(num, e)}
                 onTouchEnd={() => handleEnd()}
                 sx={{
@@ -168,12 +219,13 @@ export default function DartInput({ onScore }: DartInputProps) {
               fullWidth
               size="small"
               variant={
-                selectedNumber === 25 && isHolding ? "contained" : "outlined"
+                selectedNumber === 25 && (isHolding || showMultiplier)
+                  ? "contained"
+                  : "outlined"
               }
               disabled={currentDarts.length >= 3}
               onMouseDown={(e) => handleStart(25, e)}
               onMouseUp={() => handleEnd()}
-              onMouseLeave={() => handleEnd()}
               onTouchStart={(e) => handleStart(25, e)}
               onTouchEnd={() => handleEnd()}
               sx={{
