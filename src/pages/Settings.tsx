@@ -13,12 +13,17 @@ import {
   Switch,
   FormControlLabel,
   TextField,
+  Card,
+  CardContent,
+  CardActionArea,
+  Stack,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate } from "react-router-dom";
-import { useStore } from "../store/useStore";
+import { useStore, predefinedThemes } from "../store/useStore";
 import React from "react";
 
 // Common color presets
@@ -115,6 +120,50 @@ const colorPresets = {
     "#ff6e40", // Deep orange A200
     "#ff9e80", // Deep orange A100
   ],
+  background: [
+    "#121212", // Standard dark background
+    "#1e1e1e", // Standard dark paper
+    "#000000", // Black
+    "#0a0a0a", // Near black
+    "#0d0221", // Deep purple background
+    "#190a05", // Dark brown background
+    "#002147", // Deep navy background
+    "#1a1a2e", // Dark blue
+    "#0f111a", // Dark blue-gray
+    "#292929", // Dark gray
+    "#1f1f1f", // Another dark gray
+    "#1a1a1a", // Yet another dark gray
+    "#222222", // And another dark gray
+    "#123456", // Dark blue shade
+    "#102030", // Navy blue
+    "#111111", // Almost black
+    "#1a1a2e", // Dark blue-violet
+    "#1f2937", // Dark slate
+    "#181818", // Another dark gray
+    "#0f172a", // Dark blue
+  ],
+  paper: [
+    "#1e1e1e", // Standard dark paper
+    "#121212", // Standard dark background
+    "#282828", // Dark gray
+    "#1a1a1a", // Darker paper
+    "#1a1a2e", // Dark blue paper
+    "#251e18", // Dark brown paper
+    "#0a3060", // Navy paper
+    "#212121", // Gray
+    "#303030", // Lighter gray
+    "#2d3748", // Blue-gray
+    "#1e293b", // Dark blue-gray
+    "#1e1e30", // Dark blue
+    "#242424", // Another gray
+    "#2c2c2c", // Lighter gray
+    "#1f2937", // Dark slate
+    "#222222", // Yet another gray
+    "#1e1e24", // Dark gray with blue hint
+    "#2d2d2d", // Medium gray
+    "#202020", // Standard gray
+    "#262626", // Medium-dark gray
+  ],
 };
 
 interface SimpleColorPickerProps {
@@ -209,7 +258,14 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { setThemeColors, themeColors, themeMode, toggleTheme } = useStore();
+  const {
+    setThemeColors,
+    themeColors,
+    themeMode,
+    toggleTheme,
+    currentThemeId,
+    setCurrentTheme,
+  } = useStore();
 
   // State for color values
   const [primaryColor, setPrimaryColor] = useState(
@@ -223,9 +279,22 @@ const Settings: React.FC = () => {
   );
   const [errorColor, setErrorColor] = useState(themeColors?.error || "#d32f2f");
 
+  // State for background colors
+  const [backgroundDefaultColor, setBackgroundDefaultColor] = useState(
+    themeColors?.background?.default || "#121212"
+  );
+  const [backgroundPaperColor, setBackgroundPaperColor] = useState(
+    themeColors?.background?.paper || "#1e1e1e"
+  );
+
   // Snackbar state
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+
+  // State for tracking if we're using a custom theme (not a predefined one)
+  const [isCustomTheme, setIsCustomTheme] = useState(
+    currentThemeId === "custom"
+  );
 
   // Initialize colors from store
   useEffect(() => {
@@ -234,6 +303,8 @@ const Settings: React.FC = () => {
       setSecondaryColor(themeColors.secondary || "#9c27b0");
       setSuccessColor(themeColors.success || "#2e7d32");
       setErrorColor(themeColors.error || "#d32f2f");
+      setBackgroundDefaultColor(themeColors.background?.default || "#121212");
+      setBackgroundPaperColor(themeColors.background?.paper || "#1e1e1e");
     }
   }, [themeColors]);
 
@@ -241,28 +312,72 @@ const Settings: React.FC = () => {
   const updatePrimaryColor = (color: string) => {
     setPrimaryColor(color);
     updateThemeColors({ ...themeColors, primary: color });
+    // When manually changing a color, we're in custom theme mode
+    setIsCustomTheme(true);
   };
 
   const updateSecondaryColor = (color: string) => {
     setSecondaryColor(color);
     updateThemeColors({ ...themeColors, secondary: color });
+    setIsCustomTheme(true);
   };
 
   const updateSuccessColor = (color: string) => {
     setSuccessColor(color);
     updateThemeColors({ ...themeColors, success: color });
+    setIsCustomTheme(true);
   };
 
   const updateErrorColor = (color: string) => {
     setErrorColor(color);
     updateThemeColors({ ...themeColors, error: color });
+    setIsCustomTheme(true);
+  };
+
+  // Update background colors
+  const updateBackgroundDefaultColor = (color: string) => {
+    setBackgroundDefaultColor(color);
+    updateThemeColors({
+      ...themeColors,
+      background: {
+        ...(themeColors.background || {}),
+        default: color,
+      },
+    });
+    setIsCustomTheme(true);
+  };
+
+  const updateBackgroundPaperColor = (color: string) => {
+    setBackgroundPaperColor(color);
+    updateThemeColors({
+      ...themeColors,
+      background: {
+        ...(themeColors.background || {}),
+        paper: color,
+      },
+    });
+    setIsCustomTheme(true);
   };
 
   // Update theme colors with debounce
   const updateThemeColors = (colors: typeof themeColors) => {
     setThemeColors(colors);
+    // When manually updating colors, mark as custom theme
+    localStorage.setItem("currentThemeId", "custom");
     // No need to explicitly save to localStorage here,
     // our Zustand store should handle that
+  };
+
+  // Handle theme selection
+  const handleThemeSelect = (themeId: string) => {
+    setCurrentTheme(themeId);
+    setIsCustomTheme(themeId === "custom");
+    setSnackbarMessage(
+      `Theme "${
+        predefinedThemes.find((t) => t.id === themeId)?.name || "Custom"
+      }" applied!`
+    );
+    setSnackbarOpen(true);
   };
 
   // Save theme colors to store
@@ -279,14 +394,21 @@ const Settings: React.FC = () => {
       secondary: "#9c27b0", // Default MUI purple
       success: "#2e7d32", // Default MUI green
       error: "#d32f2f", // Default MUI red
+      background: {
+        default: "#121212", // Dark background
+        paper: "#1e1e1e", // Dark paper
+      },
     };
 
     setPrimaryColor(defaultColors.primary);
     setSecondaryColor(defaultColors.secondary);
     setSuccessColor(defaultColors.success);
     setErrorColor(defaultColors.error);
+    setBackgroundDefaultColor(defaultColors.background.default);
+    setBackgroundPaperColor(defaultColors.background.paper);
 
     setThemeColors(defaultColors);
+    handleThemeSelect("default");
     setSnackbarMessage("Colors reset to default values");
     setSnackbarOpen(true);
   };
@@ -340,21 +462,220 @@ const Settings: React.FC = () => {
         </Box>
       </Paper>
 
+      {/* Theme Selection */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Theme Selection
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Choose from predefined themes or customize your own colors below.
+        </Typography>
+
+        <Grid container spacing={2}>
+          {predefinedThemes.map((theme) => (
+            <Grid item xs={6} sm={4} key={theme.id}>
+              <Card
+                sx={{
+                  height: "100%",
+                  position: "relative",
+                  border: currentThemeId === theme.id ? 2 : 0,
+                  borderColor: "primary.main",
+                }}
+              >
+                <CardActionArea
+                  onClick={() => handleThemeSelect(theme.id)}
+                  sx={{ height: "100%" }}
+                >
+                  <CardContent>
+                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                      {currentThemeId === theme.id && (
+                        <CheckCircleIcon color="primary" />
+                      )}
+                      <Typography variant="subtitle1" component="div">
+                        {theme.name}
+                      </Typography>
+                    </Stack>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          bgcolor: theme.colors.primary,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          bgcolor: theme.colors.secondary,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          bgcolor: theme.colors.success,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          bgcolor: theme.colors.error,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      />
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "4px",
+                          bgcolor: theme.colors.background.default,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "4px",
+                          bgcolor: theme.colors.background.paper,
+                          border: "1px solid",
+                          borderColor: "divider",
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ ml: 1 }}>
+                        Backgrounds
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          ))}
+          <Grid item xs={6} sm={4}>
+            <Card
+              sx={{
+                height: "100%",
+                position: "relative",
+                border: isCustomTheme ? 2 : 0,
+                borderColor: "primary.main",
+              }}
+            >
+              <CardActionArea
+                onClick={() => setIsCustomTheme(true)}
+                sx={{ height: "100%" }}
+              >
+                <CardContent>
+                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                    {isCustomTheme && <CheckCircleIcon color="primary" />}
+                    <Typography variant="subtitle1" component="div">
+                      Custom
+                    </Typography>
+                  </Stack>
+                  <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        bgcolor: primaryColor,
+                        border: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        bgcolor: secondaryColor,
+                        border: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        bgcolor: successColor,
+                        border: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        bgcolor: errorColor,
+                        border: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    />
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "4px",
+                        bgcolor: backgroundDefaultColor,
+                        border: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "4px",
+                        bgcolor: backgroundPaperColor,
+                        border: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ ml: 1 }}>
+                      Backgrounds
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* Theme Colors */}
       <Paper
         sx={{
           p: 3,
           mb: 3,
-          minHeight: { xs: "70vh", sm: "75vh" },
+          minHeight: { xs: "auto", sm: "auto" },
           overflow: "auto",
         }}
       >
         <Typography variant="h5" gutterBottom>
-          Theme Colors
+          Custom Theme Colors
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Customize the app's theme colors to match your preferences. Colors
-          update automatically as you change them.
+          Fine-tune your own custom theme by adjusting individual color
+          components. Colors update automatically as you change them.
         </Typography>
 
         <Grid container spacing={4}>
@@ -503,6 +824,80 @@ const Settings: React.FC = () => {
               }}
             >
               <Typography>Error Button</Typography>
+            </Box>
+          </Grid>
+
+          {/* Background Default Color */}
+          <Grid item xs={12} sm={6}>
+            <Typography variant="subtitle1" gutterBottom>
+              Background Color
+            </Typography>
+            <Paper
+              elevation={1}
+              sx={{
+                p: 2,
+                mb: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                maxHeight: "200px",
+                overflow: "auto",
+              }}
+            >
+              <SimpleColorPicker
+                value={backgroundDefaultColor}
+                onChange={updateBackgroundDefaultColor}
+                presets={colorPresets.background}
+              />
+            </Paper>
+            <Box
+              sx={{
+                p: 1,
+                mb: 1,
+                bgcolor: backgroundDefaultColor,
+                borderRadius: 1,
+                display: "flex",
+                justifyContent: "center",
+                color: "#fff",
+              }}
+            >
+              <Typography>Page Background</Typography>
+            </Box>
+          </Grid>
+
+          {/* Background Paper Color */}
+          <Grid item xs={12} sm={6}>
+            <Typography variant="subtitle1" gutterBottom>
+              Panel Color
+            </Typography>
+            <Paper
+              elevation={1}
+              sx={{
+                p: 2,
+                mb: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                maxHeight: "200px",
+                overflow: "auto",
+              }}
+            >
+              <SimpleColorPicker
+                value={backgroundPaperColor}
+                onChange={updateBackgroundPaperColor}
+                presets={colorPresets.paper}
+              />
+            </Paper>
+            <Box
+              sx={{
+                p: 1,
+                mb: 1,
+                bgcolor: backgroundPaperColor,
+                borderRadius: 1,
+                display: "flex",
+                justifyContent: "center",
+                color: "#fff",
+              }}
+            >
+              <Typography>Panel Background</Typography>
             </Box>
           </Grid>
         </Grid>

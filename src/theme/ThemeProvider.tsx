@@ -49,8 +49,12 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           main: themeColors?.error || "#d32f2f",
         },
         background: {
-          default: themeMode === "dark" ? "#121212" : "#f5f5f5",
-          paper: themeMode === "dark" ? "#1e1e1e" : "#ffffff",
+          default:
+            themeColors?.background?.default ||
+            (themeMode === "dark" ? "#121212" : "#f5f5f5"),
+          paper:
+            themeColors?.background?.paper ||
+            (themeMode === "dark" ? "#1e1e1e" : "#ffffff"),
         },
       },
       components: {
