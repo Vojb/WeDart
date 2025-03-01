@@ -23,6 +23,7 @@ import {
   History,
   EmojiEvents,
   People,
+  Settings,
 } from "@mui/icons-material";
 import { useStore } from "../store/useStore";
 import { Link, useLocation } from "react-router-dom";
@@ -196,6 +197,15 @@ export default function Navbar() {
           )}
           <IconButton onClick={toggleTheme} color="inherit" sx={{ ml: 1 }}>
             {themeMode === "dark" ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
+          <IconButton
+            color="inherit"
+            component={Link}
+            to="/settings"
+            aria-label="settings"
+            sx={{ ml: 1 }}
+          >
+            <Settings />
           </IconButton>
         </Toolbar>
       </Container>

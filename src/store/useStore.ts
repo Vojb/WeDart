@@ -9,6 +9,7 @@ interface Player {
   average: number;
   totalDartsThrown?: number; // Make these optional for backward compatibility
   totalPointsScored?: number; // Make these optional for backward compatibility
+  dartHits: Record<string, number>; // Track player's all-time dart hit statistics
 }
 
 interface Score {
@@ -28,6 +29,8 @@ interface GamePlayer extends Player {
   avgPerDart: number;
   avgPerRound: number;
   initialScore: number; // To track the starting score for this game
+  lastRoundScore: number; // Track the last round score for display
+  dartHits: Record<string, number>; // Track the frequency of each dart hit (format: "T20", "D16", etc.)
 }
 
 interface GameState {
@@ -38,6 +41,13 @@ interface GameState {
   isDoubleIn: boolean;
   isGameFinished: boolean;
   inputMode: "numeric" | "dart";
+}
+
+interface ThemeColors {
+  primary: string;
+  secondary: string;
+  success: string;
+  error: string;
 }
 
 interface StoreState {
@@ -65,6 +75,16 @@ interface StoreState {
   undoLastScore: () => void;
   endGame: () => void;
   setInputMode: (mode: "numeric" | "dart") => void;
+  getPlayerMostFrequentDarts: (playerId: number, limit?: number) => string[];
+  getPlayerAllTimeMostFrequentDarts: (
+    playerId: number,
+    limit?: number
+  ) => string[];
+  lastDartNotations: string[]; // Track the notations of the last darts thrown
+
+  // Theme color management
+  themeColors: ThemeColors;
+  setThemeColors: (colors: ThemeColors) => void;
 }
 
 // Add this at the top level, outside any function
@@ -96,6 +116,100 @@ function calculatePlayerAverages(player: GamePlayer): {
   return { avgPerDart, avgPerRound };
 }
 
+// Add this function before the useStore declaration
+function inferDartNotationsFromScore(score: number): string[] {
+  // Common patterns for specific scores
+  const commonPatterns: Record<number, string[]> = {
+    60: ["T20"],
+    57: ["T19"],
+    54: ["T18"],
+    51: ["T17"],
+    48: ["T16"],
+    45: ["T15"],
+    42: ["T14"],
+    40: ["D20"],
+    38: ["D19"],
+    36: ["D18"],
+    34: ["D17"],
+    32: ["D16"],
+    30: ["D15"],
+    26: ["D13"],
+    24: ["D12"],
+    22: ["D11"],
+    20: ["20", "D10"],
+    19: ["19"],
+    18: ["18", "D9"],
+    17: ["17"],
+    16: ["16", "D8"],
+    15: ["15"],
+    14: ["14", "D7"],
+    13: ["13"],
+    12: ["12", "D6"],
+    11: ["11"],
+    10: ["10", "D5"],
+    9: ["9"],
+    8: ["8", "D4"],
+    7: ["7"],
+    6: ["6", "D3"],
+    5: ["5"],
+    4: ["4", "D2"],
+    3: ["3"],
+    2: ["2", "D1"],
+    1: ["1"],
+    0: [],
+    25: ["25"],
+    50: ["D25"],
+  };
+
+  // For scores we have defined patterns for
+  if (commonPatterns[score]) {
+    return commonPatterns[score];
+  }
+
+  // For other scores, try to decompose into common darts
+  const result: string[] = [];
+  let remaining = score;
+
+  // First try to use common high-value darts
+  const highValueTargets = [
+    60, 57, 54, 51, 50, 40, 38, 36, 34, 32, 30, 25, 20, 19, 18, 17, 16, 15,
+  ];
+
+  for (const target of highValueTargets) {
+    if (remaining >= target) {
+      const notation = commonPatterns[target][0]; // Get the first notation for this value
+      result.push(notation);
+      remaining -= target;
+
+      // If we've fully accounted for the score, return the result
+      if (remaining === 0) return result;
+
+      // Otherwise continue with next high value
+      break;
+    }
+  }
+
+  // If there's still a remainder, use single numbers as fallback
+  while (remaining > 0) {
+    if (remaining >= 20) {
+      result.push("20");
+      remaining -= 20;
+    } else if (remaining >= 19) {
+      result.push("19");
+      remaining -= 19;
+    } else if (remaining >= 18) {
+      result.push("18");
+      remaining -= 18;
+    } else if (remaining > 0) {
+      // For the remainder, just add the number itself
+      result.push(remaining.toString());
+      remaining = 0;
+    }
+  }
+
+  return result;
+}
+
 // Restore persist middleware for saving data in localStorage
 export const useStore = create<StoreState>()(
   persist(
@@ -120,6 +234,7 @@ export const useStore = create<StoreState>()(
               average: 0,
               totalDartsThrown: 0,
               totalPointsScored: 0,
+              dartHits: {}, // Initialize empty dart hits object
             },
           ],
         })),
@@ -145,25 +260,19 @@ export const useStore = create<StoreState>()(
 
       currentGame: null,
       startGame: (gameType, playerIds) => {
-        const { players } = get();
+        // Create a new game with the selected settings
+        set((state) => {
+          // Find the selected players
+          const selectedPlayers = state.players.filter((player) =>
+            playerIds.includes(player.id)
+          );
 
-        // Create empty array first with correct type
-        const gamePlayers: GamePlayer[] = [];
-
-        // Populate array with valid players only
-        for (const id of playerIds) {
-          const player = players.find((p) => p.id === id);
-          if (!player) continue;
-
-          const initialScore = parseInt(gameType);
-
-          // Add player to array with all required properties
-          gamePlayers.push({
+          // Create game players with the necessary in-game properties
+          const gamePlayers: GamePlayer[] = selectedPlayers.map((player) => ({
             ...player,
-            score: initialScore,
-            initialScore,
-            scores: [] as Score[],
+            score: parseInt(gameType), // Start with the selected game score
             dartsThrown: 0,
+            scores: [],
             rounds100Plus: 0,
             rounds140Plus: 0,
             rounds180: 0,
@@ -171,21 +280,23 @@ export const useStore = create<StoreState>()(
             checkoutSuccess: 0,
             avgPerDart: 0,
             avgPerRound: 0,
-            totalDartsThrown: player.totalDartsThrown || 0,
-            totalPointsScored: player.totalPointsScored || 0,
-          });
-        }
+            initialScore: parseInt(gameType),
+            lastRoundScore: 0,
+            dartHits: { ...player.dartHits }, // Copy the player's existing dart hits
+          }));
 
-        set({
-          currentGame: {
-            gameType,
-            players: gamePlayers,
-            currentPlayerIndex: 0,
-            isDoubleOut: get().gameSettings.isDoubleOut,
-            isDoubleIn: get().gameSettings.isDoubleIn,
-            isGameFinished: false,
-            inputMode: "numeric",
-          },
+          return {
+            ...state,
+            currentGame: {
+              gameType,
+              players: gamePlayers,
+              currentPlayerIndex: 0,
+              isDoubleOut: get().gameSettings.isDoubleOut,
+              isDoubleIn: get().gameSettings.isDoubleIn,
+              isGameFinished: false,
+              inputMode: "numeric",
+            },
+          };
         });
       },
 
@@ -212,6 +323,13 @@ export const useStore = create<StoreState>()(
           }
           lastScoreTimestamp = now;
 
+          // Get the lastDartNotations from state for use in the setter function
+          const currentNotations = get().lastDartNotations;
+          console.log(
+            "RECORDING SCORE - Current notations in store:",
+            currentNotations
+          );
+
           set((state) => {
             // Guard clauses
             if (!state.currentGame) return state;
@@ -222,28 +340,135 @@ export const useStore = create<StoreState>()(
             const playerIndex = newGame.currentPlayerIndex;
             const player = { ...players[playerIndex] };
 
+            // Clone dartHits object to avoid reference issues
+            player.dartHits = { ...player.dartHits };
+
             // Simple score calculation
             const newPlayerScore = player.score - score;
 
-            // Check if bust
-            if (
+            // Check if using dart input and there are notations
+            const isDartInput = newGame.inputMode === "dart";
+
+            // IMPROVED: Record dart hits even when using numeric input
+            if (currentNotations.length > 0) {
+              console.log(
+                "Recording dart notations for player:",
+                player.name,
+                currentNotations
+              );
+              console.log("Player dartHits BEFORE:", { ...player.dartHits });
+
+              // Track both notations and base numbers
+              currentNotations.forEach((notation) => {
+                // Create if doesn't exist, increment if it does
+                player.dartHits[notation] =
+                  (player.dartHits[notation] || 0) + 1;
+                console.log(
+                  `Added hit for ${notation}, now at ${player.dartHits[notation]}`
+                );
+
+                // Also track the base number separately (extract from notation)
+                const baseNumber = notation.replace(/[DT]/g, "");
+
+                // Single digit darts (like "1") get tracked directly
+                if (notation === baseNumber) {
+                  // If this is a single-digit number that's being hit repeatedly, give it a boost
+                  if (baseNumber.length === 1) {
+                    // Give single digits a boost to make them more likely to appear in favorites
+                    player.dartHits[baseNumber] += 0.5; // Extra half-point for frequently used single digits
+                  }
+                }
+                // For D and T notations, also track the base number
+                else {
+                  player.dartHits[baseNumber] =
+                    (player.dartHits[baseNumber] || 0) + 0.5;
+                }
+
+                console.log(
+                  `Recording hit for ${notation}, now at ${
+                    player.dartHits[notation]
+                  }, base ${baseNumber}: ${player.dartHits[baseNumber] || 0}`
+                );
+              });
+
+              console.log("Player dartHits AFTER:", { ...player.dartHits });
+            } else if (isDartInput && score > 0) {
+              // If we're using the dart input mode but don't have notations (fallback)
+              // Try to infer what darts might have been thrown based on the score
+              console.log(
+                "No notations available, inferring from score:",
+                score
+              );
+
+              // Most common dart combinations for common scores
+              const inferredNotations = inferDartNotationsFromScore(score);
+              if (inferredNotations.length > 0) {
+                console.log("Inferred notations:", inferredNotations);
+
+                // Record these inferred notations
+                inferredNotations.forEach((notation) => {
+                  player.dartHits[notation] =
+                    (player.dartHits[notation] || 0) + 1;
+
+                  // Also track base number
+                  const baseNumber = notation.replace(/[DT]/g, "");
+                  if (notation !== baseNumber) {
+                    player.dartHits[baseNumber] =
+                      (player.dartHits[baseNumber] || 0) + 0.5;
+                  }
+                });
+              }
+            }
+
+            // Check if bust (score below 0 or score is 1 with double out rule)
+            const isBust =
               newPlayerScore < 0 ||
-              (newGame.isDoubleOut && newPlayerScore === 1)
-            ) {
-              return state; // No change
+              (newGame.isDoubleOut && newPlayerScore === 1);
+
+            // Check if player has won (score exactly 0)
+            const hasWon = newPlayerScore === 0;
+
+            if (isBust) {
+              // If bust, keep the player's current turn but don't update the score
+              // Still track the score attempt for statistics
+              player.scores = [
+                ...player.scores,
+                { score: 0, darts: dartsUsed },
+              ];
+              player.dartsThrown += dartsUsed;
+              player.lastRoundScore = 0; // Show 0 for the round where they busted
+
+              // Update the player in the array
+              players[playerIndex] = player;
+
+              // Move to the next player
+              const nextPlayerIndex = (playerIndex + 1) % players.length;
+              newGame.players = players;
+              newGame.currentPlayerIndex = nextPlayerIndex;
+
+              return {
+                ...state,
+                currentGame: newGame,
+                lastDartNotations: [], // Reset last dart notations after processing
+              };
             }
 
             // Update player
             player.score = newPlayerScore;
             player.scores = [...player.scores, { score, darts: dartsUsed }];
             player.dartsThrown += dartsUsed;
+            player.lastRoundScore = score;
+
+            // Update high round counters
+            if (score >= 100 && score < 140) {
+              player.rounds100Plus += 1;
+            } else if (score >= 140 && score < 180) {
+              player.rounds140Plus += 1;
+            } else if (score === 180) {
+              player.rounds180 += 1;
+            }
 
             // Stats updates
-            if (score >= 100) player.rounds100Plus++;
-            if (score >= 140) player.rounds140Plus++;
-            if (score === 180) player.rounds180++;
-
-            // Calculate in-game averages
             const averages = calculatePlayerAverages(player);
             player.avgPerDart = averages.avgPerDart;
             player.avgPerRound = averages.avgPerRound;
@@ -257,11 +482,12 @@ export const useStore = create<StoreState>()(
             // Update the game
             newGame.players = players;
             newGame.currentPlayerIndex = nextPlayerIndex;
-            newGame.isGameFinished = players.some((p) => p.score === 0);
+            newGame.isGameFinished = hasWon; // Set game finished if player has won
 
             return {
               ...state,
               currentGame: newGame,
+              lastDartNotations: [], // Reset last dart notations after processing
             };
           });
         } catch (error) {
@@ -296,6 +522,10 @@ export const useStore = create<StoreState>()(
 
             // Update player
             player.score += lastScore.score;
+            player.lastRoundScore =
+              player.scores.length > 1
+                ? player.scores[player.scores.length - 2].score
+                : 0; // Update to previous round score or 0 if none
 
             // Handle different input modes
             if (newGame.inputMode === "numeric" || lastScore.darts === 1) {
@@ -375,12 +605,22 @@ export const useStore = create<StoreState>()(
                 ? newTotalPointsScored / newTotalDartsThrown
                 : 0;
 
+            // Merge dart hits from this game with the player's overall dart hits
+            const updatedDartHits = { ...player.dartHits };
+
+            // Iterate through game player's dart hits and add them to the overall stats
+            Object.entries(gamePlayer.dartHits).forEach(([notation, count]) => {
+              updatedDartHits[notation] =
+                (updatedDartHits[notation] || 0) + count;
+            });
+
             return {
               ...player,
               games: player.games + 1,
               average: newAverage,
               totalDartsThrown: newTotalDartsThrown,
               totalPointsScored: newTotalPointsScored,
+              dartHits: updatedDartHits, // Update with merged dart hits
             };
           });
 
@@ -390,17 +630,241 @@ export const useStore = create<StoreState>()(
           };
         });
       },
+
+      lastDartNotations: [], // Initialize the lastDartNotations array
+
+      // Helper to get a player's most frequently hit darts
+      getPlayerMostFrequentDarts: (playerId, limit = 5) => {
+        const state = get();
+        const currentGame = state.currentGame;
+
+        console.log("Getting most frequent darts for player:", playerId);
+
+        // First, check if there's a current game with this player
+        if (currentGame) {
+          const gamePlayer = currentGame.players.find((p) => p.id === playerId);
+
+          if (gamePlayer) {
+            // Get the player's dart hits from the current game
+            const currentGameHits = gamePlayer.dartHits || {};
+
+            // Get any recent dart notations from the last throw
+            const recentNotations = [...(state.lastDartNotations || [])];
+
+            // Create a set of all unique notations the player has thrown in this game
+            const allThrown = new Set<string>();
+
+            // Add all darts that have been hit at least once in this game
+            Object.entries(currentGameHits).forEach(([notation, count]) => {
+              if (count > 0) {
+                allThrown.add(notation);
+              }
+            });
+
+            // Add recent notations that might not be in the hits yet
+            recentNotations.forEach((notation) => {
+              allThrown.add(notation);
+            });
+
+            // Convert to array and sort by hit count (highest first)
+            const sortedDarts = Array.from(allThrown).sort((a, b) => {
+              const countA = currentGameHits[a] || 0;
+              const countB = currentGameHits[b] || 0;
+              return countB - countA;
+            });
+
+            console.log("All thrown darts sorted by count:", sortedDarts);
+
+            // If we have enough darts thrown in this game, return them
+            if (sortedDarts.length >= 3) {
+              return sortedDarts.slice(0, limit);
+            }
+
+            // If we don't have enough, fill with common defaults
+            const defaults = ["T20", "20", "T19", "19", "D16"];
+            const result = [...sortedDarts];
+
+            // Add defaults that aren't already in our list
+            for (const dart of defaults) {
+              if (!result.includes(dart) && result.length < limit) {
+                result.push(dart);
+              }
+            }
+
+            return result;
+          }
+        }
+
+        // Fallback to the player's overall record if no game data
+        const player = state.players.find((p) => p.id === playerId);
+        if (
+          player &&
+          player.dartHits &&
+          Object.keys(player.dartHits).length > 0
+        ) {
+          const hitsArray = Object.entries(player.dartHits);
+          hitsArray.sort((a, b) => b[1] - a[1]);
+          const result = hitsArray
+            .slice(0, limit)
+            .map(([notation]) => notation);
+          console.log("Found dart hits in player record:", result);
+          return result;
+        }
+
+        // If no data at all, return common starter darts for new players
+        return ["T20", "20", "T19", "19", "D16"];
+      },
+
+      // NEW: Get a player's all-time most hit darts (from their profile)
+      getPlayerAllTimeMostFrequentDarts: (playerId: number, limit = 5) => {
+        const state = get();
+
+        // Find the player in the overall players list
+        const player = state.players.find((p) => p.id === playerId);
+        if (!player) return [];
+
+        // Check if they have any recorded dart hits
+        if (player.dartHits && Object.keys(player.dartHits).length > 0) {
+          console.log(
+            `Getting all-time most frequent darts for ${player.name}:`,
+            { ...player.dartHits }
+          );
+
+          // Convert to array and sort by hit count
+          const hitsArray = Object.entries(player.dartHits);
+
+          // Remove entries with count 0 or very low
+          const validHits = hitsArray.filter(([notation, count]) => {
+            // Only include real notations (exclude system-tracked values)
+            if (count <= 0) return false;
+
+            // Exclude notations that are just used for bookkeeping
+            if (notation.includes("_") || notation.includes(":")) return false;
+
+            return true;
+          });
+
+          // Sort by count (highest first)
+          validHits.sort((a, b) => b[1] - a[1]);
+
+          // Filter to focus on more meaningful notations
+          // Prioritize multipliers and key numbers
+          const prioritizedHits = validHits.sort((a, b) => {
+            const [notationA, countA] = a;
+            const [notationB, countB] = b;
+
+            // First sort by count
+            if (countA !== countB) return countB - countA;
+
+            // Then prioritize by notation type
+            const isMultiplierA =
+              notationA.startsWith("T") || notationA.startsWith("D");
+            const isMultiplierB =
+              notationB.startsWith("T") || notationB.startsWith("D");
+
+            if (isMultiplierA && !isMultiplierB) return -1;
+            if (!isMultiplierA && isMultiplierB) return 1;
+
+            // Prioritize by value for same type
+            const valueA = parseInt(notationA.replace(/[DT]/g, ""));
+            const valueB = parseInt(notationB.replace(/[DT]/g, ""));
+
+            if (!isNaN(valueA) && !isNaN(valueB)) {
+              return valueB - valueA; // Higher values first
+            }
+
+            return 0;
+          });
+
+          // Return just the notation names
+          const result = prioritizedHits
+            .slice(0, limit)
+            .map(([notation]) => notation);
+
+          console.log(`${player.name}'s all-time favorites:`, result);
+          return result;
+        }
+
+        // If current game exists, try to get info from there
+        if (state.currentGame) {
+          const gamePlayer = state.currentGame.players.find(
+            (p) => p.id === playerId
+          );
+          if (
+            gamePlayer &&
+            gamePlayer.dartHits &&
+            Object.keys(gamePlayer.dartHits).length > 0
+          ) {
+            // Using same logic as above but from game player
+            const hitsArray = Object.entries(gamePlayer.dartHits)
+              .filter(([_, count]) => count > 0)
+              .sort((a, b) => b[1] - a[1]);
+
+            const result = hitsArray
+              .slice(0, limit)
+              .map(([notation]) => notation);
+            return result;
+          }
+        }
+
+        // If no data, return standard favorites
+        return ["T20", "T19", "D16", "20", "19"];
+      },
+
+      themeColors: loadThemeColors() || {
+        primary: "#1976d2", // Default MUI blue
+        secondary: "#9c27b0", // Default MUI purple
+        success: "#2e7d32", // Default MUI green
+        error: "#d32f2f", // Default MUI red
+      },
+
+      setThemeColors: (colors: ThemeColors) => {
+        // Save to localStorage for persistence
+        localStorage.setItem("themeColors", JSON.stringify(colors));
+
+        // Update the store
+        set({ themeColors: colors });
+      },
     }),
     {
       name: "wedart-storage",
-      version: 2, // Increment version due to schema changes
+      version: 3, // Increment version due to schema changes
       partialize: (state) => ({
         // Only persist these items from the state
         themeMode: state.themeMode,
         players: state.players,
         gameSettings: state.gameSettings,
         currentGame: state.currentGame,
+        lastDartNotations: state.lastDartNotations, // Persist dart notations
+        themeColors: state.themeColors,
       }),
+      migrate: (persistedState: any, version: number) => {
+        // Migration for adding dartHits to existing players
+        if (version < 3) {
+          if (persistedState.players) {
+            persistedState.players = persistedState.players.map(
+              (player: any) => ({
+                ...player,
+                dartHits: player.dartHits || {}, // Add dartHits if not present
+              })
+            );
+          }
+        }
+        return persistedState as any;
+      },
     }
   )
 );
+
+function loadThemeColors(): ThemeColors | null {
+  try {
+    const savedThemeColors = localStorage.getItem("themeColors");
+    if (savedThemeColors) {
+      return JSON.parse(savedThemeColors);
+    }
+    return null;
+  } catch (error) {
+    console.error("Failed to load theme colors from localStorage:", error);
+    return null;
+  }
+}

@@ -1,5 +1,5 @@
 import { Box, Container } from "@mui/material";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import X01 from "./pages/X01";
 import Home from "./pages/Home";
@@ -8,40 +8,48 @@ import Highscore from "./pages/Highscore";
 import X01NewGame from "./pages/X01NewGame";
 import X01Game from "./pages/X01Game";
 import Players from "./pages/Players";
+import CustomThemeProvider from "./theme/ThemeProvider";
+import Settings from "./pages/Settings";
 
 function App() {
+  const location = useLocation();
+  const isGameRoute = location.pathname === "/x01/game";
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-      }}
-    >
-      <Navbar />
-      <Container
-        component="main"
+    <CustomThemeProvider>
+      <Box
         sx={{
-          flexGrow: 1,
-          p: { xs: 1, sm: 2, md: 3 }, // Responsive padding
           display: "flex",
           flexDirection: "column",
-          height: "calc(100vh - 56px)", // Subtract navbar height
-          overflow: "hidden",
+          minHeight: "100vh",
         }}
-        maxWidth="lg"
       >
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/x01" element={<X01 />} />
-          <Route path="/x01/new" element={<X01NewGame />} />
-          <Route path="/x01/game" element={<X01Game />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/highscore" element={<Highscore />} />
-          <Route path="/players" element={<Players />} />
-        </Routes>
-      </Container>
-    </Box>
+        {!isGameRoute && <Navbar />}
+        <Container
+          component="main"
+          sx={{
+            flexGrow: 1,
+            p: { xs: 1, sm: 2, md: 3 }, // Responsive padding
+            display: "flex",
+            flexDirection: "column",
+            height: isGameRoute ? "100vh" : "calc(100vh - 56px)", // Full height for game, subtract navbar height otherwise
+            overflow: "hidden",
+          }}
+          maxWidth="lg"
+        >
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/x01" element={<X01 />} />
+            <Route path="/x01/new" element={<X01NewGame />} />
+            <Route path="/x01/game" element={<X01Game />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/highscore" element={<Highscore />} />
+            <Route path="/players" element={<Players />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </Container>
+      </Box>
+    </CustomThemeProvider>
   );
 }
 
