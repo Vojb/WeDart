@@ -21,18 +21,32 @@ const VibrationButton: React.FC<VibrationButtonProps> = ({
   // Get vibration enabled setting from store
   const { vibrationEnabled } = useStore();
 
+  // Use a ref to check if the first vibration attempt failed
+  const isAndroid = /android/i.test(navigator.userAgent);
+
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     // Debug vibration status
     console.log("Vibration button clicked");
     console.log("Vibration enabled:", vibrationEnabled);
     console.log("Vibration pattern:", vibrationPattern);
-    console.log("Navigator.vibrate available:", !!navigator.vibrate);
+    console.log("Is Android device:", isAndroid);
+    console.log(
+      "Navigator.vibrate available:",
+      typeof navigator.vibrate === "function"
+    );
 
     // Trigger vibration if enabled
     if (vibrationEnabled) {
       console.log("Attempting to vibrate...");
-      // Use type assertion to resolve TypeScript error
-      vibrateDevice(vibrationPattern as number);
+      // Prioritize pattern vibration for Android compatibility
+      vibrateDevice(vibrationPattern);
+
+      // Some Android devices require a double trigger
+      if (isAndroid) {
+        setTimeout(() => {
+          vibrateDevice(vibrationPattern);
+        }, 10);
+      }
     }
 
     // Call the original onClick handler if provided

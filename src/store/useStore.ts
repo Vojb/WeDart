@@ -199,10 +199,27 @@ export const useStore = create<StoreState>()(
 
       // Vibration settings - enabled by default
       vibrationEnabled: true,
-      toggleVibration: () =>
-        set((state) => ({
-          vibrationEnabled: !state.vibrationEnabled,
-        })),
+      toggleVibration: () => {
+        let newVibrationEnabled = false;
+
+        set((state) => {
+          newVibrationEnabled = !state.vibrationEnabled;
+          return {
+            ...state,
+            vibrationEnabled: newVibrationEnabled,
+          };
+        });
+
+        // Force a small test vibration when enabled to "wake up" the vibration API
+        if (newVibrationEnabled && typeof navigator.vibrate === "function") {
+          try {
+            navigator.vibrate([1]);
+            setTimeout(() => navigator.vibrate([10]), 50);
+          } catch (e) {
+            console.error("Failed to initialize vibration:", e);
+          }
+        }
+      },
     }),
     {
       name: "wedart-main-storage",

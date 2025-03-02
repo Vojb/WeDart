@@ -12,25 +12,29 @@ export const vibrateDevice = (pattern: number | number[] = 100) => {
   console.log("[Vibration] Vibration requested with pattern:", pattern);
 
   // Check if the device supports vibration
-  if (!navigator.vibrate) {
+  if (typeof navigator.vibrate !== "function") {
     console.log(
       "[Vibration] Vibration API not supported in this browser/device"
     );
     return false;
   }
 
-  // Check if reduced motion is preferred
-  if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
-    console.log(
-      "[Vibration] Reduced motion preference detected, skipping vibration"
-    );
-    return false;
-  }
+  // Chrome on Android requires the pattern to be an array
+  // Convert single number to array if it's not already
+  const vibrationPattern = Array.isArray(pattern) ? pattern : [pattern];
 
   try {
-    // Attempt to vibrate
-    const result = navigator.vibrate(pattern);
+    // Attempt to vibrate with the processed pattern
+    // Explicitly call with array pattern for better Android compatibility
+    const result = navigator.vibrate(vibrationPattern);
     console.log("[Vibration] Vibration call result:", result);
+
+    // Force a backup vibration approach as some Android devices need additional prompting
+    setTimeout(() => {
+      navigator.vibrate(0); // Stop any current vibration
+      navigator.vibrate(vibrationPattern); // Try again
+    }, 5);
+
     return result;
   } catch (error) {
     console.error("[Vibration] Error when trying to vibrate:", error);

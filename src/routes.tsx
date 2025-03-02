@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import { createHashRouter, Navigate, Outlet } from "react-router-dom";
 import Settings from "./pages/Settings";
 import Layout from "./components/Layout";
 
@@ -34,7 +34,7 @@ const GameLayoutRoute = () => {
   );
 };
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: "/",
     element: <LayoutRoute />,
