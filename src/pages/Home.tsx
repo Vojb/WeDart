@@ -20,6 +20,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import React, { useState, useEffect } from "react";
+import { VERSION } from "../constants/version";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -207,6 +208,12 @@ const Home: React.FC = () => {
           sx={{ mt: "auto", pt: 4, textAlign: "center", opacity: 0.7 }}
         >
           WeDart - Your Digital Dart Companion
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{ mt: 1, textAlign: "center", opacity: 0.5 }}
+        >
+          {VERSION}
         </Typography>
       </Paper>
     </Box>
