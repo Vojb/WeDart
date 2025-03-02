@@ -4,10 +4,8 @@ import {
   Paper,
   Grid,
   Card,
-  CardContent,
   CardActionArea,
   Button,
-  CardMedia,
   useTheme,
 } from "@mui/material";
 import {
@@ -16,6 +14,8 @@ import {
   EmojiEvents as HighscoreIcon,
   People as PlayersIcon,
   Settings as SettingsIcon,
+  SportsBar as CricketIcon,
+  Scale as HalfItIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -44,6 +44,22 @@ const Home: React.FC = () => {
         <GameIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
       ),
       path: "/x01",
+    },
+    {
+      title: "Play Cricket",
+      description: "Start a new Cricket dart game",
+      icon: (
+        <CricketIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+      ),
+      path: "/cricket",
+    },
+    {
+      title: "Play Half It",
+      description: "Start a new Half It dart game",
+      icon: (
+        <HalfItIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+      ),
+      path: "/halfit",
     },
     {
       title: "Game History",

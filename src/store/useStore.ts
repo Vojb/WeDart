@@ -83,7 +83,7 @@ export const predefinedThemes: ThemeOption[] = [
     id: "ocean",
     name: "Ocean",
     colors: {
-      primary: "#0d47a1", // Dark blue
+      primary: "#00838f", // Changed from #0d47a1 (blue) to #00838f (teal)
       secondary: "#00796b", // Dark teal
       success: "#00897b", // Teal
       error: "#e64a19", // Dark orange
@@ -113,6 +113,10 @@ interface StoreState {
   // Current theme selection
   currentThemeId: string;
   setCurrentTheme: (themeId: string) => void;
+
+  // Vibration settings
+  vibrationEnabled: boolean;
+  toggleVibration: () => void;
 }
 
 // Restore persist middleware for saving data in localStorage
@@ -192,6 +196,13 @@ export const useStore = create<StoreState>()(
           });
         }
       },
+
+      // Vibration settings - enabled by default
+      vibrationEnabled: true,
+      toggleVibration: () =>
+        set((state) => ({
+          vibrationEnabled: !state.vibrationEnabled,
+        })),
     }),
     {
       name: "wedart-main-storage",
@@ -202,6 +213,7 @@ export const useStore = create<StoreState>()(
         players: state.players,
         themeColors: state.themeColors,
         currentThemeId: state.currentThemeId,
+        vibrationEnabled: state.vibrationEnabled,
       }),
     }
   )

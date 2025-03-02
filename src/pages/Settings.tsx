@@ -4,7 +4,6 @@ import {
   Typography,
   Container,
   Paper,
-  Button,
   IconButton,
   Grid,
   Snackbar,
@@ -25,6 +24,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate } from "react-router-dom";
 import { useStore, predefinedThemes } from "../store/useStore";
 import React from "react";
+import VibrationButton from "../components/VibrationButton";
 
 // Common color presets
 const colorPresets = {
@@ -265,6 +265,8 @@ const Settings: React.FC = () => {
     toggleTheme,
     currentThemeId,
     setCurrentTheme,
+    vibrationEnabled,
+    toggleVibration,
   } = useStore();
 
   // State for color values
@@ -905,12 +907,22 @@ const Settings: React.FC = () => {
         <Divider sx={{ my: 3 }} />
 
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
-          <Button variant="outlined" color="error" onClick={handleResetTheme}>
+          <VibrationButton
+            variant="outlined"
+            color="error"
+            onClick={handleResetTheme}
+            vibrationPattern={[50, 100, 50]}
+          >
             Reset to Default
-          </Button>
-          <Button variant="contained" color="primary" onClick={handleSaveTheme}>
+          </VibrationButton>
+          <VibrationButton
+            variant="contained"
+            color="primary"
+            onClick={handleSaveTheme}
+            vibrationPattern={100}
+          >
             Save Theme
-          </Button>
+          </VibrationButton>
         </Box>
       </Paper>
 
@@ -922,52 +934,121 @@ const Settings: React.FC = () => {
 
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6}>
-            <Button
+            <VibrationButton
               variant="contained"
               color="primary"
               fullWidth
               sx={{ mb: 2 }}
+              vibrationPattern={50}
             >
               Primary Button
-            </Button>
-            <Button variant="outlined" color="primary" fullWidth sx={{ mb: 2 }}>
+            </VibrationButton>
+            <VibrationButton
+              variant="outlined"
+              color="primary"
+              fullWidth
+              sx={{ mb: 2 }}
+              vibrationPattern={50}
+            >
               Primary Outlined
-            </Button>
+            </VibrationButton>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Button
+            <VibrationButton
               variant="contained"
               color="secondary"
               fullWidth
               sx={{ mb: 2 }}
+              vibrationPattern={75}
             >
               Secondary Button
-            </Button>
-            <Button
+            </VibrationButton>
+            <VibrationButton
               variant="outlined"
               color="secondary"
               fullWidth
               sx={{ mb: 2 }}
+              vibrationPattern={75}
             >
               Secondary Outlined
-            </Button>
+            </VibrationButton>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Button
+            <VibrationButton
               variant="contained"
               color="success"
               fullWidth
               sx={{ mb: 2 }}
+              vibrationPattern={80}
             >
               Success Button
-            </Button>
+            </VibrationButton>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Button variant="contained" color="error" fullWidth sx={{ mb: 2 }}>
+            <VibrationButton
+              variant="contained"
+              color="error"
+              fullWidth
+              sx={{ mb: 2 }}
+              vibrationPattern={[50, 100, 50]}
+            >
               Error Button
-            </Button>
+            </VibrationButton>
           </Grid>
         </Grid>
+      </Paper>
+
+      {/* Vibration Settings */}
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Haptic Feedback
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Control vibration feedback for button presses. This feature only works
+          on Android devices when using the app as a PWA. It has no effect on
+          iOS devices or desktop browsers.
+        </Typography>
+
+        <FormControlLabel
+          control={
+            <Switch checked={vibrationEnabled} onChange={toggleVibration} />
+          }
+          label={`Vibration feedback is ${
+            vibrationEnabled ? "enabled" : "disabled"
+          }`}
+        />
+
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            Test vibration patterns:
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 1 }}>
+            <VibrationButton
+              variant="outlined"
+              color="primary"
+              size="small"
+              vibrationPattern={50}
+            >
+              Short
+            </VibrationButton>
+            <VibrationButton
+              variant="outlined"
+              color="secondary"
+              size="small"
+              vibrationPattern={100}
+            >
+              Medium
+            </VibrationButton>
+            <VibrationButton
+              variant="outlined"
+              color="error"
+              size="small"
+              vibrationPattern={[50, 100, 50]}
+            >
+              Pattern
+            </VibrationButton>
+          </Box>
+        </Box>
       </Paper>
 
       <Snackbar

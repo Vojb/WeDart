@@ -7,6 +7,16 @@ import {
 import { CssBaseline } from "@mui/material";
 import { useStore } from "../store/useStore";
 
+// Add vibration utility function
+export const vibrateDevice = (pattern: number | number[] = 100) => {
+  if (
+    navigator.vibrate &&
+    window.matchMedia("(prefers-reduced-motion: no-preference)").matches
+  ) {
+    navigator.vibrate(pattern);
+  }
+};
+
 interface ThemeProviderProps {
   children: ReactNode;
 }
@@ -27,6 +37,21 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // Log the current theme values being applied
     console.log("Current theme mode:", themeMode);
     console.log("Current theme colors:", themeColors);
+  }, []);
+
+  // Add effect to detect PWA installation
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      console.log("PWA was installed");
+      // Vibrate when app is installed (200ms vibration)
+      vibrateDevice(200);
+    };
+
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
 
   // Create a theme instance with our custom colors and mode

@@ -1,6 +1,7 @@
-import { Box, Typography, Paper, Button } from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import React from "react";
+import VibrationButton from "../components/VibrationButton";
 
 const X01: React.FC = () => {
   const navigate = useNavigate();
@@ -12,13 +13,14 @@ const X01: React.FC = () => {
           X01 Game
         </Typography>
         <Box sx={{ mt: 2 }}>
-          <Button
+          <VibrationButton
             variant="contained"
             size="large"
-            onClick={() => navigate("/x01/new")}
+            onClick={() => navigate("/x01/new-game")}
+            vibrationPattern={100}
           >
-            New Game
-          </Button>
+            Continue
+          </VibrationButton>
         </Box>
       </Paper>
     </Box>

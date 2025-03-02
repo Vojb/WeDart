@@ -26,7 +26,6 @@ import {
   CalendarToday,
   EmojiEvents,
   Person,
-  Delete,
   SportsCricket,
   FunctionsOutlined,
   KeyboardArrowRight,
@@ -45,6 +44,7 @@ import {
 } from "../store/useHistoryStore";
 import { alpha } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
+import VibrationButton from "../components/VibrationButton";
 
 const History: React.FC = () => {
   const { completedGames, clearHistory, getGamesByType } = useHistoryStore();
@@ -493,7 +493,12 @@ const History: React.FC = () => {
           {isSplitGame(game) && renderSplitGameDetails(game)}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setGameDetailsOpen(false)}>Close</Button>
+          <VibrationButton
+            onClick={() => setGameDetailsOpen(false)}
+            vibrationPattern={50}
+          >
+            Close
+          </VibrationButton>
         </DialogActions>
       </Dialog>
     );
@@ -516,14 +521,12 @@ const History: React.FC = () => {
             Game History
           </Typography>
           {completedGames.length > 0 && (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<Delete />}
+            <VibrationButton
               onClick={() => setConfirmDialogOpen(true)}
+              vibrationPattern={[50, 100, 50]}
             >
               Clear History
-            </Button>
+            </VibrationButton>
           )}
         </Box>
 
@@ -677,10 +680,19 @@ const History: React.FC = () => {
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleClearHistory} color="error">
+            <VibrationButton
+              onClick={() => setConfirmDialogOpen(false)}
+              vibrationPattern={50}
+            >
+              Cancel
+            </VibrationButton>
+            <VibrationButton
+              onClick={handleClearHistory}
+              color="error"
+              vibrationPattern={[50, 100, 50]}
+            >
               Clear History
-            </Button>
+            </VibrationButton>
           </DialogActions>
         </Dialog>
 

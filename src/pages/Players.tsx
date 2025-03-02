@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Box,
   Paper,
@@ -7,7 +8,6 @@ import {
   ListItemText,
   IconButton,
   TextField,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -15,8 +15,7 @@ import {
 } from "@mui/material";
 import { Delete, Edit, Add } from "@mui/icons-material";
 import { useStore } from "../store/useStore";
-import { useState } from "react";
-import React from "react";
+import VibrationButton from "../components/VibrationButton";
 
 const Players: React.FC = () => {
   const { players, addPlayer, editPlayer, removePlayer } = useStore();
@@ -56,14 +55,15 @@ const Players: React.FC = () => {
             onChange={(e) => setNewPlayerName(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleAddPlayer()}
           />
-          <Button
+          <VibrationButton
             variant="contained"
             startIcon={<Add />}
             onClick={handleAddPlayer}
             disabled={!newPlayerName.trim()}
+            vibrationPattern={100}
           >
             Add Player
-          </Button>
+          </VibrationButton>
         </Box>
 
         <List sx={{ width: "100%", flexGrow: 1, overflow: "auto" }}>
@@ -117,13 +117,21 @@ const Players: React.FC = () => {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setEditingPlayer(null)}>Cancel</Button>
-            <Button
+            <VibrationButton
+              onClick={() => setEditingPlayer(null)}
+              vibrationPattern={50}
+            >
+              Cancel
+            </VibrationButton>
+            <VibrationButton
               onClick={handleEditSubmit}
+              color="primary"
+              variant="contained"
               disabled={!editingPlayer?.name.trim()}
+              vibrationPattern={100}
             >
               Save
-            </Button>
+            </VibrationButton>
           </DialogActions>
         </Dialog>
       </Paper>

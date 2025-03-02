@@ -7,6 +7,8 @@ import { useX01Store } from "../store/useX01Store";
 import { alpha } from "@mui/material/styles";
 import { CircularProgress } from "@mui/material";
 import React from "react";
+import VibrationButton from "./VibrationButton";
+import { Close } from "@mui/icons-material";
 
 interface DartInputProps {
   onScore: (
@@ -291,27 +293,30 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
           </Box>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            size="small"
+          <VibrationButton
+            fullWidth
             variant="outlined"
             color="error"
             onClick={handleClearDarts}
-            disabled={currentDarts.length === 0 || isSubmitting}
+            disabled={isSubmitting || currentDarts.length === 0}
+            sx={{ height: "54px" }}
+            vibrationPattern={[30, 50]}
           >
-            Clear
-          </Button>
-          <Button
+            Reset
+          </VibrationButton>
+          <VibrationButton
             size="small"
             variant="contained"
             onClick={handleSubmitDarts}
             disabled={currentDarts.length === 0 || isSubmitting}
+            vibrationPattern={100}
           >
             {isSubmitting ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
               "Submit"
             )}
-          </Button>
+          </VibrationButton>
         </Box>
       </Box>
 
@@ -370,27 +375,23 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
 
             {/* Quick Action Buttons - Now positioned below the numbers */}
             <Box sx={{ display: "flex", width: "100%", mt: 1 }}>
-              <Button
-                variant="contained"
-                color="error"
-                disabled={currentDarts.length >= 3}
+              <VibrationButton
+                fullWidth
+                variant="outlined"
                 onClick={() => {
                   if (currentDarts.length < 3) {
                     recordDart(0, 1);
                   }
                 }}
-                sx={{
-                  flex: 1,
-                  mr: 0.5,
-                  py: 2,
-                  fontWeight: "bold",
-                  fontSize: { xs: "0.9rem", sm: "1rem" },
-                }}
+                disabled={isSubmitting || currentDarts.length >= 3}
+                startIcon={<Close />}
+                sx={{ height: "54px" }}
+                vibrationPattern={[20, 50, 20]}
               >
                 Miss
-              </Button>
-              <Button
-                disabled={currentDarts.length >= 3}
+              </VibrationButton>
+              <VibrationButton
+                fullWidth
                 variant="contained"
                 color="success"
                 onClick={() => {
@@ -398,35 +399,27 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                     recordDart(25, 1);
                   }
                 }}
-                sx={{
-                  flex: 1,
-                  mx: 0.5,
-                  py: 2,
-                  fontWeight: "bold",
-                  fontSize: { xs: "0.9rem", sm: "1rem" },
-                }}
+                disabled={isSubmitting || currentDarts.length >= 3}
+                sx={{ height: "54px" }}
+                vibrationPattern={80}
               >
-                Bull (25)
-              </Button>
-              <Button
+                Single Bull
+              </VibrationButton>
+              <VibrationButton
+                fullWidth
                 variant="contained"
-                disabled={currentDarts.length >= 3}
-                color="primary"
+                color="error"
                 onClick={() => {
                   if (currentDarts.length < 3) {
                     recordDart(50, 1);
                   }
                 }}
-                sx={{
-                  flex: 1,
-                  ml: 0.5,
-                  py: 2,
-                  fontWeight: "bold",
-                  fontSize: { xs: "0.9rem", sm: "1rem" },
-                }}
+                disabled={isSubmitting || currentDarts.length >= 3}
+                sx={{ height: "54px" }}
+                vibrationPattern={120}
               >
-                D-Bull (50)
-              </Button>
+                Double Bull
+              </VibrationButton>
             </Box>
           </Grid>
         </Grid>

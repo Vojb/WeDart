@@ -12,7 +12,6 @@ import {
   useTheme,
   useMediaQuery,
   Container,
-  Button,
 } from "@mui/material";
 import {
   Brightness4,
@@ -29,6 +28,7 @@ import { useStore } from "../store/useStore";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import React from "react";
+import VibrationButton from "./VibrationButton";
 
 const Navbar: React.FC = () => {
   const { themeMode, toggleTheme } = useStore();
@@ -175,7 +175,7 @@ const Navbar: React.FC = () => {
                 }}
               >
                 {menuItems.map((item) => (
-                  <Button
+                  <VibrationButton
                     key={item.text}
                     component={item.disabled ? "button" : Link}
                     {...(item.disabled ? {} : { to: item.path })}
@@ -189,9 +189,10 @@ const Navbar: React.FC = () => {
                       fontWeight: location.pathname === item.path ? 600 : 400,
                       opacity: item.disabled ? 0.5 : 1,
                     }}
+                    vibrationPattern={50}
                   >
                     {item.text}
-                  </Button>
+                  </VibrationButton>
                 ))}
               </Box>
             </>

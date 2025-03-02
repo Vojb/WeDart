@@ -10,6 +10,10 @@ import X01Game from "./pages/X01Game";
 import History from "./pages/History";
 import Highscore from "./pages/Highscore";
 import Players from "./pages/Players";
+import Cricket from "./pages/Cricket";
+import CricketGame from "./pages/CricketGame";
+import HalfIt from "./pages/HalfIt";
+import HalfItGame from "./pages/HalfItGame";
 import { Box } from "@mui/material";
 
 // Create a layout route component that applies the layout to all children
@@ -48,6 +52,14 @@ export const router = createBrowserRouter([
         element: <X01NewGame />,
       },
       {
+        path: "cricket",
+        element: <Cricket />,
+      },
+      {
+        path: "halfit",
+        element: <HalfIt />,
+      },
+      {
         path: "history",
         element: <History />,
       },
@@ -77,6 +89,26 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <X01Game />,
+      },
+    ],
+  },
+  {
+    path: "/cricket/game",
+    element: <GameLayoutRoute />,
+    children: [
+      {
+        index: true,
+        element: <CricketGame />,
+      },
+    ],
+  },
+  {
+    path: "/halfit/game",
+    element: <GameLayoutRoute />,
+    children: [
+      {
+        index: true,
+        element: <HalfItGame />,
       },
     ],
   },

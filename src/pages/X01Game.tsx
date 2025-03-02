@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Divider,
   List,
   ListItem,
@@ -33,6 +32,7 @@ import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import checkoutGuide from "../utils/checkoutGuide";
+import VibrationButton from "../components/VibrationButton";
 
 type InputMode = "numeric" | "board";
 
@@ -358,10 +358,17 @@ const X01Game: React.FC = () => {
           </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleReturnToSetup}>Return to Setup</Button>
-          <Button onClick={handlePlayAgain} variant="contained" color="primary">
+          <VibrationButton onClick={handleReturnToSetup} vibrationPattern={50}>
+            Return to Setup
+          </VibrationButton>
+          <VibrationButton
+            onClick={handlePlayAgain}
+            variant="contained"
+            color="primary"
+            vibrationPattern={100}
+          >
             Play Again
-          </Button>
+          </VibrationButton>
         </DialogActions>
       </Dialog>
 
@@ -383,10 +390,17 @@ const X01Game: React.FC = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelLeave}>Cancel</Button>
-          <Button onClick={handleLeaveGame} variant="contained" color="error">
+          <VibrationButton onClick={handleCancelLeave} vibrationPattern={50}>
+            Cancel
+          </VibrationButton>
+          <VibrationButton
+            onClick={handleLeaveGame}
+            variant="contained"
+            color="error"
+            vibrationPattern={[50, 100, 50]}
+          >
             Leave Game
-          </Button>
+          </VibrationButton>
         </DialogActions>
       </Dialog>
 
