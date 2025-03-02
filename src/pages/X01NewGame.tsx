@@ -6,7 +6,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Button,
   SelectChangeEvent,
   FormControlLabel,
   Switch,
@@ -16,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import { useX01Store } from "../store/useX01Store";
 import React from "react";
+import VibrationButton from "../components/VibrationButton";
 
 const X01NewGame: React.FC = () => {
   const navigate = useNavigate();
@@ -141,15 +141,16 @@ const X01NewGame: React.FC = () => {
             />
           </Box>
 
-          <Button
+          <VibrationButton
             variant="contained"
             size="large"
             onClick={handleStartGame}
             disabled={selectedPlayers.length === 0}
             sx={{ mt: 1 }}
+            vibrationPattern={100}
           >
             Start Game
-          </Button>
+          </VibrationButton>
         </Box>
       </Paper>
     </Box>

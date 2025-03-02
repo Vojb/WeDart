@@ -16,7 +16,7 @@ const X01: React.FC = () => {
           <VibrationButton
             variant="contained"
             size="large"
-            onClick={() => navigate("/x01/new-game")}
+            onClick={() => navigate("/x01/new")}
             vibrationPattern={100}
           >
             Continue

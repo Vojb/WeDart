@@ -22,8 +22,15 @@ const VibrationButton: React.FC<VibrationButtonProps> = ({
   const { vibrationEnabled } = useStore();
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // Debug vibration status
+    console.log("Vibration button clicked");
+    console.log("Vibration enabled:", vibrationEnabled);
+    console.log("Vibration pattern:", vibrationPattern);
+    console.log("Navigator.vibrate available:", !!navigator.vibrate);
+
     // Trigger vibration if enabled
     if (vibrationEnabled) {
+      console.log("Attempting to vibrate...");
       // Use type assertion to resolve TypeScript error
       vibrateDevice(vibrationPattern as number);
     }

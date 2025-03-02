@@ -1009,6 +1009,40 @@ const Settings: React.FC = () => {
           iOS devices or desktop browsers.
         </Typography>
 
+        {/* Display device compatibility info */}
+        <Box
+          sx={{ mb: 2, p: 1, bgcolor: "background.default", borderRadius: 1 }}
+        >
+          <Typography variant="subtitle2" color="primary" sx={{ mb: 0.5 }}>
+            Device Compatibility Check
+          </Typography>
+          <Typography variant="body2">
+            Vibration API supported:{" "}
+            <strong>
+              {typeof navigator.vibrate === "function" ? "Yes" : "No"}
+            </strong>
+          </Typography>
+          <Typography variant="body2">
+            Running as PWA:{" "}
+            <strong>
+              {window.matchMedia("(display-mode: standalone)").matches
+                ? "Yes"
+                : "No"}
+            </strong>
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <strong>Note:</strong> For vibrations to work, you must install this
+            app to your home screen and use it as a Progressive Web App (PWA) on
+            an Android device.
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <strong>Installation:</strong> To install the app, open this website
+            in Chrome on Android, tap the menu button (three dots), and select
+            "Install app" or "Add to Home Screen".
+          </Typography>
+        </Box>
+
         <FormControlLabel
           control={
             <Switch checked={vibrationEnabled} onChange={toggleVibration} />

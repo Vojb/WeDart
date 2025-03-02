@@ -9,11 +9,32 @@ import { useStore } from "../store/useStore";
 
 // Add vibration utility function
 export const vibrateDevice = (pattern: number | number[] = 100) => {
-  if (
-    navigator.vibrate &&
-    window.matchMedia("(prefers-reduced-motion: no-preference)").matches
-  ) {
-    navigator.vibrate(pattern);
+  console.log("[Vibration] Vibration requested with pattern:", pattern);
+
+  // Check if the device supports vibration
+  if (!navigator.vibrate) {
+    console.log(
+      "[Vibration] Vibration API not supported in this browser/device"
+    );
+    return false;
+  }
+
+  // Check if reduced motion is preferred
+  if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+    console.log(
+      "[Vibration] Reduced motion preference detected, skipping vibration"
+    );
+    return false;
+  }
+
+  try {
+    // Attempt to vibrate
+    const result = navigator.vibrate(pattern);
+    console.log("[Vibration] Vibration call result:", result);
+    return result;
+  } catch (error) {
+    console.error("[Vibration] Error when trying to vibrate:", error);
+    return false;
   }
 };
 
