@@ -185,13 +185,38 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
       }, 1000);
       countdownIntervalRef.current = countdownInterval;
 
-      // Set new timer for 2 seconds
-      autoSubmitTimer.current = window.setTimeout(() => {
-        handleSubmitDarts();
+      // KEY FIX: Create a callback function that has access to the updated darts
+      const autoSubmitCallback = () => {
+        // This callback will have access to the most up-to-date currentDarts state
+        console.log("Auto-submit callback running with darts:", updatedDarts);
+
+        // Based on the updatedDarts array, calculate score and submit
+        const totalScore = updatedDarts.reduce(
+          (sum, dart) => sum + dart.value,
+          0
+        );
+        const lastDartMultiplier =
+          updatedDarts[updatedDarts.length - 1].multiplier;
+
+        // Log detailed information
+        console.log(
+          `Auto-submitting with score: ${totalScore}, darts: ${updatedDarts.length}, last multiplier: ${lastDartMultiplier}`
+        );
+
+        // Use the onScore prop directly with the calculated values
+        onScore(totalScore, 3, lastDartMultiplier);
+
+        // Reset UI state
+        setCurrentDarts([]);
         autoSubmitTimer.current = null;
         setAutoSubmitCountdown(null);
         clearInterval(countdownInterval);
-      }, 2000);
+      };
+
+      // Set the auto-submit timer
+      setTimeout(() => {
+        autoSubmitTimer.current = window.setTimeout(autoSubmitCallback, 2000);
+      }, 50); // Small delay to ensure state is updated
     }
   };
 
@@ -243,6 +268,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
         currentDarts.length > 0
           ? currentDarts[currentDarts.length - 1].multiplier
           : 1;
+
+      console.log(
+        `Submitting score: ${totalScore}, Darts used: 3, Last multiplier: ${lastDartMultiplier}`
+      );
 
       // Call the onScore callback to update the game state
       // Always count as 3 darts thrown, regardless of how many were actually entered
