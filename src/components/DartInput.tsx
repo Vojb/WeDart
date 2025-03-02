@@ -170,7 +170,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
           : 1;
 
       // Call the onScore callback to update the game state
-      onScore(totalScore, currentDarts.length, lastDartMultiplier);
+      // Always count as 3 darts thrown, regardless of how many were actually entered
+      onScore(totalScore, 3, lastDartMultiplier);
 
       // Reset current darts after submission
       setCurrentDarts([]);
@@ -292,11 +293,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
           <VibrationButton
-            fullWidth
+            size="small"
             variant="outlined"
-            color="error"
             onClick={handleClearDarts}
             disabled={isSubmitting || currentDarts.length === 0}
             sx={{ height: "54px" }}
@@ -304,19 +304,32 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
           >
             Reset
           </VibrationButton>
-          <VibrationButton
-            size="small"
-            variant="contained"
-            onClick={handleSubmitDarts}
-            disabled={currentDarts.length === 0 || isSubmitting}
-            vibrationPattern={100}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+            }}
           >
-            {isSubmitting ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              "Submit"
+            <VibrationButton
+              size="small"
+              variant="contained"
+              onClick={handleSubmitDarts}
+              disabled={currentDarts.length === 0 || isSubmitting}
+              vibrationPattern={100}
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Submit"
+              )}
+            </VibrationButton>
+            {currentDarts.length < 3 && currentDarts.length > 0 && (
+              <Typography variant="caption" sx={{ mt: 0.5, opacity: 0.7 }}>
+                Submitting counts as using all 3 darts
+              </Typography>
             )}
-          </VibrationButton>
+          </Box>
         </Box>
       </Box>
 
@@ -354,8 +367,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                     size="small"
                     variant={
                       selectedNumber === num && (isHolding || showMultiplier)
-                        ? "contained"
-                        : "outlined"
+                        ? "outlined"
+                        : "contained"
                     }
                     disabled={currentDarts.length >= 3}
                     onTouchStart={(e) => handleStart(num, e)}
@@ -373,11 +386,11 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               ))}
             </Grid>
 
-            {/* Quick Action Buttons - Now positioned below the numbers */}
             <Box sx={{ display: "flex", width: "100%", mt: 1 }}>
               <VibrationButton
                 fullWidth
-                variant="outlined"
+                variant="contained"
+                color="error"
                 onClick={() => {
                   if (currentDarts.length < 3) {
                     recordDart(0, 1);
@@ -408,7 +421,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               <VibrationButton
                 fullWidth
                 variant="contained"
-                color="error"
+                color="success"
                 onClick={() => {
                   if (currentDarts.length < 3) {
                     recordDart(50, 1);

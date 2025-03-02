@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#121212">
+  <title>WeDart - Offline</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 90vh;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #1976d2;
+      margin-bottom: 1rem;
+    }
+    p {
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 1rem;
+    }
+    .button {
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    .button:hover {
+      background-color: #1565c0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📶</div>
+    <h1>You're offline</h1>
+    <p>WeDart is designed to work offline, but you're trying to access content that hasn't been cached yet.</p>
+    <p>Try accessing this page when you're back online, or return to the parts of the app that you've already visited.</p>
+    <button class="button" onclick="window.location.href='/'">Go to Home Page</button>
+  </div>
+
+  <script>
+    // Check when network connection returns
+    window.addEventListener('online', () => {
+      // Reload the page when connection returns
+      window.location.reload();
+    });
+  </script>
+</body>
+</html> 

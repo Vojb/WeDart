@@ -267,6 +267,7 @@ const Settings: React.FC = () => {
     setCurrentTheme,
     vibrationEnabled,
     toggleVibration,
+    hasUserActivation,
   } = useStore();
 
   // State for color values
@@ -1030,16 +1031,31 @@ const Settings: React.FC = () => {
                 : "No"}
             </strong>
           </Typography>
+          <Typography variant="body2">
+            Sticky activation:{" "}
+            <strong>{hasUserActivation ? "Yes" : "No"}</strong>
+          </Typography>
+          <Typography variant="body2">
+            Online status:{" "}
+            <strong>{navigator.onLine ? "Online" : "Offline"}</strong>
+          </Typography>
+          <Typography variant="body2">
+            Offline capable: <strong>Yes</strong>
+          </Typography>
           <Typography variant="body2" sx={{ mt: 1 }}>
             <strong>Note:</strong> For vibrations to work, you must install this
             app to your home screen and use it as a Progressive Web App (PWA) on
             an Android device.
           </Typography>
-
           <Typography variant="body2" sx={{ mt: 1 }}>
             <strong>Installation:</strong> To install the app, open this website
             in Chrome on Android, tap the menu button (three dots), and select
             "Install app" or "Add to Home Screen".
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <strong>Offline usage:</strong> Once installed, this app will work
+            without an internet connection. Your data is stored locally on your
+            device.
           </Typography>
         </Box>
 

@@ -117,6 +117,10 @@ interface StoreState {
   // Vibration settings
   vibrationEnabled: boolean;
   toggleVibration: () => void;
+
+  // Sticky activation state - tracks if user has interacted with the page
+  hasUserActivation: boolean;
+  setUserActivation: (activated: boolean) => void;
 }
 
 // Restore persist middleware for saving data in localStorage
@@ -220,6 +224,14 @@ export const useStore = create<StoreState>()(
           }
         }
       },
+
+      // Sticky activation state - tracks if user has interacted with the page
+      hasUserActivation: false,
+      setUserActivation: (activated: boolean) =>
+        set((state) => ({
+          ...state,
+          hasUserActivation: activated,
+        })),
     }),
     {
       name: "wedart-main-storage",
@@ -231,6 +243,7 @@ export const useStore = create<StoreState>()(
         themeColors: state.themeColors,
         currentThemeId: state.currentThemeId,
         vibrationEnabled: state.vibrationEnabled,
+        hasUserActivation: state.hasUserActivation,
       }),
     }
   )

@@ -19,17 +19,23 @@ const VibrationButton: React.FC<VibrationButtonProps> = ({
   ...props
 }) => {
   // Get vibration enabled setting from store
-  const { vibrationEnabled } = useStore();
+  const { vibrationEnabled, hasUserActivation, setUserActivation } = useStore();
 
   // Use a ref to check if the first vibration attempt failed
   const isAndroid = /android/i.test(navigator.userAgent);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // Always set sticky activation on click
+    if (!hasUserActivation) {
+      setUserActivation(true);
+    }
+
     // Debug vibration status
     console.log("Vibration button clicked");
     console.log("Vibration enabled:", vibrationEnabled);
     console.log("Vibration pattern:", vibrationPattern);
     console.log("Is Android device:", isAndroid);
+    console.log("Has user activation:", hasUserActivation);
     console.log(
       "Navigator.vibrate available:",
       typeof navigator.vibrate === "function"
