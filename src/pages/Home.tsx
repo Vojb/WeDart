@@ -54,6 +54,14 @@ const Home: React.FC = () => {
       path: "/cricket",
     },
     {
+      title: "Play Cricket Half",
+      description: "Cricket combined with Half-It rules",
+      icon: (
+        <CricketIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+      ),
+      path: "/cricket-half",
+    },
+    {
       title: "Play Half It",
       description: "Start a new Half It dart game",
       icon: (

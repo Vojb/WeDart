@@ -40,6 +40,9 @@ const Navbar: React.FC = () => {
   const menuItems = [
     { text: "Home", icon: <Home />, path: "/" },
     { text: "X01", icon: <SportsEsports />, path: "/x01" },
+    { text: "Cricket", icon: <SportsEsports />, path: "/cricket" },
+    { text: "Cricket Half", icon: <SportsEsports />, path: "/cricket-half" },
+    { text: "Half It", icon: <SportsEsports />, path: "/halfit" },
     { text: "Players", icon: <People />, path: "/players" },
     { text: "History", icon: <History />, path: "/history" },
     {

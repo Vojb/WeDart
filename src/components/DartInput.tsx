@@ -43,6 +43,13 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
   const pressTimer = useRef<number | null>(null);
   const [isHolding, setIsHolding] = useState(false);
   const [isSubmitting] = useState(false);
+  const autoSubmitTimer = useRef<number | null>(null);
+  const [autoSubmitCountdown, setAutoSubmitCountdown] = useState<number | null>(
+    null
+  );
+
+  // Add a ref for the countdown interval
+  const countdownIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     console.log("DartInput mounted or updated");
@@ -50,6 +57,14 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
       console.log("DartInput unmounting");
       if (pressTimer.current) {
         window.clearTimeout(pressTimer.current);
+      }
+      // Clear auto-submit timer on unmount
+      if (autoSubmitTimer.current) {
+        window.clearTimeout(autoSubmitTimer.current);
+      }
+      // Clear countdown interval on unmount
+      if (countdownIntervalRef.current) {
+        window.clearInterval(countdownIntervalRef.current);
       }
     };
   }, []);
@@ -113,10 +128,11 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
   const recordDart = (baseNumber: number, multiplier: Multiplier) => {
     console.log(`Recording dart: ${baseNumber} × ${multiplier}`);
     const dartValue = baseNumber * multiplier;
-    setCurrentDarts((prevDarts) => [
-      ...prevDarts,
+    const updatedDarts = [
+      ...currentDarts,
       { baseNumber, multiplier, value: dartValue },
-    ]);
+    ];
+    setCurrentDarts(updatedDarts);
 
     // Track dart notations for player stats
     const notation = formatDartNotation({
@@ -131,10 +147,69 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
     });
 
     console.log(`Added notation: ${notation}`);
+
+    // Start auto-submit timer if this is the third dart
+    if (updatedDarts.length === 3) {
+      console.log("Third dart entered, starting auto-submit timer");
+      // Clear any existing timer first
+      if (autoSubmitTimer.current) {
+        window.clearTimeout(autoSubmitTimer.current);
+      }
+
+      // Set initial countdown value
+      setAutoSubmitCountdown(2);
+
+      // Use an interval to update the countdown
+      const countdownInterval = setInterval(() => {
+        setAutoSubmitCountdown((prev) => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            countdownIntervalRef.current = null;
+
+            // Vibrate when countdown reaches 1 second to alert the user
+            if (prev === 1 && typeof navigator.vibrate === "function") {
+              navigator.vibrate(200); // 200ms vibration as final warning
+            }
+
+            return null;
+          }
+
+          // Add vibration feedback when countdown reaches 1
+          if (prev === 2 && typeof navigator.vibrate === "function") {
+            navigator.vibrate(100); // shorter vibration for initial countdown feedback
+          }
+
+          return prev - 1;
+        });
+      }, 1000);
+      countdownIntervalRef.current = countdownInterval;
+
+      // Set new timer for 2 seconds
+      autoSubmitTimer.current = window.setTimeout(() => {
+        handleSubmitDarts();
+        autoSubmitTimer.current = null;
+        setAutoSubmitCountdown(null);
+        clearInterval(countdownInterval);
+      }, 2000);
+    }
   };
 
   const handleSubmitDarts = async () => {
     try {
+      // Clear any active auto-submit timer and interval
+      if (autoSubmitTimer.current) {
+        window.clearTimeout(autoSubmitTimer.current);
+        autoSubmitTimer.current = null;
+      }
+
+      if (countdownIntervalRef.current) {
+        window.clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+
+      setAutoSubmitCountdown(null);
+
       // For debugging
       console.log("Submitting darts:", currentDarts);
 
@@ -187,6 +262,20 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
     useX01Store.setState({
       lastDartNotations: [],
     });
+
+    // Cancel auto-submit timer when clearing darts
+    if (autoSubmitTimer.current) {
+      console.log("Cancelling auto-submit timer");
+      window.clearTimeout(autoSubmitTimer.current);
+      autoSubmitTimer.current = null;
+      setAutoSubmitCountdown(null);
+
+      // Also clear the countdown interval
+      if (countdownIntervalRef.current) {
+        window.clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    }
   };
 
   // Format a dart score to display notation like "15", "D15", "T15"
@@ -293,7 +382,14 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            mb: 1,
+            gap: 1,
+          }}
+        >
           <VibrationButton
             size="small"
             variant="outlined"
@@ -304,27 +400,20 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
           >
             Reset
           </VibrationButton>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-            }}
+
+          <VibrationButton
+            size="small"
+            variant="contained"
+            onClick={handleSubmitDarts}
+            disabled={currentDarts.length === 0 || isSubmitting}
+            vibrationPattern={100}
           >
-            <VibrationButton
-              size="small"
-              variant="contained"
-              onClick={handleSubmitDarts}
-              disabled={currentDarts.length === 0 || isSubmitting}
-              vibrationPattern={100}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                "Submit"
-              )}
-            </VibrationButton>
-          </Box>
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Submit"
+            )}
+          </VibrationButton>
         </Box>
       </Box>
 
@@ -339,6 +428,57 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
           overflow: "hidden", // Add overflow hidden to prevent scrolling
         }}
       >
+        {/* Auto-submit countdown indicator */}
+        {currentDarts.length === 3 && autoSubmitCountdown !== null && (
+          <Box
+            sx={{
+              width: "100%",
+              textAlign: "center",
+              mb: 2,
+              position: "relative",
+              zIndex: 5,
+            }}
+          >
+            <Paper
+              elevation={3}
+              sx={{
+                py: 1.5,
+                px: 3,
+                borderRadius: 2,
+                display: "inline-flex",
+                alignItems: "center",
+                flexDirection: "column",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: "bold",
+                  color: "primary.main",
+                  zIndex: 2,
+                }}
+              >
+                Auto-submitting in {autoSubmitCountdown}s
+              </Typography>
+
+              {/* Progress bar that animates as countdown decreases */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  height: "4px",
+                  backgroundColor: "primary.main",
+                  width: autoSubmitCountdown === 2 ? "100%" : "50%",
+                  transition: "width 1s linear",
+                }}
+              />
+            </Paper>
+          </Box>
+        )}
+
         <Grid
           container
           spacing={1}
@@ -381,7 +521,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               ))}
             </Grid>
 
-            <Box sx={{ display: "flex", width: "100%", mt: 1 }}>
+            <Box sx={{ display: "flex", width: "100%", mt: 1, gap: 1 }}>
               <VibrationButton
                 fullWidth
                 variant="contained"

@@ -33,6 +33,12 @@ export interface CricketPlayer {
   currentDartIndex: number;
 }
 
+interface GameSettings {
+  gameType: "standard" | "cutthroat" | "no-score";
+  winCondition: "first-closed" | "points";
+  isHalfIt?: boolean;
+}
+
 interface CricketGameState {
   players: CricketPlayer[];
   currentPlayerIndex: number;
@@ -46,10 +52,7 @@ interface CricketGameState {
 
 interface CricketStoreState {
   // Game settings
-  gameSettings: {
-    gameType: CricketGameState["gameType"];
-    winCondition: CricketGameState["winCondition"];
-  };
+  gameSettings: GameSettings;
   updateGameSettings: (settings: Partial<CricketGameState>) => void;
 
   // Current game state
