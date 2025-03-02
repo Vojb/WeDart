@@ -4,7 +4,6 @@ import Layout from "./components/Layout";
 
 // Import all page components
 import Home from "./pages/Home";
-import X01 from "./pages/X01";
 import X01NewGame from "./pages/X01NewGame";
 import X01Game from "./pages/X01Game";
 import History from "./pages/History";
@@ -45,7 +44,7 @@ export const router = createHashRouter([
       },
       {
         path: "x01",
-        element: <X01 />,
+        element: <X01NewGame />,
       },
       {
         path: "x01/new",
