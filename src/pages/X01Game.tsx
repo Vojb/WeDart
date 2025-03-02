@@ -577,7 +577,9 @@ function PlayerBox({
       <Typography variant="body1" noWrap>
         {player.name}
       </Typography>
-      <Typography variant="h5">{player.score}</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 500 }}>
+        {player.score}
+      </Typography>
       <Box sx={{ display: "flex", gap: 1 }}>
         <Typography
           variant="caption"
@@ -596,8 +598,11 @@ function PlayerBox({
             mt: 1,
             p: 0.75,
             borderRadius: 1,
-            backgroundColor: (theme) => alpha(theme.palette.success.main, 0.08),
-            border: "1px dashed",
+            backgroundColor: (theme) =>
+              theme.palette.mode === "dark"
+                ? alpha(theme.palette.success.main, 0.2)
+                : alpha(theme.palette.success.main, 0.1),
+            border: "1px solid",
             borderColor: "success.main",
           }}
         >
@@ -607,15 +612,22 @@ function PlayerBox({
               display: "block",
               fontWeight: "bold",
               color: "success.main",
-              fontSize: "0.7rem",
+              fontSize: "0.8rem",
               mb: 0.25,
             }}
           >
             CHECKOUT
           </Typography>
           <Typography
-            variant="body2"
-            sx={{ fontWeight: "medium", lineHeight: 1.2 }}
+            variant="body1"
+            sx={{
+              fontWeight: "bold",
+              lineHeight: 1.2,
+              color: (theme) =>
+                theme.palette.mode === "dark"
+                  ? theme.palette.success.light
+                  : theme.palette.success.dark,
+            }}
           >
             {checkoutPath}
           </Typography>
