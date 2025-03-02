@@ -12,6 +12,9 @@ import {
   useTheme,
   useMediaQuery,
   Container,
+  Avatar,
+  Button,
+  alpha,
 } from "@mui/material";
 import {
   Brightness4,
@@ -23,6 +26,7 @@ import {
   EmojiEvents,
   People,
   Settings,
+  Close,
 } from "@mui/icons-material";
 import { useStore } from "../store/useStore";
 import { Link, useLocation } from "react-router-dom";
@@ -57,8 +61,41 @@ const Navbar: React.FC = () => {
   };
 
   const drawer = (
-    <Box>
-      <List sx={{ pt: 2 }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Drawer Header */}
+      <Box
+        sx={{
+          p: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: 1,
+          borderColor: "divider",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Avatar
+            sx={{
+              bgcolor: "primary.main",
+              width: 40,
+              height: 40,
+              mr: 2,
+              fontWeight: "bold",
+            }}
+          >
+            W
+          </Avatar>
+          <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+            WeDart
+          </Typography>
+        </Box>
+        <IconButton onClick={handleDrawerToggle} edge="end">
+          <Close />
+        </IconButton>
+      </Box>
+
+      {/* Menu Items */}
+      <List sx={{ pt: 2, flex: 1, overflowY: "auto" }}>
         {menuItems.map((item) => (
           <ListItem
             key={item.text}
@@ -66,28 +103,36 @@ const Navbar: React.FC = () => {
             {...(item.disabled ? {} : { to: item.path })}
             onClick={() => !item.disabled && handleDrawerToggle()}
             sx={{
-              py: 2,
+              py: 1.5,
               px: 3,
               color: "text.primary",
               textDecoration: "none",
               opacity: item.disabled ? 0.5 : 1,
               pointerEvents: item.disabled ? "none" : "auto",
-              "&.Mui-selected": {
-                bgcolor: (theme) => theme.palette.primary.main,
-                color: "primary.contrastText",
-                "&:hover": {
-                  bgcolor: "primary.dark",
-                },
+              borderRadius: "8px",
+              mx: 1,
+              mb: 0.5,
+              transition: "all 0.2s",
+              bgcolor:
+                location.pathname === item.path
+                  ? (theme) =>
+                      theme.palette.mode === "light"
+                        ? alpha(theme.palette.primary.main, 0.1)
+                        : alpha(theme.palette.primary.main, 0.2)
+                  : "transparent",
+              "&:hover": {
+                bgcolor: (theme) =>
+                  theme.palette.mode === "light"
+                    ? alpha(theme.palette.primary.main, 0.05)
+                    : alpha(theme.palette.primary.main, 0.15),
               },
             }}
           >
             <ListItemIcon
               sx={{
                 color:
-                  location.pathname === item.path
-                    ? "primary.contrastText"
-                    : "inherit",
-                minWidth: { xs: 40, sm: 56 },
+                  location.pathname === item.path ? "primary.main" : "inherit",
+                minWidth: 40,
                 opacity: item.disabled ? 0.5 : 1,
               }}
             >
@@ -97,17 +142,44 @@ const Navbar: React.FC = () => {
               primary={item.text}
               primaryTypographyProps={{
                 variant: "body1",
-                sx: (theme) => ({
+                sx: {
                   fontWeight: location.pathname === item.path ? 600 : 400,
-                  color: item.disabled
-                    ? theme.palette.text.disabled
-                    : "inherit",
-                }),
+                  color:
+                    location.pathname === item.path
+                      ? "primary.main"
+                      : "inherit",
+                },
               }}
             />
           </ListItem>
         ))}
       </List>
+
+      {/* Drawer Footer */}
+      <Box sx={{ mt: "auto", p: 2, borderTop: 1, borderColor: "divider" }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+          <Button
+            startIcon={themeMode === "dark" ? <Brightness7 /> : <Brightness4 />}
+            onClick={toggleTheme}
+            fullWidth
+            variant="outlined"
+            sx={{ mr: 1 }}
+          >
+            {themeMode === "dark" ? "Light Mode" : "Dark Mode"}
+          </Button>
+          <Button
+            startIcon={<Settings />}
+            component={Link}
+            to="/settings"
+            fullWidth
+            variant="outlined"
+            sx={{ ml: 1 }}
+            onClick={handleDrawerToggle}
+          >
+            Settings
+          </Button>
+        </Box>
+      </Box>
     </Box>
   );
 
@@ -224,8 +296,14 @@ const Navbar: React.FC = () => {
         }}
         PaperProps={{
           sx: {
-            width: { xs: "100%", sm: 320 },
+            width: "100%",
             bgcolor: "background.default",
+            transition: "0.3s ease-in-out",
+          },
+        }}
+        sx={{
+          "& .MuiDrawer-paper": {
+            borderRadius: 0,
           },
         }}
       >

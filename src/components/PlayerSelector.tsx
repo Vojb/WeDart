@@ -44,9 +44,9 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
   };
 
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={1}>
       {players.length === 0 ? (
-        <Grid item xs={12}>
+        <Grid item xs={4}>
           <Typography color="text.secondary">
             No players found. Please create players in the Players section.
           </Typography>
@@ -56,7 +56,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
           const isSelected = selectedPlayerIds.includes(player.id);
 
           return (
-            <Grid item xs={6} sm={4} md={3} key={player.id}>
+            <Grid item xs={3} sm={4} md={4} key={player.id}>
               <Card
                 sx={{
                   border: isSelected ? 2 : 0,
@@ -77,7 +77,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
                     >
                       <PersonIcon
                         color={isSelected ? "primary" : "action"}
-                        sx={{ fontSize: 40, mb: 1 }}
+                        sx={{ fontSize: 24, mb: 1 }}
                       />
                       <Typography
                         variant="body1"
@@ -105,7 +105,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
         })
       )}
 
-      <Grid item xs={12}>
+      <Grid item xs={4}>
         <Typography variant="caption" color="text.secondary">
           {selectedPlayerIds.length} of {maxPlayers} players selected
           {minPlayers > 0 && ` (minimum ${minPlayers})`}

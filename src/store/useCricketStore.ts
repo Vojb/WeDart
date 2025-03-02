@@ -233,6 +233,10 @@ export const useCricketStore = create<CricketStoreState>()(
               const wasClosed = target.closed;
               const isClosed = newHits >= 3;
 
+              // Calculate extra hits that would go toward scoring
+              const extraHits = target.hits + multiplier - 3;
+              const hasExtraHits = !wasClosed && isClosed && extraHits > 0;
+
               // Update target hits and closed status
               target.hits = newHits;
               target.closed = isClosed;
@@ -250,20 +254,30 @@ export const useCricketStore = create<CricketStoreState>()(
                   const pointValue =
                     targetNumber === "Bull" ? 25 : Number(targetNumber);
 
-                  // For standard cricket, add points ONLY if target was already closed before this throw
-                  if (newGame.gameType === "standard" && wasClosed) {
-                    // Target was already closed, so all hits count for points
-                    const pointsToAdd = multiplier * pointValue;
+                  // For standard cricket, add points if target was already closed OR if this throw closes it with extra hits
+                  if (
+                    newGame.gameType === "standard" &&
+                    (wasClosed || hasExtraHits)
+                  ) {
+                    // Calculate points to add (all hits if already closed, only extra hits if just closing)
+                    const pointsToAdd = wasClosed
+                      ? multiplier * pointValue
+                      : extraHits * pointValue;
 
                     // Update player score
                     target.points += pointsToAdd;
                     currentPlayer.totalScore += pointsToAdd;
                     pointsEarned = pointsToAdd;
                   }
-                  // For cutthroat, add points to opponents ONLY if target was already closed
-                  else if (newGame.gameType === "cutthroat" && wasClosed) {
-                    // Target was already closed, so all hits count for points
-                    const pointsToAdd = multiplier * pointValue;
+                  // For cutthroat, add points to opponents if target was already closed OR if this throw closes it with extra hits
+                  else if (
+                    newGame.gameType === "cutthroat" &&
+                    (wasClosed || hasExtraHits)
+                  ) {
+                    // Calculate points to add (all hits if already closed, only extra hits if just closing)
+                    const pointsToAdd = wasClosed
+                      ? multiplier * pointValue
+                      : extraHits * pointValue;
 
                     players.forEach((player, idx) => {
                       if (

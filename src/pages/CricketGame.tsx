@@ -3,7 +3,6 @@ import {
   Box,
   Paper,
   Typography,
-  Grid,
   Button,
   IconButton,
   Dialog,
@@ -47,6 +46,10 @@ const CricketGame: React.FC = () => {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGame, setIsValidGame] = useState(true);
+  const [multiplierDialog, setMultiplierDialog] = useState({
+    open: false,
+    multiplier: 1,
+  });
 
   // If no game is in progress, redirect to setup
   useEffect(() => {
@@ -197,27 +200,59 @@ const CricketGame: React.FC = () => {
   const renderMarks = (hits: number) => {
     if (hits === 0) return null;
 
-    const marks = [];
-    for (let i = 0; i < Math.min(hits, 3); i++) {
-      marks.push(
-        <Box
-          key={i}
-          component="span"
-          sx={{
-            display: "inline-block",
-            width: "8px",
-            height: "16px",
-            mx: "1px",
-            bgcolor: "primary.main",
-            borderRadius: i === 1 ? "0" : "4px",
-            transform: i === 1 ? "rotate(45deg)" : "none",
-          }}
-        />
-      );
-    }
-
+    // Container to hold the marks
     return (
-      <Box sx={{ display: "flex", justifyContent: "center" }}>{marks}</Box>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          position: "relative",
+          width: 24,
+          height: 24,
+          margin: "0 auto",
+        }}
+      >
+        {/* First hit - Slash (/) */}
+        {hits >= 1 && (
+          <Box
+            sx={{
+              position: "absolute",
+              width: "2px",
+              height: "20px",
+              bgcolor: "primary.main",
+              transform: "rotate(45deg)",
+            }}
+          />
+        )}
+
+        {/* Second hit - Cross (X) - adds backslash (\) */}
+        {hits >= 2 && (
+          <Box
+            sx={{
+              position: "absolute",
+              width: "2px",
+              height: "20px",
+              bgcolor: "primary.main",
+              transform: "rotate(-45deg)",
+            }}
+          />
+        )}
+
+        {/* Third hit - Circle with cross */}
+        {hits >= 3 && (
+          <Box
+            sx={{
+              position: "absolute",
+              width: "20px",
+              height: "20px",
+              border: "2px solid",
+              borderColor: "primary.main",
+              borderRadius: "50%",
+            }}
+          />
+        )}
+      </Box>
     );
   };
 
@@ -393,7 +428,14 @@ const CricketGame: React.FC = () => {
               <Typography variant="subtitle1">
                 {currentPlayer?.name}'s Turn
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", mt: 0.5 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mt: 0.5,
+                  minHeight: 40,
+                }}
+              >
                 <Typography variant="body2" color="text.secondary">
                   Darts remaining: {3 - (currentPlayer?.currentDartIndex || 0)}
                 </Typography>
@@ -667,6 +709,71 @@ const CricketGame: React.FC = () => {
                                     ? (theme) =>
                                         alpha(theme.palette.primary.main, 0.05)
                                     : "transparent",
+                                cursor:
+                                  playerIndex ===
+                                    currentGame.currentPlayerIndex &&
+                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
+                                  (!target.closed ||
+                                    currentGame.players.some((p) => {
+                                      const otherPlayerTarget = p.targets.find(
+                                        (t) => t.number === number
+                                      );
+                                      return (
+                                        p.id !== player.id &&
+                                        otherPlayerTarget &&
+                                        !otherPlayerTarget.closed
+                                      );
+                                    }))
+                                    ? "pointer"
+                                    : "default",
+                                "&:hover": {
+                                  bgcolor:
+                                    playerIndex ===
+                                      currentGame.currentPlayerIndex &&
+                                    (currentPlayer?.currentDartIndex || 0) <
+                                      3 &&
+                                    (!target.closed ||
+                                      currentGame.players.some((p) => {
+                                        const otherPlayerTarget =
+                                          p.targets.find(
+                                            (t) => t.number === number
+                                          );
+                                        return (
+                                          p.id !== player.id &&
+                                          otherPlayerTarget &&
+                                          !otherPlayerTarget.closed
+                                        );
+                                      }))
+                                      ? (theme) =>
+                                          alpha(
+                                            theme.palette.primary.main,
+                                            0.15
+                                          )
+                                      : undefined,
+                                },
+                              }}
+                              onClick={() => {
+                                if (
+                                  playerIndex ===
+                                    currentGame.currentPlayerIndex &&
+                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
+                                  (!target.closed ||
+                                    currentGame.players.some((p) => {
+                                      const otherPlayerTarget = p.targets.find(
+                                        (t) => t.number === number
+                                      );
+                                      return (
+                                        p.id !== player.id &&
+                                        otherPlayerTarget &&
+                                        !otherPlayerTarget.closed
+                                      );
+                                    }))
+                                ) {
+                                  handleHit(
+                                    number,
+                                    multiplierDialog.multiplier
+                                  );
+                                }
                               }}
                             >
                               {target.closed ? (
@@ -741,6 +848,71 @@ const CricketGame: React.FC = () => {
                                     ? (theme) =>
                                         alpha(theme.palette.primary.main, 0.05)
                                     : "transparent",
+                                cursor:
+                                  playerIndex ===
+                                    currentGame.currentPlayerIndex &&
+                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
+                                  (!target.closed ||
+                                    currentGame.players.some((p) => {
+                                      const otherPlayerTarget = p.targets.find(
+                                        (t) => t.number === number
+                                      );
+                                      return (
+                                        p.id !== player.id &&
+                                        otherPlayerTarget &&
+                                        !otherPlayerTarget.closed
+                                      );
+                                    }))
+                                    ? "pointer"
+                                    : "default",
+                                "&:hover": {
+                                  bgcolor:
+                                    playerIndex ===
+                                      currentGame.currentPlayerIndex &&
+                                    (currentPlayer?.currentDartIndex || 0) <
+                                      3 &&
+                                    (!target.closed ||
+                                      currentGame.players.some((p) => {
+                                        const otherPlayerTarget =
+                                          p.targets.find(
+                                            (t) => t.number === number
+                                          );
+                                        return (
+                                          p.id !== player.id &&
+                                          otherPlayerTarget &&
+                                          !otherPlayerTarget.closed
+                                        );
+                                      }))
+                                      ? (theme) =>
+                                          alpha(
+                                            theme.palette.primary.main,
+                                            0.15
+                                          )
+                                      : undefined,
+                                },
+                              }}
+                              onClick={() => {
+                                if (
+                                  playerIndex ===
+                                    currentGame.currentPlayerIndex &&
+                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
+                                  (!target.closed ||
+                                    currentGame.players.some((p) => {
+                                      const otherPlayerTarget = p.targets.find(
+                                        (t) => t.number === number
+                                      );
+                                      return (
+                                        p.id !== player.id &&
+                                        otherPlayerTarget &&
+                                        !otherPlayerTarget.closed
+                                      );
+                                    }))
+                                ) {
+                                  handleHit(
+                                    number,
+                                    multiplierDialog.multiplier
+                                  );
+                                }
                               }}
                             >
                               {target.closed ? (
@@ -813,6 +985,63 @@ const CricketGame: React.FC = () => {
                                   ? (theme) =>
                                       alpha(theme.palette.primary.main, 0.05)
                                   : "transparent",
+                              cursor:
+                                playerIndex ===
+                                  currentGame.currentPlayerIndex &&
+                                (currentPlayer?.currentDartIndex || 0) < 3 &&
+                                (!target.closed ||
+                                  currentGame.players.some((p) => {
+                                    const otherPlayerTarget = p.targets.find(
+                                      (t) => t.number === number
+                                    );
+                                    return (
+                                      p.id !== player.id &&
+                                      otherPlayerTarget &&
+                                      !otherPlayerTarget.closed
+                                    );
+                                  }))
+                                  ? "pointer"
+                                  : "default",
+                              "&:hover": {
+                                bgcolor:
+                                  playerIndex ===
+                                    currentGame.currentPlayerIndex &&
+                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
+                                  (!target.closed ||
+                                    currentGame.players.some((p) => {
+                                      const otherPlayerTarget = p.targets.find(
+                                        (t) => t.number === number
+                                      );
+                                      return (
+                                        p.id !== player.id &&
+                                        otherPlayerTarget &&
+                                        !otherPlayerTarget.closed
+                                      );
+                                    }))
+                                    ? (theme) =>
+                                        alpha(theme.palette.primary.main, 0.15)
+                                    : undefined,
+                              },
+                            }}
+                            onClick={() => {
+                              if (
+                                playerIndex ===
+                                  currentGame.currentPlayerIndex &&
+                                (currentPlayer?.currentDartIndex || 0) < 3 &&
+                                (!target.closed ||
+                                  currentGame.players.some((p) => {
+                                    const otherPlayerTarget = p.targets.find(
+                                      (t) => t.number === number
+                                    );
+                                    return (
+                                      p.id !== player.id &&
+                                      otherPlayerTarget &&
+                                      !otherPlayerTarget.closed
+                                    );
+                                  }))
+                              ) {
+                                handleHit(number, multiplierDialog.multiplier);
+                              }
                             }}
                           >
                             {target.closed ? (
@@ -848,154 +1077,85 @@ const CricketGame: React.FC = () => {
           </Box>
           {/* Dart Input */}
           <Box sx={{ mb: 2 }}>
-            {/* New Cricket Board Input UI */}
+            {/* New Cricket Board Input UI - We'll replace this with just the multiplier buttons */}
             <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
-              {/* Cricket numbers */}
-              {[20, 19, 18, 17, 16, 15, "Bull"].map((number) => {
-                const target = currentPlayer?.targets?.find(
-                  (t) => t.number === number
-                );
+              {/* Instructions for gameplay */}
+              <Box sx={{ mb: 2, textAlign: "center" }}>
+                <Typography fontSize={18} color="text.secondary">
+                  Click directly on your column to mark a hit
+                </Typography>
+                <Typography
+                  variant="body2"
+                  fontSize={14}
+                  color="text.secondary"
+                  sx={{ mt: 1 }}
+                >
+                  Select a multiplier first, then click on your column
+                </Typography>
+              </Box>
 
-                // Check if ALL players have closed this number
-                const allPlayersClosed = currentGame.players.every(
-                  (player) =>
-                    player.targets.find((t) => t.number === number)?.closed
-                );
-
-                const isCurrentPlayerClosed = target?.closed || false;
-                // Disable if player has used all 3 darts or if all players have closed the number
-                const dartLimitReached =
-                  (currentPlayer?.currentDartIndex || 0) >= 3;
-                const isDisabled = allPlayersClosed || dartLimitReached;
-
-                return (
-                  <Grid container key={number} spacing={1} sx={{ mb: 1 }}>
-                    {/* Number label */}
-                    <Grid item xs={2}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          height: "48px",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: "bold",
-                          position: "relative",
-                          bgcolor:
-                            isCurrentPlayerClosed && !allPlayersClosed
-                              ? (theme) =>
-                                  alpha(theme.palette.success.light, 0.1)
-                              : undefined,
-                          borderRadius: 1,
-                          border:
-                            isCurrentPlayerClosed && !allPlayersClosed
-                              ? "1px solid"
-                              : "none",
-                          borderColor: "success.main",
-                        }}
-                      >
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            textDecoration: allPlayersClosed
-                              ? "line-through"
-                              : "none",
-                            color:
-                              isCurrentPlayerClosed && !allPlayersClosed
-                                ? "success.main"
-                                : "text.primary",
-                          }}
-                        >
-                          {number}
-                        </Typography>
-                        {isCurrentPlayerClosed && (
-                          <Box
-                            sx={{
-                              position: "absolute",
-                              top: 3,
-                              right: 3,
-                              width: 12,
-                              height: 12,
-                            }}
-                          >
-                            <CheckCircle
-                              color="success"
-                              sx={{ fontSize: "0.75rem" }}
-                            />
-                          </Box>
-                        )}
-                      </Box>
-                    </Grid>
-
-                    {/* Single Button */}
-                    <Grid item xs={3}>
-                      <VibrationButton
-                        variant="outlined"
-                        fullWidth
-                        size="small"
-                        disabled={isDisabled}
-                        onClick={() => handleHit(number, 1)}
-                        vibrationPattern={50}
-                        sx={{
-                          height: "48px",
-                          opacity: isDisabled ? 0.5 : 1,
-                        }}
-                      >
-                        Single
-                      </VibrationButton>
-                    </Grid>
-
-                    {/* Double Button */}
-                    <Grid item xs={3}>
-                      <VibrationButton
-                        variant="outlined"
-                        color="secondary"
-                        fullWidth
-                        size="small"
-                        disabled={isDisabled}
-                        onClick={() => handleHit(number, 2)}
-                        vibrationPattern={75}
-                        sx={{
-                          height: "48px",
-                          opacity: isDisabled ? 0.5 : 1,
-                        }}
-                      >
-                        Double
-                      </VibrationButton>
-                    </Grid>
-
-                    {/* Triple Button */}
-                    <Grid item xs={4}>
-                      <VibrationButton
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        size="small"
-                        disabled={isDisabled}
-                        onClick={() => handleHit(number, 3)}
-                        vibrationPattern={100}
-                        sx={{
-                          height: "48px",
-                          opacity: isDisabled ? 0.5 : 1,
-                        }}
-                      >
-                        Triple
-                      </VibrationButton>
-                    </Grid>
-                  </Grid>
-                );
-              })}
-
-              {/* Miss Button */}
-              <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+              {/* Multiplier Buttons and Miss Button */}
+              <Box
+                sx={{
+                  mt: 1,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 1,
+                }}
+              >
                 <VibrationButton
-                  variant="outlined"
+                  variant="contained"
                   color="error"
                   disabled={currentPlayer?.currentDartIndex >= 3}
                   onClick={() => handleHit(0, 0)}
                   vibrationPattern={[50, 100, 50]}
-                  sx={{ width: 120 }}
+                  sx={{ flex: 0.5, height: "54px" }}
                 >
                   Miss
+                </VibrationButton>
+                <VibrationButton
+                  variant="contained"
+                  color={
+                    multiplierDialog.multiplier === 1 ? "primary" : "inherit"
+                  }
+                  disabled={currentPlayer?.currentDartIndex >= 3}
+                  onClick={() =>
+                    setMultiplierDialog({ open: true, multiplier: 1 })
+                  }
+                  vibrationPattern={50}
+                  sx={{ flex: 1, height: "54px" }}
+                >
+                  Single
+                </VibrationButton>
+
+                <VibrationButton
+                  variant="contained"
+                  color={
+                    multiplierDialog.multiplier === 2 ? "secondary" : "inherit"
+                  }
+                  disabled={currentPlayer?.currentDartIndex >= 3}
+                  onClick={() =>
+                    setMultiplierDialog({ open: true, multiplier: 2 })
+                  }
+                  vibrationPattern={75}
+                  sx={{ flex: 1, height: "54px" }}
+                >
+                  Double (2x)
+                </VibrationButton>
+
+                <VibrationButton
+                  variant="contained"
+                  color={
+                    multiplierDialog.multiplier === 3 ? "success" : "inherit"
+                  }
+                  disabled={currentPlayer?.currentDartIndex >= 3}
+                  onClick={() =>
+                    setMultiplierDialog({ open: true, multiplier: 3 })
+                  }
+                  vibrationPattern={100}
+                  sx={{ flex: 1, height: "54px" }}
+                >
+                  Triple (3x)
                 </VibrationButton>
               </Box>
             </Paper>

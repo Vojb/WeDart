@@ -82,16 +82,16 @@ const Cricket: React.FC = () => {
   return (
     <Box sx={{ p: 2, height: "100%" }}>
       <Paper
-        sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}
+        sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}
       >
         <Typography variant="h4" component="h1" gutterBottom color="primary">
           Cricket Setup
         </Typography>
 
-        <Grid container spacing={3}>
+        <Grid container spacing={4}>
           {/* Game Type Selection */}
-          <Grid item xs={12} md={6}>
-            <FormControl component="fieldset" sx={{ mb: 3 }}>
+          <Grid item xs={12} md={2}>
+            <FormControl component="fieldset" sx={{ mb: 1 }}>
               <FormLabel component="legend">Game Type</FormLabel>
               <RadioGroup
                 value={gameType}
@@ -139,7 +139,7 @@ const Cricket: React.FC = () => {
 
           {/* Win Condition Selection */}
           <Grid item xs={12} md={6}>
-            <FormControl component="fieldset" sx={{ mb: 3 }}>
+            <FormControl component="fieldset" sx={{ mb: 1 }}>
               <FormLabel component="legend">Win Condition</FormLabel>
               <RadioGroup
                 value={winCondition}
@@ -180,10 +180,15 @@ const Cricket: React.FC = () => {
         <Divider sx={{ my: 2 }} />
 
         {/* Player Selection */}
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            Select Players
-          </Typography>
+        <Box
+          sx={{
+            mb: 1,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "auto",
+          }}
+        >
           <PlayerSelector
             players={players}
             selectedPlayerIds={selectedPlayerIds}
