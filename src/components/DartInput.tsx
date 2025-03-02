@@ -9,7 +9,11 @@ import { CircularProgress } from "@mui/material";
 import React from "react";
 
 interface DartInputProps {
-  onScore: (score: number, dartsUsed: number) => void;
+  onScore: (
+    score: number,
+    dartsUsed: number,
+    lastDartMultiplier: Multiplier
+  ) => void;
 }
 
 export type Multiplier = 1 | 2 | 3;
@@ -157,8 +161,14 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
         `Current player: ${currentPlayer.name}, Score before: ${currentPlayer.score}`
       );
 
+      // Get the multiplier of the last dart for double-out validation
+      const lastDartMultiplier =
+        currentDarts.length > 0
+          ? currentDarts[currentDarts.length - 1].multiplier
+          : 1;
+
       // Call the onScore callback to update the game state
-      onScore(totalScore, currentDarts.length);
+      onScore(totalScore, currentDarts.length, lastDartMultiplier);
 
       // Reset current darts after submission
       setCurrentDarts([]);

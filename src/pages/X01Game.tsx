@@ -474,7 +474,11 @@ const X01Game: React.FC = () => {
               <NumericInput onScore={recordScore} />
             ) : (
               <DartInputErrorBoundary>
-                <DartInput onScore={recordScore} />
+                <DartInput
+                  onScore={(score, dartsUsed, lastDartMultiplier) =>
+                    recordScore(score, dartsUsed, lastDartMultiplier)
+                  }
+                />
               </DartInputErrorBoundary>
             )}
           </Box>

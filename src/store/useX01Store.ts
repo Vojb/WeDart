@@ -54,7 +54,11 @@ interface X01StoreState {
   // Current game state
   currentGame: GameState | null;
   startGame: (gameType: GameState["gameType"], playerIds: number[]) => void;
-  recordScore: (score: number, dartsUsed: number) => void;
+  recordScore: (
+    score: number,
+    dartsUsed: number,
+    lastDartMultiplier?: number
+  ) => void;
   undoLastScore: () => void;
   endGame: () => void;
   setInputMode: (mode: "numeric" | "dart") => void;
@@ -265,7 +269,7 @@ export const useX01Store = create<X01StoreState>()(
       },
 
       // Improved recordScore function with correct average calculations
-      recordScore: (score, dartsUsed) => {
+      recordScore: (score, dartsUsed, lastDartMultiplier) => {
         try {
           // Add debounce to prevent duplicate score registrations
           const now = Date.now();
@@ -375,10 +379,17 @@ export const useX01Store = create<X01StoreState>()(
             // Check if bust (score below 0 or score is 1 with double out rule)
             const isBust =
               newPlayerScore < 0 ||
-              (newGame.isDoubleOut && newPlayerScore === 1);
+              (newGame.isDoubleOut && newPlayerScore === 1) ||
+              // Add double-out validation - if player reaches 0 but last dart wasn't a double
+              (newGame.isDoubleOut &&
+                newPlayerScore === 0 &&
+                lastDartMultiplier !== 2);
 
-            // Check if player has won (score exactly 0)
-            const hasWon = newPlayerScore === 0;
+            // Check if player has won (score exactly 0 and if double-out is required, last dart was a double)
+            const hasWon =
+              newPlayerScore === 0 &&
+              (!newGame.isDoubleOut ||
+                (newGame.isDoubleOut && lastDartMultiplier === 2));
 
             if (isBust) {
               // If bust, keep the player's current turn but don't update the score

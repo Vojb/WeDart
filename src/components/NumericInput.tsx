@@ -4,7 +4,7 @@ import { useState } from "react";
 import React from "react";
 
 interface NumericInputProps {
-  onScore: (score: number, darts: number) => void;
+  onScore: (score: number, darts: number, lastDartMultiplier?: number) => void;
 }
 
 const NumericInput: React.FC<NumericInputProps> = ({ onScore }) => {
@@ -23,7 +23,7 @@ const NumericInput: React.FC<NumericInputProps> = ({ onScore }) => {
   const handleSubmitScore = () => {
     const score = parseInt(currentInput) || 0;
     if (score <= 180) {
-      onScore(score, 3);
+      onScore(score, 3, 1);
       setCurrentInput("");
     }
   };
