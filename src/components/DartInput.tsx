@@ -324,11 +324,6 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 "Submit"
               )}
             </VibrationButton>
-            {currentDarts.length < 3 && currentDarts.length > 0 && (
-              <Typography variant="caption" sx={{ mt: 0.5, opacity: 0.7 }}>
-                Submitting counts as using all 3 darts
-              </Typography>
-            )}
           </Box>
         </Box>
       </Box>
