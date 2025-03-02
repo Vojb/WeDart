@@ -108,7 +108,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
 
     // Only register single score if not showing multiplier
     if (selectedNumber !== null && currentDarts.length < 3 && !showMultiplier) {
-      recordDart(selectedNumber, 1);
+      recordDart(selectedNumber, 1, false);
       setSelectedNumber(null);
     }
 
@@ -117,7 +117,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
 
   const handleMultiplierSelect = (multiplier: Multiplier) => {
     if (selectedNumber !== null && currentDarts.length < 3) {
-      recordDart(selectedNumber, multiplier);
+      recordDart(selectedNumber, multiplier, true);
     }
     setShowMultiplier(false);
     setAnchorEl(null);
@@ -125,8 +125,14 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
     setIsHolding(false);
   };
 
-  const recordDart = (baseNumber: number, multiplier: Multiplier) => {
-    console.log(`Recording dart: ${baseNumber} × ${multiplier}`);
+  const recordDart = (
+    baseNumber: number,
+    multiplier: Multiplier,
+    fromMultiplierSelection = false
+  ) => {
+    console.log(
+      `Recording dart: ${baseNumber} × ${multiplier} (fromMultiplierSelection: ${fromMultiplierSelection})`
+    );
     const dartValue = baseNumber * multiplier;
     const updatedDarts = [
       ...currentDarts,
@@ -148,9 +154,18 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
 
     console.log(`Added notation: ${notation}`);
 
-    // Start auto-submit timer if this is the third dart
-    if (updatedDarts.length === 3) {
-      console.log("Third dart entered, starting auto-submit timer");
+    // Modified auto-submit logic:
+    // 1. When this is the third dart (always auto-submit with 3 darts)
+    // 2. When a multiplier was explicitly selected BUT only if it's the third dart
+    const shouldAutoSubmit = updatedDarts.length === 3;
+
+    console.log(
+      `Should auto-submit? ${shouldAutoSubmit} - Darts: ${updatedDarts.length}, Multiplier: ${multiplier}, Base: ${baseNumber}`
+    );
+
+    if (shouldAutoSubmit) {
+      console.log(`Auto-submit triggered: Third dart entered`);
+
       // Clear any existing timer first
       if (autoSubmitTimer.current) {
         window.clearTimeout(autoSubmitTimer.current);
@@ -457,8 +472,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
           overflow: "hidden", // Add overflow hidden to prevent scrolling
         }}
       >
-        {/* Auto-submit countdown indicator */}
-        {currentDarts.length === 3 && autoSubmitCountdown !== null && (
+        {/* Replace the entire auto-submit countdown indicator with fixed version */}
+        {autoSubmitCountdown !== null && (
           <Box
             sx={{
               width: "100%",
@@ -489,7 +504,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                   zIndex: 2,
                 }}
               >
-                Auto-submitting in {autoSubmitCountdown}s
+                Auto-submitting after three darts in {autoSubmitCountdown}s
               </Typography>
 
               {/* Progress bar that animates as countdown decreases */}
@@ -557,7 +572,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 color="error"
                 onClick={() => {
                   if (currentDarts.length < 3) {
-                    recordDart(0, 1);
+                    recordDart(0, 1, true);
                   }
                 }}
                 disabled={isSubmitting || currentDarts.length >= 3}
@@ -573,7 +588,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 color="success"
                 onClick={() => {
                   if (currentDarts.length < 3) {
-                    recordDart(25, 1);
+                    recordDart(25, 1, true);
                   }
                 }}
                 disabled={isSubmitting || currentDarts.length >= 3}
@@ -588,7 +603,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 color="success"
                 onClick={() => {
                   if (currentDarts.length < 3) {
-                    recordDart(50, 1);
+                    recordDart(25, 2, true);
                   }
                 }}
                 disabled={isSubmitting || currentDarts.length >= 3}
@@ -650,7 +665,11 @@ function FrequentDartButtons({
 }: {
   currentPlayerIndex: number;
   currentDartsLength: number;
-  recordDart: (baseNumber: number, multiplier: Multiplier) => void;
+  recordDart: (
+    baseNumber: number,
+    multiplier: Multiplier,
+    fromMultiplierSelection?: boolean
+  ) => void;
 }) {
   const { currentGame, getPlayerMostFrequentDarts } = useX01Store();
 
@@ -697,7 +716,7 @@ function FrequentDartButtons({
     }
 
     if (!isNaN(baseNumber) && baseNumber > 0) {
-      recordDart(baseNumber, multiplier);
+      recordDart(baseNumber, multiplier, true);
     } else {
       console.error(`Invalid dart notation: ${notation}`);
     }
