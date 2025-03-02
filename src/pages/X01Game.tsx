@@ -20,13 +20,14 @@ import {
   Undo,
   EmojiEvents,
   ExitToApp,
+  ArrowBack,
 } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
 import { useX01Store } from "../store/useX01Store";
 import { useHistoryStore } from "../store/useHistoryStore";
 import { v4 as uuidv4 } from "uuid";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useBlocker, BlockerFunction } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
@@ -38,7 +39,6 @@ type InputMode = "numeric" | "board";
 
 const X01Game: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { players } = useStore();
   const {
     currentGame,
@@ -168,29 +168,39 @@ const X01Game: React.FC = () => {
 
   // Handle back button and navigation attempts
   useEffect(() => {
-    // Function to handle the back button press
-    const handleBackButton = (e: PopStateEvent) => {
-      if (currentGame && !currentGame.isGameFinished) {
-        // Prevent the default back navigation
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (
+        currentGame &&
+        !currentGame.isGameFinished &&
+        !gameSavedToHistoryRef.current
+      ) {
+        // Standard way to show a confirmation dialog before closing the window
         e.preventDefault();
-        // Show confirmation dialog
-        setLeaveDialogOpen(true);
-        // Push the current state again to prevent navigation
-        window.history.pushState(null, "", location.pathname);
+        e.returnValue = "";
+        return "";
       }
     };
 
-    // Push initial state to history stack
-    window.history.pushState(null, "", location.pathname);
-
-    // Add event listener for popstate (back button)
-    window.addEventListener("popstate", handleBackButton);
-
-    // Cleanup the event listener on unmount
+    window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
-      window.removeEventListener("popstate", handleBackButton);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [currentGame, location.pathname]);
+  }, [currentGame]);
+
+  // Use useBlocker to handle navigation attempts
+  const blocker: BlockerFunction = () => {
+    if (
+      currentGame &&
+      !currentGame.isGameFinished &&
+      !gameSavedToHistoryRef.current
+    ) {
+      setLeaveDialogOpen(true);
+      return true; // Block the navigation
+    }
+    return false; // Allow the navigation
+  };
+
+  useBlocker(blocker);
 
   // Handle changes to inputMode without creating an infinite loop
   const handleInputModeChange = (newMode: InputMode) => {
@@ -265,6 +275,28 @@ const X01Game: React.FC = () => {
 
   const handleCancelLeave = () => {
     setLeaveDialogOpen(false);
+  };
+
+  // Handle recording scores
+  const handleScore = (
+    score: number,
+    darts: number,
+    lastDartMultiplier?: number
+  ) => {
+    if (currentGame && !currentGame.isGameFinished) {
+      const player = currentGame.players[currentGame.currentPlayerIndex];
+      const remainingAfterScore = player.score - score;
+
+      // Record the score
+      recordScore(score, darts, lastDartMultiplier);
+
+      // Check if the player has won (reached exactly 0)
+      if (remainingAfterScore === 0) {
+        // Save the game to history and display the game finished dialog
+        saveGameToHistory();
+        setDialogOpen(true);
+      }
+    }
   };
 
   return (
@@ -461,6 +493,15 @@ const X01Game: React.FC = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center" }}>
+              <IconButton
+                size="small"
+                onClick={() => setLeaveDialogOpen(true)}
+                sx={{ mr: 1 }}
+                aria-label="back to setup"
+              >
+                <ArrowBack />
+              </IconButton>
+
               <ToggleButtonGroup
                 value={inputMode}
                 exclusive
@@ -485,12 +526,18 @@ const X01Game: React.FC = () => {
 
           <Box sx={{ flex: 1, overflow: "auto" }}>
             {inputMode === "numeric" ? (
-              <NumericInput onScore={recordScore} />
+              <NumericInput
+                onScore={handleScore}
+                currentPlayerScore={
+                  currentGame?.players[currentGame.currentPlayerIndex]?.score
+                }
+                doubleOutRequired={false}
+              />
             ) : (
               <DartInputErrorBoundary>
                 <DartInput
                   onScore={(score, dartsUsed, lastDartMultiplier) =>
-                    recordScore(score, dartsUsed, lastDartMultiplier)
+                    handleScore(score, dartsUsed, lastDartMultiplier)
                   }
                 />
               </DartInputErrorBoundary>
