@@ -188,6 +188,9 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         error: {
           main: themeColors?.error || "#d32f2f",
         },
+        info: {
+          main: themeColors?.info || "#ff9800",
+        },
         background: {
           default:
             themeColors?.background?.default ||
