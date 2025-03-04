@@ -17,7 +17,6 @@ import {
   LooksOne,
   LooksTwo,
   Looks3,
-  History,
 } from "@mui/icons-material";
 import { useState } from "react";
 import React from "react";
@@ -150,21 +149,21 @@ const NumericInput: React.FC<NumericInputProps> = ({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        p: 1,
+        p: { xs: 0.5, sm: 1 },
       }}
     >
       {/* Score display area */}
       <Paper
         elevation={2}
         sx={{
-          mb: 2,
-          p: 2,
+          mb: { xs: 1, sm: 2 },
+          p: { xs: 1, sm: 2 },
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           borderRadius: 2,
-          minHeight: 110,
+          minHeight: { xs: 80, sm: 110 },
           position: "relative",
         }}
       >
@@ -231,26 +230,13 @@ const NumericInput: React.FC<NumericInputProps> = ({
       </Paper>
 
       {/* Recent scores */}
-
-      <Box sx={{ mb: 2 }}>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            alignItems: "center",
-            mb: 1,
-            fontWeight: "medium",
-          }}
-        >
-          <History fontSize="small" sx={{ mr: 0.5 }} />
-          Recent scores
-        </Typography>
+      <Box sx={{ mb: { xs: 1, sm: 2 } }}>
         <Stack
           direction="row"
-          spacing={1}
           sx={{
-            flexWrap: "wrap",
-            gap: 1,
+            display: "flex",
+            width: "100%",
+            gap: 0.5,
             "& > *": { mb: 0.5 },
           }}
           minHeight={40}
@@ -262,9 +248,15 @@ const NumericInput: React.FC<NumericInputProps> = ({
               variant="contained"
               onClick={() => handleQuickScore(score)}
               sx={{
-                fontSize: "1.1rem",
+                fontSize: { xs: "0.9rem", sm: "1.1rem" },
                 fontWeight: 500,
-                px: 1,
+                flex: 1,
+                minWidth: 0,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                py: { xs: 0.3, sm: 0.5 },
+                px: 0,
               }}
             >
               {score}
@@ -277,7 +269,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <Grid
           container
-          spacing={1.5}
+          spacing={0.75}
           sx={{
             flex: 1,
             height: "100%",
@@ -293,8 +285,12 @@ const NumericInput: React.FC<NumericInputProps> = ({
                 onClick={() => handleNumericInput(num.toString())}
                 sx={{
                   height: "100%",
-                  fontSize: "1.5rem",
+                  fontSize: { xs: "1.2rem", sm: "1.5rem" },
                   fontWeight: "bold",
+                  p: { xs: 0.5, sm: 1 },
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
                 vibrationPattern={30}
               >
@@ -312,8 +308,12 @@ const NumericInput: React.FC<NumericInputProps> = ({
               onClick={() => handleNumericInput("0")}
               sx={{
                 height: "100%",
-                fontSize: "1.5rem",
+                fontSize: { xs: "1.2rem", sm: "1.5rem" },
                 fontWeight: "bold",
+                p: { xs: 0.5, sm: 1 },
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
               }}
               vibrationPattern={30}
             >
@@ -331,6 +331,10 @@ const NumericInput: React.FC<NumericInputProps> = ({
               sx={{
                 height: "100%",
                 fontSize: { xs: "1.2rem", sm: "1.4rem" },
+                p: { xs: 0.5, sm: 1 },
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
               }}
               vibrationPattern={[20, 30]}
             >
@@ -348,6 +352,10 @@ const NumericInput: React.FC<NumericInputProps> = ({
               sx={{
                 height: "100%",
                 fontSize: { xs: "1.2rem", sm: "1.4rem" },
+                p: { xs: 0.5, sm: 1 },
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
               }}
               vibrationPattern={100}
             >
@@ -355,8 +363,16 @@ const NumericInput: React.FC<NumericInputProps> = ({
                 <CircularProgress size={24} color="inherit" />
               ) : (
                 <>
-                  <CheckCircle sx={{ mr: 1 }} fontSize="inherit" />
-                  Enter
+                  <CheckCircle
+                    sx={{ mr: { xs: 0.5, sm: 1 } }}
+                    fontSize="inherit"
+                  />
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: "none", sm: "inline" } }}
+                  >
+                    Enter
+                  </Box>
                 </>
               )}
             </VibrationButton>

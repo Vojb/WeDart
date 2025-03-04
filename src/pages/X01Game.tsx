@@ -302,18 +302,13 @@ const X01Game: React.FC = () => {
   return (
     <Box
       sx={{
-        height: "100%",
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}
     >
-      {/* Game Summary Dialog */}
-      <Dialog
-        open={dialogOpen}
-        maxWidth="sm"
-        fullWidth
-        onClose={() => {}} // Prevent closing by clicking outside
-      >
+      <Dialog open={dialogOpen} maxWidth="sm" fullWidth onClose={() => {}}>
         <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
           <EmojiEvents color="primary" sx={{ mr: 1 }} />
           Game Finished
@@ -440,18 +435,18 @@ const X01Game: React.FC = () => {
         sx={{
           display: "flex",
           flexDirection: "column",
-          height: "100%",
+          flex: 1,
           overflow: "hidden",
         }}
       >
         {/* Players Section */}
         <Box
           sx={{
-            p: 1,
+            p: 0.5,
             borderBottom: 1,
             borderColor: "divider",
             overflowX: "auto",
-            minHeight: "fit-content",
+            flexShrink: 0,
           }}
         >
           <Box
@@ -481,49 +476,9 @@ const X01Game: React.FC = () => {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            p: 1,
+            p: { xs: 0.5, sm: 1 },
           }}
         >
-          <Box
-            sx={{
-              mb: 1,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <IconButton
-                size="small"
-                onClick={() => setLeaveDialogOpen(true)}
-                sx={{ mr: 1 }}
-                aria-label="back to setup"
-              >
-                <ArrowBack />
-              </IconButton>
-
-              <ToggleButtonGroup
-                value={inputMode}
-                exclusive
-                size="small"
-                onChange={(_, newMode) =>
-                  newMode && handleInputModeChange(newMode)
-                }
-              >
-                <ToggleButton value="numeric">
-                  <Calculate />
-                </ToggleButton>
-                <ToggleButton value="board">
-                  <GridOn />
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-
-            <IconButton size="small" onClick={handleUndo} sx={{ ml: 1 }}>
-              <Undo />
-            </IconButton>
-          </Box>
-
           <Box sx={{ flex: 1, overflow: "auto" }}>
             {inputMode === "numeric" ? (
               <NumericInput
@@ -543,6 +498,47 @@ const X01Game: React.FC = () => {
               </DartInputErrorBoundary>
             )}
           </Box>
+        </Box>
+        <Box
+          sx={{
+            mb: 1,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexShrink: 0,
+            px: 1,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <IconButton
+              size="small"
+              onClick={() => setLeaveDialogOpen(true)}
+              sx={{ mr: 0.5 }}
+              aria-label="back to setup"
+            >
+              <ArrowBack />
+            </IconButton>
+
+            <ToggleButtonGroup
+              value={inputMode}
+              exclusive
+              size="small"
+              onChange={(_, newMode) =>
+                newMode && handleInputModeChange(newMode)
+              }
+            >
+              <ToggleButton value="numeric" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                <Calculate />
+              </ToggleButton>
+              <ToggleButton value="board" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                <GridOn />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          <IconButton size="small" onClick={handleUndo} sx={{ ml: 0.5 }}>
+            <Undo />
+          </IconButton>
         </Box>
       </Paper>
     </Box>
@@ -580,10 +576,13 @@ function PlayerBox({
   return (
     <Paper
       sx={{
-        p: 1,
+        p: { xs: 0.5, sm: 1 }, // Responsive padding
         flex: "1 1 0", // Changed to make boxes equally fill the container
-        minWidth: "120px", // Minimum width to ensure playability on smaller screens
+        minWidth: { xs: "100px", sm: "120px" }, // Responsive minimum width
         position: "relative", // For absolute positioning of last round score
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
         backgroundColor: (theme) =>
           isCurrentPlayer
             ? alpha(theme.palette.primary.main, 0.1)
@@ -592,94 +591,131 @@ function PlayerBox({
           isCurrentPlayer ? `4px solid ${theme.palette.primary.main}` : "none",
       }}
     >
-      {/* Show "Bust" if last score is 0 but we have scores (meaning a bust occurred) */}
-      {player.lastRoundScore === 0 && player.scores.length > 0 ? (
-        <Typography
-          variant="body2"
-          sx={{
-            opacity: 0.3,
-            color: "error.main",
-            position: "absolute",
-            top: 4,
-            right: 8,
-            fontWeight: "bold",
-          }}
-        >
-          Bust
-        </Typography>
-      ) : player.lastRoundScore > 0 ? (
-        <Typography
-          variant="body2"
-          sx={{
-            opacity: 0.3,
-            color: "text.secondary",
-            position: "absolute",
-            top: 4,
-            right: 8,
-          }}
-        >
-          {player.lastRoundScore}
-        </Typography>
-      ) : null}
-      <Typography variant="body1" noWrap>
-        {player.name}
-      </Typography>
-      <Typography variant="h4" sx={{ fontWeight: 500 }}>
-        {player.score}
-      </Typography>
-      <Box sx={{ display: "flex", gap: 1 }}>
-        <Typography
-          variant="caption"
-          sx={{ cursor: "pointer" }}
-          onClick={onToggleAvgView}
-        >
-          Avg: {showRoundAvg ? playerAvgPerRound : playerAvgPerDart}
-        </Typography>
-        <Typography variant="caption">Darts: {player.dartsThrown}</Typography>
-      </Box>
-
-      {/* Checkout guide */}
-      {showCheckoutGuide && checkoutPath && (
+      <Box
+        display="flex"
+        flexDirection="column"
+        gap={0.5} // Reduced gap
+        justifyContent="space-between"
+      >
+        {/* Show "Bust" if last score is 0 but we have scores (meaning a bust occurred) */}
         <Box
           sx={{
-            mt: 1,
-            p: 0.75,
-            borderRadius: 1,
-            backgroundColor: (theme) =>
-              theme.palette.mode === "dark"
-                ? alpha(theme.palette.success.main, 0.2)
-                : alpha(theme.palette.success.main, 0.1),
-            border: "1px solid",
-            borderColor: "success.main",
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          <Typography
+            variant="body1"
+            noWrap
+            sx={{ fontSize: { xs: "0.8rem", sm: "1rem" } }} // Responsive font size
+          >
+            {player.name}
+          </Typography>
+          {player.lastRoundScore === 0 && player.scores.length > 0 ? (
+            <Typography
+              variant="body2"
+              sx={{
+                opacity: 0.3,
+                color: "error.main",
+                position: "absolute",
+                top: 4,
+                right: 8,
+                fontWeight: "bold",
+                fontSize: { xs: "0.7rem", sm: "0.875rem" }, // Responsive font size
+              }}
+            >
+              Bust
+            </Typography>
+          ) : player.lastRoundScore > 0 ? (
+            <Typography
+              variant="body2"
+              sx={{
+                opacity: 0.3,
+                color: "text.secondary",
+                fontSize: { xs: "0.7rem", sm: "0.875rem" }, // Responsive font size
+              }}
+            >
+              {player.lastRoundScore}
+            </Typography>
+          ) : null}
+        </Box>
+        <Box
+          sx={{
+            display: "flex",
+            gap: { xs: 0.5, sm: 1 }, // Responsive gap
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 500,
+              fontSize: { xs: "1.8rem", sm: "2.125rem" }, // Responsive font size
+              lineHeight: 1.1,
+            }}
+          >
+            {player.score}
+          </Typography>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            gap: { xs: 0.5, sm: 1 }, // Responsive gap
+            flexDirection: "row",
+            justifyContent: "space-between",
           }}
         >
           <Typography
             variant="caption"
             sx={{
-              display: "block",
-              fontWeight: "bold",
-              color: "success.main",
-              fontSize: "0.8rem",
-              mb: 0.25,
+              cursor: "pointer",
+              fontSize: { xs: "0.65rem", sm: "0.75rem" }, // Responsive font size
             }}
+            onClick={onToggleAvgView}
           >
-            CHECKOUT
+            Avg: {showRoundAvg ? playerAvgPerRound : playerAvgPerDart}
           </Typography>
           <Typography
-            variant="body1"
-            sx={{
-              fontWeight: "bold",
-              lineHeight: 1.2,
-              color: (theme) =>
-                theme.palette.mode === "dark"
-                  ? theme.palette.success.light
-                  : theme.palette.success.dark,
-            }}
+            variant="caption"
+            sx={{ fontSize: { xs: "0.65rem", sm: "0.75rem" } }} // Responsive font size
           >
-            {checkoutPath}
+            Darts: {player.dartsThrown}
           </Typography>
         </Box>
-      )}
+        {showCheckoutGuide && checkoutPath && (
+          <Box
+            sx={{
+              p: { xs: 0.5, sm: 0.75 }, // Responsive padding
+              borderRadius: 1,
+              backgroundColor: (theme) =>
+                theme.palette.mode === "dark"
+                  ? alpha(theme.palette.success.main, 0.2)
+                  : alpha(theme.palette.success.main, 0.1),
+              border: "1px solid",
+              borderColor: "success.main",
+              mt: { xs: 0.5, sm: 0.75 }, // Responsive margin
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: "bold",
+                lineHeight: 1.2,
+                fontSize: { xs: "0.7rem", sm: "0.875rem" }, // Responsive font size
+                color: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? theme.palette.success.light
+                    : theme.palette.success.dark,
+              }}
+            >
+              {checkoutPath}
+            </Typography>
+          </Box>
+        )}
+      </Box>
     </Paper>
   );
 }

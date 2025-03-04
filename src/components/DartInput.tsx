@@ -1,14 +1,19 @@
-// Add console logging at the top of the file
-console.log("DartInput component file loaded");
-
-import { Grid, Button, Box, Typography, Paper, Popper } from "@mui/material";
+import {
+  Grid,
+  Button,
+  Box,
+  Typography,
+  Paper,
+  Popper,
+  Chip,
+} from "@mui/material";
 import { useState, useRef, useEffect } from "react";
 import { useX01Store } from "../store/useX01Store";
 import { alpha } from "@mui/material/styles";
 import { CircularProgress } from "@mui/material";
 import React from "react";
 import VibrationButton from "./VibrationButton";
-import { Close } from "@mui/icons-material";
+import { Close, GpsFixed, DeleteOutline, Send } from "@mui/icons-material";
 
 interface DartInputProps {
   onScore: (
@@ -29,6 +34,231 @@ interface DartScore {
 
 // Remove the checkout guide object from here as it's now imported from the utils file
 
+// Define a component to display dart indicators
+const DartIndicators = ({
+  currentDarts,
+  currentGame,
+  onClearDarts,
+  onSubmitDarts,
+  isSubmitting,
+}: {
+  currentDarts: DartScore[];
+  lastDartNotation: string | null;
+  currentGame: {
+    gameType: "301" | "501" | "701";
+    players: Array<{
+      id: number;
+      name: string;
+      score: number;
+      // Other player properties
+    }>;
+    currentPlayerIndex: number;
+    // Other game properties
+  };
+  onClearDarts: () => void;
+  onSubmitDarts: () => void;
+  isSubmitting: boolean;
+}) => {
+  // Create an array of 3 items to represent the darts
+  const dartSlots = [0, 1, 2];
+  // Calculate the total score of all darts
+  const totalScore = currentDarts.reduce((sum, dart) => sum + dart.value, 0);
+
+  // Calculate the remaining score after the current darts
+  const currentPlayerScore =
+    currentGame?.players[currentGame.currentPlayerIndex]?.score || 0;
+  const remainingScore = currentPlayerScore - totalScore;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        mb: 1,
+        mt: 1,
+        p: 1,
+        borderBottom: 1,
+        borderColor: "divider",
+        backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.05),
+      }}
+    >
+      {/* Display remaining score */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          flex: 1,
+          width: "100%",
+          justifyContent: "space-between",
+          gap: 2,
+          mb: 1,
+        }}
+      >
+        <Typography variant="body2" fontWeight="bold">
+          Scored: {totalScore}
+        </Typography>
+        <Typography
+          variant="body2"
+          color={
+            remainingScore < 0 || remainingScore === 1
+              ? "error.main"
+              : "text.secondary"
+          }
+        >
+          To go:{" "}
+          {remainingScore > 0
+            ? remainingScore
+            : remainingScore < 0
+            ? "Bust"
+            : "Zero!"}
+        </Typography>
+      </Box>
+
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 1,
+          width: "100%",
+          alignItems: "center",
+        }}
+      >
+        {/* Dart chips on the left */}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 1,
+            flex: 2,
+          }}
+        >
+          {dartSlots.map((index) => {
+            const dartScore = currentDarts[index];
+            const hasScore = index < currentDarts.length;
+            const isCurrentDart = index === currentDarts.length;
+
+            return (
+              <Chip
+                key={index}
+                icon={
+                  <Box sx={{ display: { xs: "none", sm: "flex" } }}>
+                    <GpsFixed />
+                  </Box>
+                }
+                label={
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      height: "100%",
+                    }}
+                  >
+                    <Typography variant="caption">Dart {index + 1}</Typography>
+                    {hasScore && (
+                      <Typography variant="body2" fontWeight="bold">
+                        {dartScore.value} pts
+                      </Typography>
+                    )}
+                  </Box>
+                }
+                color={hasScore ? "primary" : "default"}
+                variant={isCurrentDart ? "outlined" : "filled"}
+                sx={{
+                  flex: 1,
+                  height: "48px",
+                  padding: "4px 0",
+                  border: isCurrentDart ? "2px dashed" : "none",
+                  borderColor: "primary.main",
+                  animation: isCurrentDart ? "pulse 1.5s infinite" : "none",
+                  "@keyframes pulse": {
+                    "0%": { opacity: 0.7 },
+                    "50%": { opacity: 1 },
+                    "100%": { opacity: 0.7 },
+                  },
+                }}
+              />
+            );
+          })}
+        </Box>
+
+        {/* Buttons on the right */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 1,
+            flex: 1,
+          }}
+        >
+          <VibrationButton
+            size="small"
+            variant="outlined"
+            onClick={onClearDarts}
+            disabled={isSubmitting || currentDarts.length === 0}
+            sx={{
+              height: "48px",
+              minWidth: { xs: "48px", sm: "80px" },
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            vibrationPattern={[30, 50]}
+          >
+            <Box sx={{ display: { xs: "none", sm: "block" } }}>Clear</Box>
+            <Box
+              sx={{
+                display: { xs: "flex", sm: "none" },
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+              }}
+            >
+              <DeleteOutline />
+            </Box>
+          </VibrationButton>
+
+          <VibrationButton
+            size="small"
+            variant="contained"
+            onClick={onSubmitDarts}
+            disabled={currentDarts.length === 0 || isSubmitting}
+            sx={{
+              height: "48px",
+              minWidth: { xs: "48px", sm: "80px" },
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            vibrationPattern={100}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              <>
+                <Box sx={{ display: { xs: "none", sm: "block" } }}>Submit</Box>
+                <Box
+                  sx={{
+                    display: { xs: "flex", sm: "none" },
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
+                  <Send />
+                </Box>
+              </>
+            )}
+          </VibrationButton>
+        </Box>
+      </Box>
+
+      {/* Add buttons for Reset and Submit */}
+    </Box>
+  );
+};
+
 const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
   console.log("DartInput component rendering");
 
@@ -47,6 +277,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
   const [autoSubmitCountdown, setAutoSubmitCountdown] = useState<number | null>(
     null
   );
+  // Add state to track the last dart notation
+  const [lastDartNotation, setLastDartNotation] = useState<string | null>(null);
 
   // Add a ref for the countdown interval
   const countdownIntervalRef = useRef<number | null>(null);
@@ -146,6 +378,9 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
       multiplier,
       value: dartValue,
     });
+
+    // Update last dart notation
+    setLastDartNotation(notation);
 
     // Update from useStore to useX01Store
     useX01Store.setState({
@@ -302,23 +537,14 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
 
   const handleClearDarts = () => {
     setCurrentDarts([]);
-    // Reset dart notations in store
-    useX01Store.setState({
-      lastDartNotations: [],
-    });
+    // Clear the last dart notation when resetting
+    setLastDartNotation(null);
 
-    // Cancel auto-submit timer when clearing darts
+    // Clear any auto-submit timer
     if (autoSubmitTimer.current) {
-      console.log("Cancelling auto-submit timer");
       window.clearTimeout(autoSubmitTimer.current);
       autoSubmitTimer.current = null;
       setAutoSubmitCountdown(null);
-
-      // Also clear the countdown interval
-      if (countdownIntervalRef.current) {
-        window.clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
     }
   };
 
@@ -335,14 +561,6 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
         return `${dart.value}`;
     }
   };
-
-  // Calculate the total score of all darts
-  const totalScore = currentDarts.reduce((sum, dart) => sum + dart.value, 0);
-
-  // Calculate the remaining score after the current darts
-  const currentPlayerScore =
-    currentGame?.players[currentGame.currentPlayerIndex]?.score || 0;
-  const remainingScore = currentPlayerScore - totalScore;
 
   // Check if we have essential data
   if (!currentGame) {
@@ -370,10 +588,13 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
       {/* Most frequently hit numbers at the top - always visible */}
       <Box
         sx={{
-          p: 1,
+          p: { xs: 0.25, sm: 0.5 },
           borderBottom: 1,
           borderColor: "divider",
-          minHeight: "56px", // Ensure area is always visible even when empty
+          minHeight: "50px", // Ensure area is always visible even when empty
+          height: { xs: "50px", sm: "60px" }, // Set a fixed height
+          display: "flex",
+          alignItems: "center",
           backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.05),
         }}
       >
@@ -389,96 +610,35 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
         )}
       </Box>
 
-      {/* Score Display */}
-      <Box
-        sx={{
-          p: 1,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: 1,
-          borderColor: "divider",
-        }}
-      >
-        <Box>
-          <Typography variant="body2" sx={{ mb: 0.5 }}>
-            {currentDarts.map((dart) => formatDartNotation(dart)).join(" + ") ||
-              "None"}
-          </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Typography variant="body1" fontWeight="bold">
-              Scored: {totalScore}
-            </Typography>
-            <Typography
-              variant="body1"
-              color={
-                remainingScore < 0 || remainingScore === 1
-                  ? "error.main"
-                  : "text.secondary"
-              }
-            >
-              To go:{" "}
-              {remainingScore > 0
-                ? remainingScore
-                : remainingScore < 0
-                ? "Bust"
-                : "Zero!"}
-            </Typography>
-          </Box>
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            mb: 1,
-            gap: 1,
-          }}
-        >
-          <VibrationButton
-            size="small"
-            variant="outlined"
-            onClick={handleClearDarts}
-            disabled={isSubmitting || currentDarts.length === 0}
-            sx={{ height: "54px" }}
-            vibrationPattern={[30, 50]}
-          >
-            Reset
-          </VibrationButton>
+      {/* Add the dart indicators component */}
+      {currentGame && (
+        <DartIndicators
+          currentDarts={currentDarts}
+          lastDartNotation={lastDartNotation}
+          currentGame={currentGame}
+          onClearDarts={handleClearDarts}
+          onSubmitDarts={handleSubmitDarts}
+          isSubmitting={isSubmitting}
+        />
+      )}
 
-          <VibrationButton
-            size="small"
-            variant="contained"
-            onClick={handleSubmitDarts}
-            disabled={currentDarts.length === 0 || isSubmitting}
-            vibrationPattern={100}
-          >
-            {isSubmitting ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              "Submit"
-            )}
-          </VibrationButton>
-        </Box>
-      </Box>
-
-      {/* Number Grid - Updated to fill remaining space */}
+      {/* Main content area - fills all remaining space */}
       <Box
         sx={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          p: 1,
-          height: "100%",
+          p: { xs: 0.25, sm: 0.5 },
           overflow: "hidden", // Add overflow hidden to prevent scrolling
         }}
       >
-        {/* Replace the entire auto-submit countdown indicator with fixed version */}
+        {/* Auto-submit countdown indicator */}
         {autoSubmitCountdown !== null && (
           <Box
             sx={{
               width: "100%",
               textAlign: "center",
-              mb: 2,
+              mb: 0.5,
               position: "relative",
               zIndex: 5,
             }}
@@ -486,8 +646,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
             <Paper
               elevation={3}
               sx={{
-                py: 1.5,
-                px: 3,
+                py: 1,
+                px: 2,
                 borderRadius: 2,
                 display: "inline-flex",
                 alignItems: "center",
@@ -497,14 +657,14 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               }}
             >
               <Typography
-                variant="subtitle1"
+                variant="subtitle2"
                 sx={{
                   fontWeight: "bold",
                   color: "primary.main",
                   zIndex: 2,
                 }}
               >
-                Auto-submitting after three darts in {autoSubmitCountdown}s
+                Auto-submitting in {autoSubmitCountdown}s
               </Typography>
 
               {/* Progress bar that animates as countdown decreases */}
@@ -523,98 +683,122 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
           </Box>
         )}
 
-        <Grid
-          container
-          spacing={1}
+        {/* Number Grid - Takes all available space */}
+        <Box
           sx={{
-            height: "100%", // Set full height
-            display: "flex",
-            flexDirection: "column",
+            flex: 1,
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gridTemplateRows: "repeat(4, 1fr)",
+            gap: 1,
+            marginBottom: 0.5,
           }}
         >
           {/* Number buttons 1-20 */}
-          <Grid
-            item
-            xs={12}
-            sx={{ flex: 1, display: "flex", flexDirection: "column" }}
-          >
-            <Grid container spacing={1} sx={{ flex: 1 }}>
-              {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
-                <Grid item xs={3} key={num}>
-                  <Button
-                    fullWidth
-                    size="small"
-                    variant={
-                      selectedNumber === num && (isHolding || showMultiplier)
-                        ? "outlined"
-                        : "contained"
-                    }
-                    disabled={currentDarts.length >= 3}
-                    onTouchStart={(e) => handleStart(num, e)}
-                    onTouchEnd={() => handleEnd()}
-                    onMouseLeave={() => isHolding && handleEnd()}
-                    sx={{
-                      height: "100%",
-                      transition: "background-color 0.2s",
-                      fontSize: { xs: "1rem", sm: "1.1rem" },
-                    }}
-                  >
-                    {num}
-                  </Button>
-                </Grid>
-              ))}
-            </Grid>
+          {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
+            <Button
+              key={num}
+              size="small"
+              variant={
+                selectedNumber === num && (isHolding || showMultiplier)
+                  ? "outlined"
+                  : "contained"
+              }
+              disabled={currentDarts.length >= 3}
+              onMouseDown={(e) => handleStart(num, e)}
+              onMouseUp={() => handleEnd()}
+              onMouseLeave={() => isHolding && handleEnd()}
+              onTouchStart={(e) => handleStart(num, e)}
+              onTouchEnd={() => handleEnd()}
+              sx={{
+                height: "100%",
+                width: "100%",
+                transition: "background-color 0.2s",
+                fontSize: { xs: "0.8rem", sm: "1rem" },
+                padding: 0,
+                minWidth: 0, // Allow button to shrink below default min-width
+                borderRadius: 1,
+              }}
+            >
+              {num}
+            </Button>
+          ))}
+        </Box>
 
-            <Box sx={{ display: "flex", width: "100%", mt: 1, gap: 1 }}>
-              <VibrationButton
-                fullWidth
-                variant="contained"
-                color="error"
-                onClick={() => {
-                  if (currentDarts.length < 3) {
-                    recordDart(0, 1, true);
-                  }
-                }}
-                disabled={isSubmitting || currentDarts.length >= 3}
-                startIcon={<Close />}
-                sx={{ height: "54px" }}
-                vibrationPattern={[20, 50, 20]}
-              >
-                Miss
-              </VibrationButton>
-              <VibrationButton
-                fullWidth
-                variant="contained"
-                color="success"
-                onClick={() => {
-                  if (currentDarts.length < 3) {
-                    recordDart(25, 1, true);
-                  }
-                }}
-                disabled={isSubmitting || currentDarts.length >= 3}
-                sx={{ height: "54px" }}
-                vibrationPattern={80}
-              >
-                Single Bull
-              </VibrationButton>
-              <VibrationButton
-                fullWidth
-                variant="contained"
-                color="success"
-                onClick={() => {
-                  if (currentDarts.length < 3) {
-                    recordDart(25, 2, true);
-                  }
-                }}
-                disabled={isSubmitting || currentDarts.length >= 3}
-                sx={{ height: "54px" }}
-                vibrationPattern={120}
-              >
-                Double Bull
-              </VibrationButton>
-            </Box>
-          </Grid>
-        </Grid>
+        {/* Bottom buttons (Miss, S-Bull, D-Bull) */}
+        <Box
+          sx={{
+            display: "flex",
+            width: "100%",
+            mt: 0.25,
+            gap: 1,
+          }}
+        >
+          <Box sx={{ flex: 1 }}>
+            <VibrationButton
+              fullWidth
+              variant="contained"
+              color="error"
+              onClick={() => {
+                if (currentDarts.length < 3) {
+                  recordDart(0, 1, true);
+                }
+              }}
+              disabled={isSubmitting || currentDarts.length >= 3}
+              startIcon={
+                <Close sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }} />
+              }
+              sx={{
+                height: { xs: "36px", sm: "42px" },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                minWidth: 0, // Allow button to shrink below default min-width
+              }}
+              vibrationPattern={[20, 50, 20]}
+            >
+              Miss
+            </VibrationButton>
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <VibrationButton
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                if (currentDarts.length < 3) {
+                  recordDart(25, 1, true);
+                }
+              }}
+              disabled={isSubmitting || currentDarts.length >= 3}
+              sx={{
+                height: { xs: "36px", sm: "42px" },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                minWidth: 0, // Allow button to shrink below default min-width
+              }}
+              vibrationPattern={80}
+            >
+              S-Bull
+            </VibrationButton>
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <VibrationButton
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                if (currentDarts.length < 3) {
+                  recordDart(25, 2, true);
+                }
+              }}
+              disabled={isSubmitting || currentDarts.length >= 3}
+              sx={{
+                height: { xs: "36px", sm: "42px" },
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                minWidth: 0, // Allow button to shrink below default min-width
+              }}
+              vibrationPattern={120}
+            >
+              D-Bull
+            </VibrationButton>
+          </Box>
+        </Box>
       </Box>
 
       {/* Multiplier Popper */}
@@ -730,46 +914,58 @@ function FrequentDartButtons({
           Your favorite darts will appear here
         </Typography>
       ) : (
-        <Grid container spacing={1} columns={5}>
-          {frequentDarts.slice(0, 5).map((notation, index) => {
-            // Get the hit count for this notation
-            const hitCount = dartCounts[notation] || 0;
+        <Box sx={{ width: "100%", height: "100%" }}>
+          <Grid container spacing={0.5} columns={5} sx={{ height: "100%" }}>
+            {frequentDarts.slice(0, 5).map((notation, index) => {
+              // Get the hit count for this notation
+              const hitCount = dartCounts[notation] || 0;
 
-            let baseNumber = parseInt(notation.replace(/[DT]/g, ""));
-            if (isNaN(baseNumber)) baseNumber = 25;
+              let baseNumber = parseInt(notation.replace(/[DT]/g, ""));
+              if (isNaN(baseNumber)) baseNumber = 25;
 
-            return (
-              <Grid item xs={1} key={index}>
-                <Button
-                  fullWidth
-                  size="small"
-                  variant="contained"
-                  color="secondary"
-                  sx={{
-                    height: { xs: "46px", sm: "42px" },
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    lineHeight: 1,
-                    p: 0.5,
-                  }}
-                  disabled={currentDartsLength >= 3}
-                  onClick={() => handleFavoriteDartClick(notation)}
-                >
-                  <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                    {notation}
-                  </Typography>
-                  {hitCount > 0 && (
-                    <Typography variant="caption" sx={{ fontSize: "0.6rem" }}>
-                      {hitCount}
+              return (
+                <Grid item xs={1} key={index} sx={{ flex: 1, height: "100%" }}>
+                  <Button
+                    fullWidth
+                    size="small"
+                    variant="contained"
+                    color="secondary"
+                    sx={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      lineHeight: 1,
+                      p: 0.5,
+                      minWidth: 0, // Allow button to shrink below default min-width
+                    }}
+                    disabled={currentDartsLength >= 3}
+                    onClick={() => handleFavoriteDartClick(notation)}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: "bold",
+                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                      }}
+                    >
+                      {notation}
                     </Typography>
-                  )}
-                </Button>
-              </Grid>
-            );
-          })}
-        </Grid>
+                    {hitCount > 0 && (
+                      <Typography
+                        variant="caption"
+                        sx={{ fontSize: { xs: "0.55rem", sm: "0.6rem" } }}
+                      >
+                        {hitCount}
+                      </Typography>
+                    )}
+                  </Button>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Box>
       )}
     </>
   );
