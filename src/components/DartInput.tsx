@@ -708,8 +708,6 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               onMouseDown={(e) => handleStart(num, e)}
               onMouseUp={() => handleEnd()}
               onMouseLeave={() => isHolding && handleEnd()}
-              onTouchStart={(e) => handleStart(num, e)}
-              onTouchEnd={() => handleEnd()}
               sx={{
                 height: "100%",
                 width: "100%",
