@@ -14,6 +14,7 @@ import { CircularProgress } from "@mui/material";
 import React from "react";
 import VibrationButton from "./VibrationButton";
 import { Close, GpsFixed, DeleteOutline, Send } from "@mui/icons-material";
+import { isMobile } from "react-device-detect";
 
 interface DartInputProps {
   onScore: (
@@ -265,6 +266,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
   const { currentGame, lastDartNotations } = useX01Store();
 
   console.log("Current game from store:", currentGame);
+  console.log("Is mobile device:", isMobile);
 
   const [showMultiplier, setShowMultiplier] = useState(false);
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
@@ -705,9 +707,13 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                   : "contained"
               }
               disabled={currentDarts.length >= 3}
-              onMouseDown={(e) => handleStart(num, e)}
-              onMouseUp={() => handleEnd()}
-              onMouseLeave={() => isHolding && handleEnd()}
+              onMouseDown={!isMobile ? (e) => handleStart(num, e) : undefined}
+              onMouseUp={!isMobile ? () => handleEnd() : undefined}
+              onMouseLeave={
+                !isMobile ? () => isHolding && handleEnd() : undefined
+              }
+              onTouchStart={isMobile ? (e) => handleStart(num, e) : undefined}
+              onTouchEnd={isMobile ? () => handleEnd() : undefined}
               sx={{
                 height: "100%",
                 width: "100%",
@@ -752,6 +758,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 minWidth: 0, // Allow button to shrink below default min-width
               }}
               vibrationPattern={[20, 50, 20]}
+              // Only use mouse events on non-mobile devices
+              onMouseDown={!isMobile ? undefined : undefined}
+              onMouseUp={!isMobile ? undefined : undefined}
+              onMouseLeave={!isMobile ? undefined : undefined}
             >
               Miss
             </VibrationButton>
@@ -772,6 +782,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 minWidth: 0, // Allow button to shrink below default min-width
               }}
               vibrationPattern={80}
+              // Only use mouse events on non-mobile devices
+              onMouseDown={!isMobile ? undefined : undefined}
+              onMouseUp={!isMobile ? undefined : undefined}
+              onMouseLeave={!isMobile ? undefined : undefined}
             >
               S-Bull
             </VibrationButton>
@@ -792,6 +806,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                 minWidth: 0, // Allow button to shrink below default min-width
               }}
               vibrationPattern={120}
+              // Only use mouse events on non-mobile devices
+              onMouseDown={!isMobile ? undefined : undefined}
+              onMouseUp={!isMobile ? undefined : undefined}
+              onMouseLeave={!isMobile ? undefined : undefined}
             >
               D-Bull
             </VibrationButton>
@@ -821,6 +839,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
             color="secondary"
             onClick={() => handleMultiplierSelect(2)}
             sx={{ minWidth: "80px" }}
+            // Only use mouse events on non-mobile devices
+            onMouseDown={!isMobile ? undefined : undefined}
+            onMouseUp={!isMobile ? undefined : undefined}
+            onMouseLeave={!isMobile ? undefined : undefined}
           >
             Double
           </Button>
@@ -830,6 +852,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
             color="secondary"
             onClick={() => handleMultiplierSelect(3)}
             sx={{ minWidth: "80px" }}
+            // Only use mouse events on non-mobile devices
+            onMouseDown={!isMobile ? undefined : undefined}
+            onMouseUp={!isMobile ? undefined : undefined}
+            onMouseLeave={!isMobile ? undefined : undefined}
           >
             Triple
           </Button>
@@ -940,6 +966,10 @@ function FrequentDartButtons({
                     }}
                     disabled={currentDartsLength >= 3}
                     onClick={() => handleFavoriteDartClick(notation)}
+                    // Only use mouse events on non-mobile devices
+                    onMouseDown={!isMobile ? undefined : undefined}
+                    onMouseUp={!isMobile ? undefined : undefined}
+                    onMouseLeave={!isMobile ? undefined : undefined}
                   >
                     <Typography
                       variant="caption"

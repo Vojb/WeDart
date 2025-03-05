@@ -120,28 +120,6 @@ const colorPresets = {
     "#ff6e40", // Deep orange A200
     "#ff9e80", // Deep orange A100
   ],
-  info: [
-    "#ff9800", // MUI default orange
-    "#ffa726", // Orange 400
-    "#fb8c00", // Orange 800
-    "#ef6c00", // Orange 900
-    "#ffb74d", // Orange 300
-    "#ffcc80", // Orange 200
-    "#ffe0b2", // Orange 100
-    "#fff3e0", // Orange 50
-    "#ff6d00", // Orange A700
-    "#ff9100", // Orange A400
-    "#ffab00", // Amber A700
-    "#ffc400", // Amber A400
-    "#ffd740", // Amber A200
-    "#ffe57f", // Amber A100
-    "#03a9f4", // Light Blue
-    "#0288d1", // Light Blue 700
-    "#01579b", // Light Blue 900
-    "#00b0ff", // Light Blue A400
-    "#80d8ff", // Light Blue A100
-    "#2196f3", // Blue
-  ],
   background: [
     "#121212", // Standard dark background
     "#1e1e1e", // Standard dark paper
@@ -208,7 +186,7 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
           flexWrap: "wrap",
           gap: 1,
           mb: 1,
-          height: "120px",
+          maxHeight: "120px",
           overflowY: "auto",
           pb: 1,
           "&::-webkit-scrollbar": {
@@ -304,9 +282,6 @@ const Settings: React.FC = () => {
   );
   const [errorColor, setErrorColor] = useState(themeColors?.error || "#d32f2f");
 
-  // Add state for info color
-  const [infoColor, setInfoColor] = useState(themeColors?.info || "#ff9800");
-
   // State for background colors
   const [backgroundDefaultColor, setBackgroundDefaultColor] = useState(
     themeColors?.background?.default || "#121212"
@@ -331,7 +306,6 @@ const Settings: React.FC = () => {
       setSecondaryColor(themeColors.secondary || "#9c27b0");
       setSuccessColor(themeColors.success || "#2e7d32");
       setErrorColor(themeColors.error || "#d32f2f");
-      setInfoColor(themeColors.info || "#ff9800");
       setBackgroundDefaultColor(themeColors.background?.default || "#121212");
       setBackgroundPaperColor(themeColors.background?.paper || "#1e1e1e");
     }
@@ -340,33 +314,26 @@ const Settings: React.FC = () => {
   // Update theme when colors change
   const updatePrimaryColor = (color: string) => {
     setPrimaryColor(color);
-    updateThemeColors({ primary: color });
+    updateThemeColors({ ...themeColors, primary: color });
     // When manually changing a color, we're in custom theme mode
     setIsCustomTheme(true);
   };
 
   const updateSecondaryColor = (color: string) => {
     setSecondaryColor(color);
-    updateThemeColors({ secondary: color });
+    updateThemeColors({ ...themeColors, secondary: color });
     setIsCustomTheme(true);
   };
 
   const updateSuccessColor = (color: string) => {
     setSuccessColor(color);
-    updateThemeColors({ success: color });
+    updateThemeColors({ ...themeColors, success: color });
     setIsCustomTheme(true);
   };
 
   const updateErrorColor = (color: string) => {
     setErrorColor(color);
-    updateThemeColors({ error: color });
-    setIsCustomTheme(true);
-  };
-
-  // Add handler for info color
-  const updateInfoColor = (color: string) => {
-    setInfoColor(color);
-    updateThemeColors({ info: color });
+    updateThemeColors({ ...themeColors, error: color });
     setIsCustomTheme(true);
   };
 
@@ -374,6 +341,7 @@ const Settings: React.FC = () => {
   const updateBackgroundDefaultColor = (color: string) => {
     setBackgroundDefaultColor(color);
     updateThemeColors({
+      ...themeColors,
       background: {
         ...(themeColors.background || {}),
         default: color,
@@ -385,6 +353,7 @@ const Settings: React.FC = () => {
   const updateBackgroundPaperColor = (color: string) => {
     setBackgroundPaperColor(color);
     updateThemeColors({
+      ...themeColors,
       background: {
         ...(themeColors.background || {}),
         paper: color,
@@ -394,21 +363,8 @@ const Settings: React.FC = () => {
   };
 
   // Update theme colors with debounce
-  const updateThemeColors = (colors: Partial<typeof themeColors>) => {
-    // Create a complete theme colors object with all required properties
-    const completeColors: typeof themeColors = {
-      primary: colors.primary || themeColors.primary,
-      secondary: colors.secondary || themeColors.secondary,
-      success: colors.success || themeColors.success,
-      error: colors.error || themeColors.error,
-      info: colors.info || themeColors.info,
-      background: {
-        default: colors.background?.default || themeColors.background.default,
-        paper: colors.background?.paper || themeColors.background.paper,
-      },
-    };
-
-    setThemeColors(completeColors);
+  const updateThemeColors = (colors: typeof themeColors) => {
+    setThemeColors(colors);
     // When manually updating colors, mark as custom theme
     localStorage.setItem("currentThemeId", "custom");
     // No need to explicitly save to localStorage here,
@@ -441,7 +397,6 @@ const Settings: React.FC = () => {
       secondary: "#9c27b0", // Default MUI purple
       success: "#2e7d32", // Default MUI green
       error: "#d32f2f", // Default MUI red
-      info: "#ff9800", // Default MUI orange
       background: {
         default: "#121212", // Dark background
         paper: "#1e1e1e", // Dark paper
@@ -452,7 +407,6 @@ const Settings: React.FC = () => {
     setSecondaryColor(defaultColors.secondary);
     setSuccessColor(defaultColors.success);
     setErrorColor(defaultColors.error);
-    setInfoColor(defaultColors.info);
     setBackgroundDefaultColor(defaultColors.background.default);
     setBackgroundPaperColor(defaultColors.background.paper);
 
@@ -715,7 +669,7 @@ const Settings: React.FC = () => {
         sx={{
           p: 3,
           mb: 3,
-          minHeight: { xs: "400px", sm: "400px" },
+          minHeight: { xs: "auto", sm: "auto" },
           overflow: "auto",
         }}
       >
@@ -740,7 +694,7 @@ const Settings: React.FC = () => {
                 mb: 2,
                 border: "1px solid",
                 borderColor: "divider",
-                height: "220px",
+                maxHeight: "200px",
                 overflow: "auto",
               }}
             >
@@ -777,7 +731,7 @@ const Settings: React.FC = () => {
                 mb: 2,
                 border: "1px solid",
                 borderColor: "divider",
-                height: "220px",
+                maxHeight: "200px",
                 overflow: "auto",
               }}
             >
@@ -814,7 +768,7 @@ const Settings: React.FC = () => {
                 mb: 2,
                 border: "1px solid",
                 borderColor: "divider",
-                height: "220px",
+                maxHeight: "200px",
                 overflow: "auto",
               }}
             >
@@ -851,7 +805,7 @@ const Settings: React.FC = () => {
                 mb: 2,
                 border: "1px solid",
                 borderColor: "divider",
-                height: "220px",
+                maxHeight: "200px",
                 overflow: "auto",
               }}
             >
@@ -876,43 +830,6 @@ const Settings: React.FC = () => {
             </Box>
           </Grid>
 
-          {/* Info Color */}
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Info Color
-            </Typography>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                mb: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                height: "220px",
-                overflow: "auto",
-              }}
-            >
-              <SimpleColorPicker
-                value={infoColor}
-                onChange={updateInfoColor}
-                presets={colorPresets.info}
-              />
-            </Paper>
-            <Box
-              sx={{
-                p: 1,
-                mb: 1,
-                bgcolor: infoColor,
-                color: "#fff",
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Typography>Info Button</Typography>
-            </Box>
-          </Grid>
-
           {/* Background Default Color */}
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle1" gutterBottom>
@@ -925,7 +842,7 @@ const Settings: React.FC = () => {
                 mb: 2,
                 border: "1px solid",
                 borderColor: "divider",
-                height: "220px",
+                maxHeight: "200px",
                 overflow: "auto",
               }}
             >
@@ -962,7 +879,7 @@ const Settings: React.FC = () => {
                 mb: 2,
                 border: "1px solid",
                 borderColor: "divider",
-                height: "220px",
+                maxHeight: "200px",
                 overflow: "auto",
               }}
             >

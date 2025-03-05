@@ -9,7 +9,6 @@ export interface ThemeColors {
   secondary: string;
   success: string;
   error: string;
-  info: string;
   background: {
     default: string;
     paper: string;
@@ -32,7 +31,6 @@ export const predefinedThemes: ThemeOption[] = [
       secondary: "#9c27b0", // MUI default purple
       success: "#2e7d32", // MUI default green
       error: "#d32f2f", // MUI default red
-      info: "#ff9800", // MUI default orange
       background: {
         default: "#121212", // Dark background
         paper: "#1e1e1e", // Dark paper
@@ -47,7 +45,6 @@ export const predefinedThemes: ThemeOption[] = [
       secondary: "#d32f2f", // Red
       success: "#33691e", // Very dark green
       error: "#b71c1c", // Dark red
-      info: "#ff9800", // Orange
       background: {
         default: "#0a0a0a", // Deeper dark background
         paper: "#1a1a1a", // Darker paper
@@ -62,7 +59,6 @@ export const predefinedThemes: ThemeOption[] = [
       secondary: "#00bfa5", // Teal accent
       success: "#64dd17", // Light green accent
       error: "#ff1744", // Accent red
-      info: "#2196f3", // Blue
       background: {
         default: "#0d0221", // Deep purple background
         paper: "#1a1a2e", // Dark blue paper
@@ -77,7 +73,6 @@ export const predefinedThemes: ThemeOption[] = [
       secondary: "#e91e63", // Pink
       success: "#8bc34a", // Light green
       error: "#f44336", // Red
-      info: "#03a9f4", // Light blue
       background: {
         default: "#190a05", // Dark brown background
         paper: "#251e18", // Dark brown paper
@@ -92,7 +87,6 @@ export const predefinedThemes: ThemeOption[] = [
       secondary: "#00796b", // Dark teal
       success: "#00897b", // Teal
       error: "#e64a19", // Dark orange
-      info: "#0288d1", // Light blue
       background: {
         default: "#002147", // Deep navy background
         paper: "#0a3060", // Navy paper
@@ -173,7 +167,6 @@ export const useStore = create<StoreState>()(
         secondary: "#9c27b0", // Default MUI purple
         success: "#2e7d32", // Default MUI green
         error: "#d32f2f", // Default MUI red
-        info: "#ff9800", // Default MUI orange
         background: {
           default: "#121212", // Dark background
           paper: "#1e1e1e", // Dark paper
