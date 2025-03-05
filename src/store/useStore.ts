@@ -93,6 +93,66 @@ export const predefinedThemes: ThemeOption[] = [
       },
     },
   },
+  // New unicorn theme
+  {
+    id: "unicorn",
+    name: "Magical Unicorn",
+    colors: {
+      primary: "#FF6AD5", // Bright pink
+      secondary: "#8A2BE2", // Violet
+      success: "#64FFDA", // Aqua
+      error: "#FF4081", // Pink accent
+      background: {
+        default: "#2C0A37", // Deep purple background
+        paper: "#3B1A4A", // Lighter purple paper
+      },
+    },
+  },
+  // New neon theme
+  {
+    id: "neon",
+    name: "Neon Nights",
+    colors: {
+      primary: "#00FF9F", // Bright green
+      secondary: "#FF00E4", // Bright pink
+      success: "#00FFFF", // Cyan
+      error: "#FF003C", // Bright red
+      background: {
+        default: "#000B14", // Very dark blue background
+        paper: "#001524", // Dark blue paper
+      },
+    },
+  },
+  // New retro theme
+  {
+    id: "retro",
+    name: "Retro Arcade",
+    colors: {
+      primary: "#FFD700", // Gold
+      secondary: "#FF6347", // Tomato
+      success: "#32CD32", // Lime green
+      error: "#DC143C", // Crimson
+      background: {
+        default: "#000000", // Black background
+        paper: "#1C1C1C", // Very dark gray paper
+      },
+    },
+  },
+  // New nature theme
+  {
+    id: "forest",
+    name: "Enchanted Forest",
+    colors: {
+      primary: "#4CAF50", // Green
+      secondary: "#8D6E63", // Brown
+      success: "#81C784", // Light green
+      error: "#E57373", // Light red
+      background: {
+        default: "#1B2D2A", // Dark forest green background
+        paper: "#2D403C", // Lighter forest green paper
+      },
+    },
+  },
 ];
 
 interface StoreState {

@@ -21,6 +21,10 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import EmojiNatureIcon from "@mui/icons-material/EmojiNature";
+import NightlifeIcon from "@mui/icons-material/Nightlife";
+import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
+import ForestIcon from "@mui/icons-material/Forest";
 import { useNavigate } from "react-router-dom";
 import { useStore, predefinedThemes } from "../store/useStore";
 import React from "react";
@@ -497,6 +501,18 @@ const Settings: React.FC = () => {
                       <Typography variant="subtitle1" component="div">
                         {theme.name}
                       </Typography>
+                      {theme.id === "unicorn" && (
+                        <EmojiNatureIcon sx={{ color: "#FF6AD5" }} />
+                      )}
+                      {theme.id === "neon" && (
+                        <NightlifeIcon sx={{ color: "#00FF9F" }} />
+                      )}
+                      {theme.id === "retro" && (
+                        <SportsEsportsIcon sx={{ color: "#FFD700" }} />
+                      )}
+                      {theme.id === "forest" && (
+                        <ForestIcon sx={{ color: "#4CAF50" }} />
+                      )}
                     </Stack>
                     <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                       <Box
