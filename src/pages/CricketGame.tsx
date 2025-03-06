@@ -1081,9 +1081,6 @@ const CricketGame: React.FC = () => {
             <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
               {/* Instructions for gameplay */}
               <Box sx={{ mb: 2, textAlign: "center" }}>
-                <Typography fontSize={18} color="text.secondary">
-                  Click directly on your column to mark a hit
-                </Typography>
                 <Typography
                   variant="body2"
                   fontSize={14}

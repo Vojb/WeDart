@@ -61,7 +61,13 @@ const Navbar: React.FC = () => {
   };
 
   const drawer = (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Drawer Header */}
       <Box
         sx={{
@@ -76,7 +82,6 @@ const Navbar: React.FC = () => {
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <Avatar
             sx={{
-              bgcolor: "primary.main",
               width: 40,
               height: 40,
               mr: 2,
@@ -184,16 +189,7 @@ const Navbar: React.FC = () => {
   );
 
   return (
-    <AppBar
-      position="sticky"
-      elevation={1}
-      sx={{
-        bgcolor: (theme) =>
-          theme.palette.mode === "light"
-            ? "#fff"
-            : theme.palette.background.default,
-      }}
-    >
+    <AppBar position="sticky" elevation={1}>
       <Container maxWidth="lg">
         <Toolbar
           disableGutters

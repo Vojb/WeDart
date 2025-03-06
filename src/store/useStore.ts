@@ -5,13 +5,42 @@ import { Player } from "./useX01Store"; // Import player type from X01 store
 
 // Define predefined theme options
 export interface ThemeColors {
+  // Dark mode colors
   primary: string;
   secondary: string;
   success: string;
   error: string;
+  warning?: string;
+  info?: string;
   background: {
     default: string;
     paper: string;
+  };
+  text?: {
+    primary?: string;
+    secondary?: string;
+    disabled?: string;
+  };
+  divider?: string;
+
+  // Light mode colors
+  light?: {
+    primary: string;
+    secondary: string;
+    success?: string;
+    error?: string;
+    warning?: string;
+    info?: string;
+    background: {
+      default: string;
+      paper: string;
+    };
+    text?: {
+      primary?: string;
+      secondary?: string;
+      disabled?: string;
+    };
+    divider?: string;
   };
 }
 
@@ -35,6 +64,22 @@ export const predefinedThemes: ThemeOption[] = [
         default: "#121212", // Dark background
         paper: "#1e1e1e", // Dark paper
       },
+      // Light mode variant
+      light: {
+        primary: "#0d47a1", // Darker blue for light mode
+        secondary: "#7b1fa2", // Darker purple for light mode
+        success: "#2e7d32", // Same green for light mode
+        error: "#c62828", // Slightly darker red for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
+      },
     },
   },
   {
@@ -48,6 +93,22 @@ export const predefinedThemes: ThemeOption[] = [
       background: {
         default: "#0a0a0a", // Deeper dark background
         paper: "#1a1a1a", // Darker paper
+      },
+      // Light mode variant
+      light: {
+        primary: "#004d40", // Darker green for light mode
+        secondary: "#b71c1c", // Darker red for light mode
+        success: "#33691e", // Same very dark green
+        error: "#b71c1c", // Same dark red
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
       },
     },
   },
@@ -63,6 +124,22 @@ export const predefinedThemes: ThemeOption[] = [
         default: "#0d0221", // Deep purple background
         paper: "#1a1a2e", // Dark blue paper
       },
+      // Light mode variant
+      light: {
+        primary: "#4a148c", // Darker purple for light mode
+        secondary: "#00796b", // Darker teal for light mode
+        success: "#33691e", // Darker green for light mode
+        error: "#d50000", // Darker red for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
+      },
     },
   },
   {
@@ -77,19 +154,51 @@ export const predefinedThemes: ThemeOption[] = [
         default: "#190a05", // Dark brown background
         paper: "#251e18", // Dark brown paper
       },
+      // Light mode variant
+      light: {
+        primary: "#e65100", // Darker orange for light mode
+        secondary: "#c2185b", // Darker pink for light mode
+        success: "#558b2f", // Darker green for light mode
+        error: "#c62828", // Darker red for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
+      },
     },
   },
   {
     id: "ocean",
     name: "Ocean",
     colors: {
-      primary: "#00838f", // Changed from #0d47a1 (blue) to #00838f (teal)
+      primary: "#00838f", // Teal
       secondary: "#00796b", // Dark teal
       success: "#00897b", // Teal
       error: "#e64a19", // Dark orange
       background: {
         default: "#002147", // Deep navy background
         paper: "#0a3060", // Navy paper
+      },
+      // Light mode variant
+      light: {
+        primary: "#006064", // Darker teal for light mode
+        secondary: "#004d40", // Darker teal for light mode
+        success: "#00695c", // Darker teal for light mode
+        error: "#bf360c", // Darker orange for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
       },
     },
   },
@@ -106,6 +215,22 @@ export const predefinedThemes: ThemeOption[] = [
         default: "#2C0A37", // Deep purple background
         paper: "#3B1A4A", // Lighter purple paper
       },
+      // Light mode variant
+      light: {
+        primary: "#C2185B", // Darker pink for light mode
+        secondary: "#6A1B9A", // Darker violet for light mode
+        success: "#00BFA5", // Darker aqua for light mode
+        error: "#D81B60", // Darker pink for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
+      },
     },
   },
   // New neon theme
@@ -120,6 +245,22 @@ export const predefinedThemes: ThemeOption[] = [
       background: {
         default: "#000B14", // Very dark blue background
         paper: "#001524", // Dark blue paper
+      },
+      // Light mode variant
+      light: {
+        primary: "#00BFA5", // Darker neon green for light mode
+        secondary: "#D500F9", // Darker neon pink for light mode
+        success: "#00B8D4", // Darker cyan for light mode
+        error: "#D50000", // Darker red for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
       },
     },
   },
@@ -136,6 +277,22 @@ export const predefinedThemes: ThemeOption[] = [
         default: "#000000", // Black background
         paper: "#1C1C1C", // Very dark gray paper
       },
+      // Light mode variant
+      light: {
+        primary: "#FFC107", // Amber for light mode
+        secondary: "#F4511E", // Darker tomato for light mode
+        success: "#2E7D32", // Darker lime green for light mode
+        error: "#B71C1C", // Darker crimson for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
+      },
     },
   },
   // New nature theme
@@ -150,6 +307,22 @@ export const predefinedThemes: ThemeOption[] = [
       background: {
         default: "#1B2D2A", // Dark forest green background
         paper: "#2D403C", // Lighter forest green paper
+      },
+      // Light mode variant
+      light: {
+        primary: "#2E7D32", // Darker green for light mode
+        secondary: "#5D4037", // Darker brown for light mode
+        success: "#388E3C", // Darker green for light mode
+        error: "#C62828", // Darker red for light mode
+        background: {
+          default: "#f5f5f5", // Light background
+          paper: "#ffffff", // White paper
+        },
+        text: {
+          primary: "rgba(0, 0, 0, 0.87)",
+          secondary: "rgba(0, 0, 0, 0.6)",
+        },
+        divider: "rgba(0, 0, 0, 0.12)",
       },
     },
   },

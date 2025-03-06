@@ -16,15 +16,15 @@ import {
   CardContent,
   CardActionArea,
   Stack,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import EmojiNatureIcon from "@mui/icons-material/EmojiNature";
-import NightlifeIcon from "@mui/icons-material/Nightlife";
-import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
-import ForestIcon from "@mui/icons-material/Forest";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useNavigate } from "react-router-dom";
 import { useStore, predefinedThemes } from "../store/useStore";
 import React from "react";
@@ -190,19 +190,7 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
           flexWrap: "wrap",
           gap: 1,
           mb: 1,
-          maxHeight: "120px",
-          overflowY: "auto",
           pb: 1,
-          "&::-webkit-scrollbar": {
-            width: "8px",
-          },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(0,0,0,0.2)",
-            borderRadius: "4px",
-          },
-          "&::-webkit-scrollbar-track": {
-            backgroundColor: "rgba(0,0,0,0.05)",
-          },
         }}
       >
         {presets.map((color) => (
@@ -269,9 +257,6 @@ const Settings: React.FC = () => {
     toggleTheme,
     currentThemeId,
     setCurrentTheme,
-    vibrationEnabled,
-    toggleVibration,
-    hasUserActivation,
   } = useStore();
 
   // State for color values
@@ -302,6 +287,29 @@ const Settings: React.FC = () => {
   const [isCustomTheme, setIsCustomTheme] = useState(
     currentThemeId === "custom"
   );
+
+  // Accordion expanded states
+  const [expandedThemeMode, setExpandedThemeMode] = useState<boolean>(true);
+  const [expandedThemeSelection, setExpandedThemeSelection] =
+    useState<boolean>(true);
+  const [expandedCustomColors, setExpandedCustomColors] =
+    useState<boolean>(false);
+  const [expandedPreview, setExpandedPreview] = useState<boolean>(false);
+
+  // Helper function to determine text color based on background
+  const getTextColor = (backgroundColor: string) => {
+    // Convert hex to RGB
+    const hex = backgroundColor.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Calculate luminance - standard formula for perceived brightness
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Return white for dark backgrounds, black for light backgrounds
+    return luminance > 0.5 ? "#000000" : "#ffffff";
+  };
 
   // Initialize colors from store
   useEffect(() => {
@@ -445,74 +453,181 @@ const Settings: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Theme Mode Toggle */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Theme Mode
-        </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", my: 2 }}>
-          <LightModeIcon sx={{ mr: 1, color: "text.secondary" }} />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={themeMode === "dark"}
-                onChange={toggleTheme}
-                color="primary"
-              />
-            }
-            label=""
-          />
-          <DarkModeIcon sx={{ ml: 1, color: "text.secondary" }} />
-          <Typography sx={{ ml: 2 }}>
-            {themeMode === "dark" ? "Dark Mode" : "Light Mode"}
+      {/* Theme Mode Accordion */}
+      <Accordion
+        expanded={expandedThemeMode}
+        onChange={() => setExpandedThemeMode(!expandedThemeMode)}
+        sx={{ mb: 2 }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="theme-mode-content"
+          id="theme-mode-header"
+          sx={{
+            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6">Theme Mode</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: "flex", alignItems: "center", my: 2 }}>
+            <LightModeIcon sx={{ mr: 1, color: "text.secondary" }} />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={themeMode === "dark"}
+                  onChange={toggleTheme}
+                  color="primary"
+                />
+              }
+              label=""
+            />
+            <DarkModeIcon sx={{ ml: 1, color: "text.secondary" }} />
+            <Typography sx={{ ml: 2 }}>
+              {themeMode === "dark" ? "Dark Mode" : "Light Mode"}
+            </Typography>
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Theme Selection Accordion */}
+      <Accordion
+        expanded={expandedThemeSelection}
+        onChange={() => setExpandedThemeSelection(!expandedThemeSelection)}
+        sx={{ mb: 2 }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="theme-selection-content"
+          id="theme-selection-header"
+          sx={{
+            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6">Theme Selection</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Choose from predefined themes or customize your own colors below.
           </Typography>
-        </Box>
-      </Paper>
 
-      {/* Theme Selection */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Theme Selection
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Choose from predefined themes or customize your own colors below.
-        </Typography>
-
-        <Grid container spacing={2}>
-          {predefinedThemes.map((theme) => (
-            <Grid item xs={6} sm={4} key={theme.id}>
+          <Grid container spacing={2}>
+            {predefinedThemes.map((theme) => (
+              <Grid item xs={6} sm={4} key={theme.id}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    position: "relative",
+                    border: currentThemeId === theme.id ? 2 : 0,
+                    borderColor: "primary.main",
+                  }}
+                >
+                  <CardActionArea
+                    onClick={() => handleThemeSelect(theme.id)}
+                    sx={{ height: "100%" }}
+                  >
+                    <CardContent>
+                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                        {currentThemeId === theme.id && (
+                          <CheckCircleIcon color="primary" />
+                        )}
+                        <Typography variant="subtitle1" component="div">
+                          {theme.name}
+                        </Typography>
+                      </Stack>
+                      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            bgcolor: theme.colors.primary,
+                            border: "1px solid",
+                            borderColor: "divider",
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            bgcolor: theme.colors.secondary,
+                            border: "1px solid",
+                            borderColor: "divider",
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            bgcolor: theme.colors.success,
+                            border: "1px solid",
+                            borderColor: "divider",
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "50%",
+                            bgcolor: theme.colors.error,
+                            border: "1px solid",
+                            borderColor: "divider",
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "4px",
+                            bgcolor: theme.colors.background.default,
+                            border: "1px solid",
+                            borderColor: "divider",
+                          }}
+                        />
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: "4px",
+                            bgcolor: theme.colors.background.paper,
+                            border: "1px solid",
+                            borderColor: "divider",
+                          }}
+                        />
+                        <Typography variant="caption" sx={{ ml: 1 }}>
+                          Backgrounds
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+            <Grid item xs={6} sm={4}>
               <Card
                 sx={{
                   height: "100%",
                   position: "relative",
-                  border: currentThemeId === theme.id ? 2 : 0,
+                  border: isCustomTheme ? 2 : 0,
                   borderColor: "primary.main",
                 }}
               >
                 <CardActionArea
-                  onClick={() => handleThemeSelect(theme.id)}
+                  onClick={() => setIsCustomTheme(true)}
                   sx={{ height: "100%" }}
                 >
                   <CardContent>
                     <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                      {currentThemeId === theme.id && (
-                        <CheckCircleIcon color="primary" />
-                      )}
+                      {isCustomTheme && <CheckCircleIcon color="primary" />}
                       <Typography variant="subtitle1" component="div">
-                        {theme.name}
+                        Custom
                       </Typography>
-                      {theme.id === "unicorn" && (
-                        <EmojiNatureIcon sx={{ color: "#FF6AD5" }} />
-                      )}
-                      {theme.id === "neon" && (
-                        <NightlifeIcon sx={{ color: "#00FF9F" }} />
-                      )}
-                      {theme.id === "retro" && (
-                        <SportsEsportsIcon sx={{ color: "#FFD700" }} />
-                      )}
-                      {theme.id === "forest" && (
-                        <ForestIcon sx={{ color: "#4CAF50" }} />
-                      )}
                     </Stack>
                     <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                       <Box
@@ -520,7 +635,7 @@ const Settings: React.FC = () => {
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
-                          bgcolor: theme.colors.primary,
+                          bgcolor: primaryColor,
                           border: "1px solid",
                           borderColor: "divider",
                         }}
@@ -530,7 +645,7 @@ const Settings: React.FC = () => {
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
-                          bgcolor: theme.colors.secondary,
+                          bgcolor: secondaryColor,
                           border: "1px solid",
                           borderColor: "divider",
                         }}
@@ -540,7 +655,7 @@ const Settings: React.FC = () => {
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
-                          bgcolor: theme.colors.success,
+                          bgcolor: successColor,
                           border: "1px solid",
                           borderColor: "divider",
                         }}
@@ -550,7 +665,7 @@ const Settings: React.FC = () => {
                           width: 24,
                           height: 24,
                           borderRadius: "50%",
-                          bgcolor: theme.colors.error,
+                          bgcolor: errorColor,
                           border: "1px solid",
                           borderColor: "divider",
                         }}
@@ -562,7 +677,7 @@ const Settings: React.FC = () => {
                           width: 24,
                           height: 24,
                           borderRadius: "4px",
-                          bgcolor: theme.colors.background.default,
+                          bgcolor: backgroundDefaultColor,
                           border: "1px solid",
                           borderColor: "divider",
                         }}
@@ -572,7 +687,7 @@ const Settings: React.FC = () => {
                           width: 24,
                           height: 24,
                           borderRadius: "4px",
-                          bgcolor: theme.colors.background.paper,
+                          bgcolor: backgroundPaperColor,
                           border: "1px solid",
                           borderColor: "divider",
                         }}
@@ -585,542 +700,383 @@ const Settings: React.FC = () => {
                 </CardActionArea>
               </Card>
             </Grid>
-          ))}
-          <Grid item xs={6} sm={4}>
-            <Card
-              sx={{
-                height: "100%",
-                position: "relative",
-                border: isCustomTheme ? 2 : 0,
-                borderColor: "primary.main",
-              }}
-            >
-              <CardActionArea
-                onClick={() => setIsCustomTheme(true)}
-                sx={{ height: "100%" }}
-              >
-                <CardContent>
-                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                    {isCustomTheme && <CheckCircleIcon color="primary" />}
-                    <Typography variant="subtitle1" component="div">
-                      Custom
-                    </Typography>
-                  </Stack>
-                  <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        bgcolor: primaryColor,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        bgcolor: secondaryColor,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        bgcolor: successColor,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "50%",
-                        bgcolor: errorColor,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    />
-                  </Box>
-                  <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "4px",
-                        bgcolor: backgroundDefaultColor,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: "4px",
-                        bgcolor: backgroundPaperColor,
-                        border: "1px solid",
-                        borderColor: "divider",
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ ml: 1 }}>
-                      Backgrounds
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
           </Grid>
-        </Grid>
-      </Paper>
+        </AccordionDetails>
+      </Accordion>
 
-      {/* Theme Colors */}
-      <Paper
-        sx={{
-          p: 3,
-          mb: 3,
-          minHeight: { xs: "auto", sm: "auto" },
-          overflow: "auto",
-        }}
+      {/* Custom Theme Colors Accordion */}
+      <Accordion
+        expanded={expandedCustomColors}
+        onChange={() => setExpandedCustomColors(!expandedCustomColors)}
+        sx={{ mb: 2 }}
       >
-        <Typography variant="h5" gutterBottom>
-          Custom Theme Colors
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Fine-tune your own custom theme by adjusting individual color
-          components. Colors update automatically as you change them.
-        </Typography>
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="custom-colors-content"
+          id="custom-colors-header"
+          sx={{
+            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6">Custom Theme Colors</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Fine-tune your own custom theme by adjusting individual color
+            components. Colors update automatically as you change them.
+          </Typography>
 
-        <Grid container spacing={4}>
-          {/* Primary Color */}
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Primary Color
-            </Typography>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                mb: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                maxHeight: "200px",
-                overflow: "auto",
-              }}
+          {/* Primary Color Accordion */}
+          <Accordion defaultExpanded sx={{ mb: 2 }}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="primary-color-content"
+              id="primary-color-header"
             >
-              <SimpleColorPicker
-                value={primaryColor}
-                onChange={updatePrimaryColor}
-                presets={colorPresets.primary}
-              />
-            </Paper>
-            <Box
-              sx={{
-                p: 1,
-                mb: 1,
-                bgcolor: primaryColor,
-                color: "#fff",
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Typography>Primary Button</Typography>
-            </Box>
-          </Grid>
+              <Typography variant="subtitle1">Primary Color</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  height: "auto",
+                  overflow: "visible",
+                }}
+              >
+                <SimpleColorPicker
+                  value={primaryColor}
+                  onChange={updatePrimaryColor}
+                  presets={colorPresets.primary}
+                />
+              </Paper>
+              <Box
+                sx={{
+                  p: 1,
+                  mb: 1,
+                  bgcolor: primaryColor,
+                  color: getTextColor(primaryColor),
+                  borderRadius: 1,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography>Primary Button</Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-          {/* Secondary Color */}
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Secondary Color
-            </Typography>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                mb: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                maxHeight: "200px",
-                overflow: "auto",
-              }}
+          {/* Secondary Color Accordion */}
+          <Accordion defaultExpanded sx={{ mb: 2 }}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="secondary-color-content"
+              id="secondary-color-header"
             >
-              <SimpleColorPicker
-                value={secondaryColor}
-                onChange={updateSecondaryColor}
-                presets={colorPresets.secondary}
-              />
-            </Paper>
-            <Box
-              sx={{
-                p: 1,
-                mb: 1,
-                bgcolor: secondaryColor,
-                color: "#fff",
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Typography>Secondary Button</Typography>
-            </Box>
-          </Grid>
+              <Typography variant="subtitle1">Secondary Color</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  height: "auto",
+                  overflow: "visible",
+                }}
+              >
+                <SimpleColorPicker
+                  value={secondaryColor}
+                  onChange={updateSecondaryColor}
+                  presets={colorPresets.secondary}
+                />
+              </Paper>
+              <Box
+                sx={{
+                  p: 1,
+                  mb: 1,
+                  bgcolor: secondaryColor,
+                  color: getTextColor(secondaryColor),
+                  borderRadius: 1,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography>Secondary Button</Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-          {/* Success Color */}
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Success Color
-            </Typography>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                mb: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                maxHeight: "200px",
-                overflow: "auto",
-              }}
+          {/* Success Color Accordion */}
+          <Accordion defaultExpanded sx={{ mb: 2 }}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="success-color-content"
+              id="success-color-header"
             >
-              <SimpleColorPicker
-                value={successColor}
-                onChange={updateSuccessColor}
-                presets={colorPresets.success}
-              />
-            </Paper>
-            <Box
-              sx={{
-                p: 1,
-                mb: 1,
-                bgcolor: successColor,
-                color: "#fff",
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Typography>Success Button</Typography>
-            </Box>
-          </Grid>
+              <Typography variant="subtitle1">Success Color</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  height: "auto",
+                  overflow: "visible",
+                }}
+              >
+                <SimpleColorPicker
+                  value={successColor}
+                  onChange={updateSuccessColor}
+                  presets={colorPresets.success}
+                />
+              </Paper>
+              <Box
+                sx={{
+                  p: 1,
+                  mb: 1,
+                  bgcolor: successColor,
+                  color: getTextColor(successColor),
+                  borderRadius: 1,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography>Success Button</Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-          {/* Error Color */}
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Error Color
-            </Typography>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                mb: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                maxHeight: "200px",
-                overflow: "auto",
-              }}
+          {/* Error Color Accordion */}
+          <Accordion defaultExpanded sx={{ mb: 2 }}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="error-color-content"
+              id="error-color-header"
             >
-              <SimpleColorPicker
-                value={errorColor}
-                onChange={updateErrorColor}
-                presets={colorPresets.error}
-              />
-            </Paper>
-            <Box
-              sx={{
-                p: 1,
-                mb: 1,
-                bgcolor: errorColor,
-                color: "#fff",
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
-              <Typography>Error Button</Typography>
-            </Box>
-          </Grid>
+              <Typography variant="subtitle1">Error Color</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  height: "auto",
+                  overflow: "visible",
+                }}
+              >
+                <SimpleColorPicker
+                  value={errorColor}
+                  onChange={updateErrorColor}
+                  presets={colorPresets.error}
+                />
+              </Paper>
+              <Box
+                sx={{
+                  p: 1,
+                  mb: 1,
+                  bgcolor: errorColor,
+                  color: getTextColor(errorColor),
+                  borderRadius: 1,
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography>Error Button</Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-          {/* Background Default Color */}
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Background Color
-            </Typography>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                mb: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                maxHeight: "200px",
-                overflow: "auto",
-              }}
+          {/* Background Default Color Accordion */}
+          <Accordion defaultExpanded sx={{ mb: 2 }}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="background-color-content"
+              id="background-color-header"
             >
-              <SimpleColorPicker
-                value={backgroundDefaultColor}
-                onChange={updateBackgroundDefaultColor}
-                presets={colorPresets.background}
-              />
-            </Paper>
-            <Box
-              sx={{
-                p: 1,
-                mb: 1,
-                bgcolor: backgroundDefaultColor,
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-                color: "#fff",
-              }}
-            >
-              <Typography>Page Background</Typography>
-            </Box>
-          </Grid>
+              <Typography variant="subtitle1">Background Color</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  height: "auto",
+                  overflow: "visible",
+                }}
+              >
+                <SimpleColorPicker
+                  value={backgroundDefaultColor}
+                  onChange={updateBackgroundDefaultColor}
+                  presets={colorPresets.background}
+                />
+              </Paper>
+              <Box
+                sx={{
+                  p: 1,
+                  mb: 1,
+                  bgcolor: backgroundDefaultColor,
+                  borderRadius: 1,
+                  display: "flex",
+                  justifyContent: "center",
+                  color: getTextColor(backgroundDefaultColor),
+                }}
+              >
+                <Typography>Page Background</Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-          {/* Background Paper Color */}
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle1" gutterBottom>
-              Panel Color
-            </Typography>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                mb: 2,
-                border: "1px solid",
-                borderColor: "divider",
-                maxHeight: "200px",
-                overflow: "auto",
-              }}
+          {/* Background Paper Color Accordion */}
+          <Accordion defaultExpanded sx={{ mb: 2 }}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls="panel-color-content"
+              id="panel-color-header"
             >
-              <SimpleColorPicker
-                value={backgroundPaperColor}
-                onChange={updateBackgroundPaperColor}
-                presets={colorPresets.paper}
-              />
-            </Paper>
-            <Box
-              sx={{
-                p: 1,
-                mb: 1,
-                bgcolor: backgroundPaperColor,
-                borderRadius: 1,
-                display: "flex",
-                justifyContent: "center",
-                color: "#fff",
-              }}
-            >
-              <Typography>Panel Background</Typography>
-            </Box>
-          </Grid>
-        </Grid>
+              <Typography variant="subtitle1">Panel Color</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  height: "auto",
+                  overflow: "visible",
+                }}
+              >
+                <SimpleColorPicker
+                  value={backgroundPaperColor}
+                  onChange={updateBackgroundPaperColor}
+                  presets={colorPresets.paper}
+                />
+              </Paper>
+              <Box
+                sx={{
+                  p: 1,
+                  mb: 1,
+                  bgcolor: backgroundPaperColor,
+                  borderRadius: 1,
+                  display: "flex",
+                  justifyContent: "center",
+                  color: getTextColor(backgroundPaperColor),
+                }}
+              >
+                <Typography>Panel Background</Typography>
+              </Box>
+            </AccordionDetails>
+          </Accordion>
 
-        <Divider sx={{ my: 3 }} />
+          <Divider sx={{ my: 3 }} />
 
-        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
-          <VibrationButton
-            variant="outlined"
-            color="error"
-            onClick={handleResetTheme}
-            vibrationPattern={[50, 100, 50]}
-          >
-            Reset to Default
-          </VibrationButton>
-          <VibrationButton
-            variant="contained"
-            color="primary"
-            onClick={handleSaveTheme}
-            vibrationPattern={100}
-          >
-            Save Theme
-          </VibrationButton>
-        </Box>
-      </Paper>
-
-      {/* Preview section */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Theme Preview
-        </Typography>
-
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={12} sm={6}>
-            <VibrationButton
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ mb: 2 }}
-              vibrationPattern={50}
-            >
-              Primary Button
-            </VibrationButton>
-            <VibrationButton
-              variant="outlined"
-              color="primary"
-              fullWidth
-              sx={{ mb: 2 }}
-              vibrationPattern={50}
-            >
-              Primary Outlined
-            </VibrationButton>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <VibrationButton
-              variant="contained"
-              color="secondary"
-              fullWidth
-              sx={{ mb: 2 }}
-              vibrationPattern={75}
-            >
-              Secondary Button
-            </VibrationButton>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
             <VibrationButton
               variant="outlined"
-              color="secondary"
-              fullWidth
-              sx={{ mb: 2 }}
-              vibrationPattern={75}
-            >
-              Secondary Outlined
-            </VibrationButton>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <VibrationButton
-              variant="contained"
-              color="success"
-              fullWidth
-              sx={{ mb: 2 }}
-              vibrationPattern={80}
-            >
-              Success Button
-            </VibrationButton>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <VibrationButton
-              variant="contained"
               color="error"
-              fullWidth
-              sx={{ mb: 2 }}
+              onClick={handleResetTheme}
               vibrationPattern={[50, 100, 50]}
             >
-              Error Button
+              Reset to Default
             </VibrationButton>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Vibration Settings */}
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Haptic Feedback
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Control vibration feedback for button presses. This feature only works
-          on Android devices when using the app as a PWA. It has no effect on
-          iOS devices or desktop browsers.
-        </Typography>
-
-        {/* Display device compatibility info */}
-        <Box
-          sx={{ mb: 2, p: 1, bgcolor: "background.default", borderRadius: 1 }}
-        >
-          <Typography variant="subtitle2" color="primary" sx={{ mb: 0.5 }}>
-            Device Compatibility Check
-          </Typography>
-          <Typography variant="body2">
-            Vibration API supported:{" "}
-            <strong>
-              {typeof navigator.vibrate === "function" ? "Yes" : "No"}
-            </strong>
-          </Typography>
-          <Typography variant="body2">
-            Running as PWA:{" "}
-            <strong>
-              {window.matchMedia("(display-mode: standalone)").matches
-                ? "Yes"
-                : "No"}
-            </strong>
-          </Typography>
-          <Typography variant="body2">
-            Sticky activation:{" "}
-            <strong>{hasUserActivation ? "Yes" : "No"}</strong>
-          </Typography>
-          <Typography variant="body2">
-            Online status:{" "}
-            <strong>{navigator.onLine ? "Online" : "Offline"}</strong>
-          </Typography>
-          <Typography variant="body2">
-            Offline capable: <strong>Yes</strong>
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            <strong>Note:</strong> For vibrations to work, you must install this
-            app to your home screen and use it as a Progressive Web App (PWA) on
-            an Android device.
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            <strong>Installation:</strong> To install the app, open this website
-            in Chrome on Android, tap the menu button (three dots), and select
-            "Install app" or "Add to Home Screen".
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            <strong>Offline usage:</strong> Once installed, this app will work
-            without an internet connection. Your data is stored locally on your
-            device.
-          </Typography>
-        </Box>
-
-        <FormControlLabel
-          control={
-            <Switch checked={vibrationEnabled} onChange={toggleVibration} />
-          }
-          label={`Vibration feedback is ${
-            vibrationEnabled ? "enabled" : "disabled"
-          }`}
-        />
-
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="body2" color="text.secondary">
-            Test vibration patterns:
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 1 }}>
             <VibrationButton
-              variant="outlined"
+              variant="contained"
               color="primary"
-              size="small"
-              vibrationPattern={50}
-            >
-              Short
-            </VibrationButton>
-            <VibrationButton
-              variant="outlined"
-              color="secondary"
-              size="small"
+              onClick={handleSaveTheme}
               vibrationPattern={100}
             >
-              Medium
-            </VibrationButton>
-            <VibrationButton
-              variant="outlined"
-              color="error"
-              size="small"
-              vibrationPattern={[50, 100, 50]}
-            >
-              Pattern
+              Save Theme
             </VibrationButton>
           </Box>
-        </Box>
-      </Paper>
+        </AccordionDetails>
+      </Accordion>
 
+      {/* Preview section */}
+      <Accordion
+        expanded={expandedPreview}
+        onChange={() => setExpandedPreview(!expandedPreview)}
+        sx={{ mb: 2 }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="preview-content"
+          id="preview-header"
+          sx={{
+            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6">Theme Preview</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid item xs={12} sm={6}>
+              <VibrationButton
+                variant="contained"
+                color="primary"
+                fullWidth
+                sx={{ mb: 2 }}
+                vibrationPattern={50}
+              >
+                Primary Button
+              </VibrationButton>
+              <VibrationButton
+                variant="outlined"
+                color="primary"
+                fullWidth
+                sx={{ mb: 2 }}
+                vibrationPattern={50}
+              >
+                Primary Outlined
+              </VibrationButton>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <VibrationButton
+                variant="contained"
+                color="secondary"
+                fullWidth
+                sx={{ mb: 2 }}
+                vibrationPattern={75}
+              >
+                Secondary Button
+              </VibrationButton>
+              <VibrationButton
+                variant="outlined"
+                color="secondary"
+                fullWidth
+                sx={{ mb: 2 }}
+                vibrationPattern={75}
+              >
+                Secondary Outlined
+              </VibrationButton>
+            </Grid>
+          </Grid>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
+        autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={() => setSnackbarOpen(false)}

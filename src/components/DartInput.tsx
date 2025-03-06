@@ -205,7 +205,7 @@ const DartIndicators = ({
               justifyContent: "center",
               alignItems: "center",
             }}
-            vibrationPattern={[30, 50]}
+            vibrationPattern={[200, 200]}
           >
             <Box sx={{ display: { xs: "none", sm: "block" } }}>Clear</Box>
             <Box
@@ -698,7 +698,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
         >
           {/* Number buttons 1-20 */}
           {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
-            <Button
+            <VibrationButton
               key={num}
               size="small"
               variant={
@@ -725,7 +725,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               }}
             >
               {num}
-            </Button>
+            </VibrationButton>
           ))}
         </Box>
 

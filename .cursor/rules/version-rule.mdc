@@ -1,0 +1,7 @@
+---
+description: I want to increment patch version after each chat message from you
+globs: 
+alwaysApply: false
+---
+[version.ts](mdc:src/constants/version.ts)
+ * Increment patch version (0.0.1) after each message from you

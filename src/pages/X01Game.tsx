@@ -263,14 +263,14 @@ const X01Game: React.FC = () => {
     // End the current game and navigate back to setup
     endGame();
     setDialogOpen(false);
-    navigate("/x01");
+    navigate(-1);
   };
 
   const handleLeaveGame = () => {
     // End the current game and navigate back
     endGame();
     setLeaveDialogOpen(false);
-    navigate("/x01");
+    navigate(-1);
   };
 
   const handleCancelLeave = () => {

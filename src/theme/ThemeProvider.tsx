@@ -1,11 +1,8 @@
-import React, { ReactNode, useMemo, useEffect } from "react";
-import {
-  ThemeProvider as MuiThemeProvider,
-  createTheme,
-  responsiveFontSizes,
-} from "@mui/material/styles";
+import React, { ReactNode, useEffect } from "react";
+import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
 import { useStore } from "../store/useStore";
+import { createAppTheme } from "./theme";
 
 // Update the vibrateDevice function to use sticky activation
 export const vibrateDevice = (pattern: number | number[]): boolean => {
@@ -75,7 +72,14 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // Log the current theme values being applied
     console.log("Current theme mode:", themeMode);
     console.log("Current theme colors:", themeColors);
-  }, []);
+
+    // Log light mode colors if available
+    if (themeColors.light) {
+      console.log("Light mode colors available:", themeColors.light);
+    } else {
+      console.log("No light mode colors defined, will use fallbacks");
+    }
+  }, [themeMode, themeColors]);
 
   // Add effect to detect PWA installation
   useEffect(() => {
@@ -169,56 +173,8 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Create a theme instance with our custom colors and mode
-  const theme = useMemo(() => {
-    console.log("Creating theme with colors:", themeColors);
-
-    const baseTheme = createTheme({
-      palette: {
-        mode: themeMode,
-        primary: {
-          main: themeColors?.primary || "#1976d2",
-        },
-        secondary: {
-          main: themeColors?.secondary || "#9c27b0",
-        },
-        success: {
-          main: themeColors?.success || "#2e7d32",
-        },
-        error: {
-          main: themeColors?.error || "#d32f2f",
-        },
-        background: {
-          default:
-            themeColors?.background?.default ||
-            (themeMode === "dark" ? "#121212" : "#f5f5f5"),
-          paper:
-            themeColors?.background?.paper ||
-            (themeMode === "dark" ? "#1e1e1e" : "#ffffff"),
-        },
-      },
-      components: {
-        MuiButton: {
-          styleOverrides: {
-            root: {
-              textTransform: "none",
-              borderRadius: 8,
-            },
-          },
-        },
-        MuiPaper: {
-          styleOverrides: {
-            rounded: {
-              borderRadius: 12,
-            },
-          },
-        },
-      },
-    });
-
-    // Make fonts responsive
-    return responsiveFontSizes(baseTheme);
-  }, [themeColors, themeMode]);
+  // Create the theme using our new theme creator
+  const theme = createAppTheme(themeMode, themeColors);
 
   return (
     <MuiThemeProvider theme={theme}>
