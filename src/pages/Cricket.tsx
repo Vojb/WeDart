@@ -8,22 +8,55 @@ import {
   Radio,
   RadioGroup,
   FormLabel,
-  Divider,
   Grid,
   Card,
   CardContent,
+  Stack,
+  useTheme,
+  useMediaQuery,
+  Tabs,
+  Tab,
+  Button,
   Stepper,
   Step,
   StepLabel,
-  useTheme,
-  useMediaQuery,
-  Stack,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
 import PlayerSelector from "../components/PlayerSelector";
 import VibrationButton from "../components/VibrationButton";
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`cricket-setup-tabpanel-${index}`}
+      aria-labelledby={`cricket-setup-tab-${index}`}
+      {...other}
+      style={{
+        height: "100%",
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
+      }}
+    >
+      {value === index && (
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 const Cricket: React.FC = () => {
   const navigate = useNavigate();
@@ -32,6 +65,7 @@ const Cricket: React.FC = () => {
     useCricketStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [tabValue, setTabValue] = useState(0);
 
   // Local state for form values
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
@@ -44,6 +78,10 @@ const Cricket: React.FC = () => {
 
   // Validation error state
   const [error, setError] = useState<string | null>(null);
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
 
   // Handle form submission
   const handleStartGame = () => {
@@ -90,10 +128,10 @@ const Cricket: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 2, height: "100%" }}>
+    <Box sx={{ p: { xs: 1, sm: 1.5 }, height: "100%" }}>
       <Paper
         sx={{
-          p: 3,
+          p: { xs: 1.5, sm: 2 },
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -102,243 +140,219 @@ const Cricket: React.FC = () => {
         }}
       >
         <Typography
-          variant="h4"
+          variant="h5"
           component="h1"
           gutterBottom
           color="primary"
-          sx={{ mb: 3 }}
+          sx={{ mb: { xs: 1, sm: 2 } }}
         >
           Cricket Setup
         </Typography>
 
-        <Stepper
-          activeStep={1}
-          alternativeLabel={!isMobile}
-          orientation={isMobile ? "vertical" : "horizontal"}
-          sx={{ mb: 4 }}
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          variant="fullWidth"
+          sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
         >
-          <Step completed>
-            <StepLabel>Select Game Type</StepLabel>
-          </Step>
-          <Step active>
-            <StepLabel>Choose Players</StepLabel>
-          </Step>
-          <Step>
-            <StepLabel>Play Game</StepLabel>
-          </Step>
-        </Stepper>
+          <Tab label="Game Settings" />
+          <Tab label="Select Players" />
+        </Tabs>
 
-        <Grid container spacing={3}>
-          {/* Game Options Section */}
-          <Grid item xs={12} md={5}>
-            <Stack
-              spacing={3}
-              direction={{ xs: "row", sm: "column" }}
-              sx={{
-                overflowX: { xs: "auto", sm: "visible" },
-                pb: { xs: 2, sm: 0 },
-              }}
-            >
-              {/* Game Type Selection */}
-              <Card
-                variant="outlined"
-                sx={{
-                  borderRadius: 2,
-                  minWidth: { xs: "260px", sm: "auto" },
-                  flex: { xs: "0 0 auto", sm: 1 },
-                }}
-              >
-                <CardContent>
-                  <FormControl component="fieldset" sx={{ width: "100%" }}>
-                    <FormLabel
-                      component="legend"
-                      sx={{ mb: 2, fontWeight: "medium" }}
-                    >
-                      Game Type
-                    </FormLabel>
-                    <RadioGroup
-                      value={gameType}
-                      onChange={(e) => setGameType(e.target.value as any)}
-                    >
-                      <FormControlLabel
-                        value="standard"
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body1" fontWeight="medium">
-                              Standard Cricket
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Players score points on open numbers
-                            </Typography>
-                          </Box>
-                        }
-                        sx={{ mb: 1 }}
-                      />
-                      <FormControlLabel
-                        value="cutthroat"
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body1" fontWeight="medium">
-                              Cutthroat Cricket
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Scoring adds points to opponents (lowest score
-                              wins)
-                            </Typography>
-                          </Box>
-                        }
-                        sx={{ mb: 1 }}
-                      />
-                      <FormControlLabel
-                        value="no-score"
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body1" fontWeight="medium">
-                              No-Score Cricket
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              First to close all numbers wins (no points)
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </RadioGroup>
-                  </FormControl>
-                </CardContent>
-              </Card>
-
-              {/* Win Condition Selection */}
-              <Card
-                variant="outlined"
-                sx={{
-                  borderRadius: 2,
-                  minWidth: { xs: "260px", sm: "auto" },
-                  flex: { xs: "0 0 auto", sm: 1 },
-                }}
-              >
-                <CardContent>
-                  <FormControl component="fieldset" sx={{ width: "100%" }}>
-                    <FormLabel
-                      component="legend"
-                      sx={{ mb: 2, fontWeight: "medium" }}
-                    >
-                      Win Condition
-                    </FormLabel>
-                    <RadioGroup
-                      value={winCondition}
-                      onChange={(e) => setWinCondition(e.target.value as any)}
-                    >
-                      <FormControlLabel
-                        value="points"
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body1" fontWeight="medium">
-                              Points
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {gameType === "cutthroat"
-                                ? "Lowest score after all numbers are closed wins"
-                                : "Highest score after all numbers are closed wins"}
-                            </Typography>
-                          </Box>
-                        }
-                        disabled={gameType === "no-score"}
-                        sx={{ mb: 1 }}
-                      />
-                      <FormControlLabel
-                        value="first-closed"
-                        control={<Radio />}
-                        label={
-                          <Box>
-                            <Typography variant="body1" fontWeight="medium">
-                              First to Close
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              First player to close all numbers wins
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </RadioGroup>
-                  </FormControl>
-                </CardContent>
-              </Card>
-            </Stack>
-          </Grid>
-
-          {/* Player Selection */}
-          <Grid item xs={12} md={7}>
-            <Card
-              variant="outlined"
-              sx={{
-                borderRadius: 2,
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
+        <TabPanel value={tabValue} index={0}>
+          <Stack spacing={2} sx={{ flex: 1 }}>
+            {/* Game Type Selection */}
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent
                 sx={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "auto",
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
                 }}
               >
-                <Typography variant="h6" gutterBottom fontWeight="medium">
-                  Select Players
-                </Typography>
-                <Box sx={{ flex: 1, overflow: "auto" }}>
-                  <PlayerSelector
-                    players={players}
-                    selectedPlayerIds={selectedPlayerIds}
-                    onSelectionChange={setSelectedPlayerIds}
-                    minPlayers={1}
-                    maxPlayers={8}
-                  />
-                </Box>
-
-                {error && (
-                  <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                    {error}
-                  </Typography>
-                )}
+                <FormControl
+                  component="fieldset"
+                  sx={{ width: "100%", display: "flex", flexDirection: "row" }}
+                >
+                  <FormLabel
+                    component="legend"
+                    sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
+                  >
+                    Game Type
+                  </FormLabel>
+                  <RadioGroup
+                    value={gameType}
+                    onChange={(e) => setGameType(e.target.value as any)}
+                  >
+                    <FormControlLabel
+                      value="standard"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            Standard Cricket
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Players score points on open numbers
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ mb: 0.5 }}
+                    />
+                    <FormControlLabel
+                      value="cutthroat"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            Cutthroat Cricket
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Scoring adds points to opponents (lowest score wins)
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ mb: 0.5 }}
+                    />
+                    <FormControlLabel
+                      value="no-score"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            No-Score Cricket
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            First to close all numbers wins (no points)
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </RadioGroup>
+                </FormControl>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
 
-        <Box
-          sx={{
-            mt: 4,
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 2,
-          }}
-        >
-          <VibrationButton
-            variant="outlined"
-            onClick={() => navigate("/")}
-            vibrationPattern={50}
-            size="large"
-          >
-            Back to Menu
-          </VibrationButton>
-          <VibrationButton
+            {/* Win Condition Selection */}
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <FormControl component="fieldset" sx={{ width: "100%" }}>
+                  <FormLabel
+                    component="legend"
+                    sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
+                  >
+                    Win Condition
+                  </FormLabel>
+                  <RadioGroup
+                    value={winCondition}
+                    onChange={(e) => setWinCondition(e.target.value as any)}
+                  >
+                    <FormControlLabel
+                      value="points"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            Points
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {gameType === "cutthroat"
+                              ? "Lowest score after all numbers are closed wins"
+                              : "Highest score after all numbers are closed wins"}
+                          </Typography>
+                        </Box>
+                      }
+                      disabled={gameType === "no-score"}
+                      sx={{ mb: 0.5 }}
+                    />
+                    <FormControlLabel
+                      value="first-closed"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            First to Close
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            First player to close all numbers wins
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </RadioGroup>
+                </FormControl>
+              </CardContent>
+            </Card>
+          </Stack>
+
+          <Button
             variant="contained"
-            color="primary"
-            onClick={handleStartGame}
-            disabled={selectedPlayerIds.length < 1}
-            vibrationPattern={100}
-            size="large"
+            fullWidth
+            onClick={() => setTabValue(1)}
+            sx={{ mt: 2 }}
           >
-            Start Game
-          </VibrationButton>
-        </Box>
+            Next: Select Players
+          </Button>
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "auto",
+            }}
+          >
+            <PlayerSelector
+              players={players}
+              selectedPlayerIds={selectedPlayerIds}
+              onSelectionChange={setSelectedPlayerIds}
+              minPlayers={1}
+              maxPlayers={8}
+            />
+
+            {error && (
+              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                {error}
+              </Typography>
+            )}
+          </Box>
+
+          <Box
+            sx={{
+              mt: { xs: 1.5, sm: 2 },
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+            }}
+          >
+            <VibrationButton
+              variant="contained"
+              color="primary"
+              onClick={handleStartGame}
+              disabled={selectedPlayerIds.length < 1}
+              vibrationPattern={100}
+              size="medium"
+              fullWidth
+            >
+              Start Game
+            </VibrationButton>
+
+            <Button
+              variant="outlined"
+              onClick={() => setTabValue(0)}
+              size="medium"
+              fullWidth
+            >
+              Back to Game Settings
+            </Button>
+          </Box>
+        </TabPanel>
       </Paper>
     </Box>
   );

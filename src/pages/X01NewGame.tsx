@@ -19,6 +19,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Stepper,
+  Step,
+  StepLabel,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -160,6 +163,28 @@ const X01NewGame: React.FC = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
           New X01 Game
         </Typography>
+
+        <Stepper
+          activeStep={tabValue}
+          alternativeLabel
+          orientation="horizontal"
+          sx={{
+            mb: 2,
+            "& .MuiStepLabel-label": {
+              fontSize: { xs: "0.8rem", sm: "0.875rem" },
+            },
+          }}
+        >
+          <Step>
+            <StepLabel>Game Settings</StepLabel>
+          </Step>
+          <Step>
+            <StepLabel>Select Players</StepLabel>
+          </Step>
+          <Step>
+            <StepLabel>Play Game</StepLabel>
+          </Step>
+        </Stepper>
 
         <Tabs
           value={tabValue}
