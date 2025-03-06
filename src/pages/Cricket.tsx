@@ -8,18 +8,12 @@ import {
   Radio,
   RadioGroup,
   FormLabel,
-  Grid,
   Card,
   CardContent,
   Stack,
-  useTheme,
-  useMediaQuery,
   Tabs,
   Tab,
   Button,
-  Stepper,
-  Step,
-  StepLabel,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -63,8 +57,6 @@ const Cricket: React.FC = () => {
   const { players } = useStore();
   const { updateGameSettings, gameSettings, startGame, setCricketPlayers } =
     useCricketStore();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [tabValue, setTabValue] = useState(0);
 
   // Local state for form values

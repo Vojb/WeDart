@@ -21,6 +21,7 @@ import {
   EmojiEvents,
   ExitToApp,
   ArrowBack,
+  Mic,
 } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
@@ -34,8 +35,9 @@ import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import checkoutGuide from "../utils/checkoutGuide";
 import VibrationButton from "../components/VibrationButton";
+import VoiceInput from "../components/VoiceInput";
 
-type InputMode = "numeric" | "board";
+type InputMode = "numeric" | "board" | "voice";
 
 const X01Game: React.FC = () => {
   const navigate = useNavigate();
@@ -75,6 +77,9 @@ const X01Game: React.FC = () => {
       if (inputMode === "numeric") {
         setStoreInputMode("numeric");
       } else if (inputMode === "board") {
+        setStoreInputMode("dart");
+      } else if (inputMode === "voice") {
+        // Voice input still uses dart mode in the store
         setStoreInputMode("dart");
       }
       setIsInitialized(true);
@@ -208,7 +213,7 @@ const X01Game: React.FC = () => {
 
     // Update the store with the appropriate value
     if (currentGame) {
-      // Convert "board" to "dart" for the store
+      // Convert "board" or "voice" to "dart" for the store
       const storeMode: "numeric" | "dart" =
         newMode === "numeric" ? "numeric" : "dart";
 
@@ -488,7 +493,7 @@ const X01Game: React.FC = () => {
                 }
                 doubleOutRequired={false}
               />
-            ) : (
+            ) : inputMode === "board" ? (
               <DartInputErrorBoundary>
                 <DartInput
                   onScore={(score, dartsUsed, lastDartMultiplier) =>
@@ -496,6 +501,14 @@ const X01Game: React.FC = () => {
                   }
                 />
               </DartInputErrorBoundary>
+            ) : (
+              <VoiceInput
+                onScore={handleScore}
+                currentPlayerScore={
+                  currentGame?.players[currentGame.currentPlayerIndex]?.score
+                }
+                doubleOutRequired={false}
+              />
             )}
           </Box>
         </Box>
@@ -532,6 +545,9 @@ const X01Game: React.FC = () => {
               </ToggleButton>
               <ToggleButton value="board" sx={{ px: { xs: 0.5, sm: 1 } }}>
                 <GridOn />
+              </ToggleButton>
+              <ToggleButton value="voice" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                <Mic />
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
