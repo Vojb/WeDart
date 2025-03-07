@@ -103,6 +103,16 @@ const wave = keyframes`
   }
 `;
 
+// Define a rotation animation for the mic button
+const rotate = keyframes`
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+`;
+
 const VoiceInput: React.FC<VoiceInputProps> = ({
   onScore,
   currentPlayerScore,
@@ -771,7 +781,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         )}
       </Paper>
 
-      {/* Main voice input area */}
+      {/* Main voice input area with central mic button */}
       <Paper
         elevation={1}
         sx={{
@@ -779,7 +789,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: isListening ? "flex-start" : "center",
+          justifyContent: "center",
           p: 2,
           mb: 2,
           borderRadius: 2,
@@ -791,187 +801,165 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
               : theme.palette.background.paper,
         }}
       >
-        {!isListening ? (
-          // Not listening state - show instructions
-          <>
-            <Typography
-              variant="h5"
-              color="primary"
-              gutterBottom
-              align="center"
-            >
-              Voice Input Mode
-            </Typography>
+        {/* Instructions */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 16,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            opacity: isListening ? 0.7 : 1,
+            transition: "opacity 0.3s ease",
+          }}
+        >
+          <Typography variant="h6" color="primary" gutterBottom>
+            {isListening ? "Listening..." : "Voice Input"}
+          </Typography>
+          <Typography variant="body2" color="textSecondary" align="center">
+            {isListening
+              ? 'Say "Scored" or "Träffat" followed by your dart scores'
+              : "Tap the microphone to start listening"}
+          </Typography>
+        </Box>
 
+        {/* Central Microphone Button */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            flex: 1,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {/* Sound wave visualization - only shown when listening */}
+          {isListening && (
             <Box
               sx={{
-                width: 100,
-                height: 100,
-                borderRadius: "50%",
-                backgroundColor: (theme) =>
-                  alpha(theme.palette.primary.main, 0.1),
+                position: "absolute",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                my: 3,
+                gap: 0.5,
+                width: "100%",
+                height: "100%",
               }}
             >
-              <Mic color="primary" sx={{ fontSize: 50 }} />
+              {[...Array(20)].map((_, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    width: 4,
+                    height: 10,
+                    backgroundColor: (theme) =>
+                      alpha(theme.palette.primary.main, 0.5),
+                    borderRadius: 4,
+                    animation: `${wave} ${
+                      0.5 + Math.random() * 0.5
+                    }s infinite ease-in-out`,
+                    animationDelay: `${i * 0.05}s`,
+                    position: "absolute",
+                    transform: `rotate(${i * 18}deg) translateY(-80px)`,
+                  }}
+                />
+              ))}
             </Box>
+          )}
 
-            <Typography variant="body1" align="center" paragraph>
-              Tap the microphone button below to start listening
+          {/* The main microphone button */}
+          <VibrationButton
+            id="voice-input-mic-button"
+            variant={isListening ? "contained" : "outlined"}
+            color={isListening ? "secondary" : "primary"}
+            onClick={toggleListening}
+            vibrationPattern={isListening ? [50, 50, 50] : 100}
+            sx={{
+              width: isListening ? 120 : 140,
+              height: isListening ? 120 : 140,
+              borderRadius: "50%",
+              transition: "all 0.3s ease",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: isListening
+                ? (theme) =>
+                    `0 0 20px ${alpha(theme.palette.secondary.main, 0.5)}`
+                : "none",
+              animation: isListening
+                ? `${pulse} 1.5s infinite ease-in-out`
+                : "none",
+              zIndex: 2,
+            }}
+          >
+            {isListening ? (
+              <MicOff sx={{ fontSize: 50, animation: `${rotate} 0.3s ease` }} />
+            ) : (
+              <Mic sx={{ fontSize: 60 }} />
+            )}
+
+            {/* Background animation when listening */}
+            {isListening && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  opacity: 0.2,
+                  background: (theme) =>
+                    `radial-gradient(circle, ${theme.palette.secondary.main} 0%, transparent 70%)`,
+                  animation: `${pulse} 2s infinite ease-in-out`,
+                }}
+              />
+            )}
+          </VibrationButton>
+        </Box>
+
+        {/* Transcript display - only shown when listening and there's a transcript */}
+        {isListening && transcript && (
+          <Paper
+            elevation={1}
+            sx={{
+              p: 2,
+              width: "100%",
+              borderRadius: 2,
+              backgroundColor: (theme) =>
+                alpha(theme.palette.background.paper, 0.9),
+              borderLeft: "4px solid",
+              borderColor: "primary.main",
+              mt: 3,
+              maxHeight: "30%",
+              overflow: "auto",
+            }}
+          >
+            <Typography variant="body2" color="textSecondary">
+              <Box component="span" fontWeight="bold" color="primary.main">
+                Heard:{" "}
+              </Box>
+              {transcript}
             </Typography>
+          </Paper>
+        )}
 
+        {/* Examples - only shown when not listening */}
+        {!isListening && (
+          <Box sx={{ mt: 3, width: "100%", maxWidth: 400 }}>
             <Typography
               variant="body2"
               color="textSecondary"
               align="center"
-              paragraph
-            >
-              When listening, say "Scored" or "Träffat" followed by your dart
-              scores
-            </Typography>
-
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              align="center"
-              paragraph
+              gutterBottom
             >
               Examples:
             </Typography>
-
-            <Box
-              sx={{ mb: 3, display: "flex", flexDirection: "column", gap: 1 }}
-            >
+            <Stack spacing={1} sx={{ mt: 1 }}>
               <Chip label="Scored twenty, triple nineteen, double twelve" />
               <Chip label="Träffat triple twenty, double twenty, five" />
-            </Box>
-
-            <VibrationButton
-              id="voice-input-mic-button"
-              variant="contained"
-              color="primary"
-              size="large"
-              onClick={toggleListening}
-              startIcon={<Mic />}
-              vibrationPattern={100}
-              sx={{ mt: 2 }}
-            >
-              Start Listening
-            </VibrationButton>
-          </>
-        ) : (
-          // Listening state - show active listening UI
-          <>
-            <Box
-              sx={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                pt: 3,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: "50%",
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.primary.main, 0.1),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  animation: `${pulse} 1.5s infinite ease-in-out`,
-                  mb: 2,
-                }}
-              >
-                <Mic color="primary" sx={{ fontSize: 40 }} />
-              </Box>
-
-              <Typography
-                variant="h6"
-                color="primary"
-                fontWeight="bold"
-                gutterBottom
-              >
-                Listening...
-              </Typography>
-
-              {/* Sound wave visualization */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 0.5,
-                  height: 40,
-                  mb: 2,
-                }}
-              >
-                {[...Array(9)].map((_, i) => (
-                  <Box
-                    key={i}
-                    sx={{
-                      width: 4,
-                      height: 10,
-                      backgroundColor: "primary.main",
-                      borderRadius: 4,
-                      animation: `${wave} ${
-                        0.5 + Math.random() * 0.5
-                      }s infinite ease-in-out`,
-                      animationDelay: `${i * 0.1}s`,
-                    }}
-                  />
-                ))}
-              </Box>
-
-              {/* Transcript display */}
-              {transcript && (
-                <Paper
-                  elevation={1}
-                  sx={{
-                    p: 2,
-                    width: "100%",
-                    borderRadius: 2,
-                    backgroundColor: (theme) =>
-                      alpha(theme.palette.background.paper, 0.9),
-                    borderLeft: "4px solid",
-                    borderColor: "primary.main",
-                    mb: 2,
-                  }}
-                >
-                  <Typography variant="body2" color="textSecondary">
-                    <Box
-                      component="span"
-                      fontWeight="bold"
-                      color="primary.main"
-                    >
-                      Heard:{" "}
-                    </Box>
-                    {transcript}
-                  </Typography>
-                </Paper>
-              )}
-
-              <Typography variant="body2" color="textSecondary" align="center">
-                Say "Scored" or "Träffat" followed by your dart scores
-              </Typography>
-
-              <VibrationButton
-                variant="outlined"
-                color="secondary"
-                onClick={toggleListening}
-                startIcon={<MicOff />}
-                vibrationPattern={[50, 50, 50]}
-                sx={{ mt: 2 }}
-              >
-                Stop Listening
-              </VibrationButton>
-            </Box>
-          </>
+            </Stack>
+          </Box>
         )}
       </Paper>
 
