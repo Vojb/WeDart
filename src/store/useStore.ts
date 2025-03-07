@@ -50,6 +50,14 @@ export interface ThemeOption {
   colors: ThemeColors;
 }
 
+// Add microphone permission settings interface
+export interface PermissionSettings {
+  microphone: {
+    enabled: boolean;
+    lastChecked: number | null;
+  };
+}
+
 // Predefined theme options
 export const predefinedThemes: ThemeOption[] = [
   {
@@ -351,6 +359,11 @@ interface StoreState {
   vibrationEnabled: boolean;
   toggleVibration: () => void;
 
+  // Permission settings
+  permissionSettings: PermissionSettings;
+  setMicrophoneEnabled: (enabled: boolean) => void;
+  updateMicrophoneLastChecked: () => void;
+
   // Sticky activation state - tracks if user has interacted with the page
   hasUserActivation: boolean;
   setUserActivation: (activated: boolean) => void;
@@ -434,37 +447,43 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      // Vibration settings - enabled by default
+      // Vibration settings
       vibrationEnabled: true,
-      toggleVibration: () => {
-        let newVibrationEnabled = false;
+      toggleVibration: () =>
+        set((state) => ({ vibrationEnabled: !state.vibrationEnabled })),
 
-        set((state) => {
-          newVibrationEnabled = !state.vibrationEnabled;
-          return {
-            ...state,
-            vibrationEnabled: newVibrationEnabled,
-          };
-        });
-
-        // Force a small test vibration when enabled to "wake up" the vibration API
-        if (newVibrationEnabled && typeof navigator.vibrate === "function") {
-          try {
-            navigator.vibrate([1]);
-            setTimeout(() => navigator.vibrate([10]), 50);
-          } catch (e) {
-            console.error("Failed to initialize vibration:", e);
-          }
-        }
+      // Permission settings
+      permissionSettings: {
+        microphone: {
+          enabled: false,
+          lastChecked: null,
+        },
       },
+      setMicrophoneEnabled: (enabled: boolean) =>
+        set((state) => ({
+          permissionSettings: {
+            ...state.permissionSettings,
+            microphone: {
+              ...state.permissionSettings.microphone,
+              enabled,
+            },
+          },
+        })),
+      updateMicrophoneLastChecked: () =>
+        set((state) => ({
+          permissionSettings: {
+            ...state.permissionSettings,
+            microphone: {
+              ...state.permissionSettings.microphone,
+              lastChecked: Date.now(),
+            },
+          },
+        })),
 
-      // Sticky activation state - tracks if user has interacted with the page
+      // Sticky activation state
       hasUserActivation: false,
       setUserActivation: (activated: boolean) =>
-        set((state) => ({
-          ...state,
-          hasUserActivation: activated,
-        })),
+        set({ hasUserActivation: activated }),
     }),
     {
       name: "wedart-main-storage",
@@ -476,6 +495,7 @@ export const useStore = create<StoreState>()(
         themeColors: state.themeColors,
         currentThemeId: state.currentThemeId,
         vibrationEnabled: state.vibrationEnabled,
+        permissionSettings: state.permissionSettings,
         hasUserActivation: state.hasUserActivation,
       }),
     }

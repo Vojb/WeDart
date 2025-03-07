@@ -26,6 +26,9 @@ import { useState, useEffect, useRef } from "react";
 import React from "react";
 import VibrationButton from "./VibrationButton";
 import { alpha } from "@mui/material/styles";
+import { useStore } from "../store/useStore";
+import { useNavigate } from "react-router-dom";
+import { keyframes } from "@mui/system";
 
 // Add SpeechRecognition type definitions
 interface SpeechRecognitionEvent extends Event {
@@ -61,6 +64,7 @@ interface VoiceInputProps {
   onScore: (score: number, darts: number, lastDartMultiplier?: number) => void;
   currentPlayerScore?: number;
   doubleOutRequired?: boolean;
+  onListeningChange?: (isListening: boolean) => void;
 }
 
 // Define a type for recognized dart scores
@@ -70,10 +74,47 @@ interface RecognizedDart {
   description: string;
 }
 
+// Define a pulsing animation for the listening indicator
+const pulse = keyframes`
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+`;
+
+// Define a wave animation for the sound waves
+const wave = keyframes`
+  0% {
+    height: 10px;
+  }
+  50% {
+    height: 30px;
+  }
+  100% {
+    height: 10px;
+  }
+`;
+
 const VoiceInput: React.FC<VoiceInputProps> = ({
   onScore,
   currentPlayerScore,
+  onListeningChange,
 }) => {
+  const navigate = useNavigate();
+  const {
+    permissionSettings,
+    setMicrophoneEnabled,
+    updateMicrophoneLastChecked,
+  } = useStore();
+
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [recognizedDarts, setRecognizedDarts] = useState<RecognizedDart[]>([]);
@@ -86,6 +127,8 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     "prompt" | "granted" | "denied" | "unknown"
   >("unknown");
   const [permissionDialogOpen, setPermissionDialogOpen] = useState(false);
+  const [settingsRedirectDialogOpen, setSettingsRedirectDialogOpen] =
+    useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timeoutRef = useRef<number | null>(null);
@@ -108,6 +151,16 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         .then((permissionStatus) => {
           setPermissionStatus(permissionStatus.state);
 
+          // Update store if permission is granted
+          if (
+            permissionStatus.state === "granted" &&
+            !permissionSettings.microphone.enabled
+          ) {
+            setMicrophoneEnabled(true);
+          }
+
+          updateMicrophoneLastChecked();
+
           // Listen for permission changes
           permissionStatus.onchange = () => {
             setPermissionStatus(permissionStatus.state);
@@ -117,7 +170,12 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
               setErrorMessage(
                 "Microphone access was denied. Please enable microphone access in your browser settings."
               );
+              setMicrophoneEnabled(false);
+            } else if (permissionStatus.state === "granted") {
+              setMicrophoneEnabled(true);
             }
+
+            updateMicrophoneLastChecked();
           };
         })
         .catch((error) => {
@@ -129,7 +187,12 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       // Older browsers don't support the permissions API
       setPermissionStatus("prompt");
     }
-  }, [isSpeechRecognitionAvailable]);
+  }, [
+    isSpeechRecognitionAvailable,
+    permissionSettings.microphone.enabled,
+    setMicrophoneEnabled,
+    updateMicrophoneLastChecked,
+  ]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -373,19 +436,58 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     return darts.slice(0, 3);
   };
 
-  // Request microphone permission and start listening
+  // Request microphone permission
   const requestMicrophonePermission = () => {
     setPermissionDialogOpen(false);
 
     // Try to start the recognition - this will trigger the browser's permission prompt
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          // Permission granted
+          setPermissionStatus("granted");
+          setMicrophoneEnabled(true);
+          updateMicrophoneLastChecked();
+
+          // Stop all tracks to release the microphone
+          stream.getTracks().forEach((track) => track.stop());
+
+          // Now try to start speech recognition
+          startListening();
+        })
+        .catch((error) => {
+          console.error("Error requesting microphone permission:", error);
+          setPermissionStatus("denied");
+          setMicrophoneEnabled(false);
+          setErrorMessage(
+            "Microphone access was denied. Please enable microphone access in your browser settings."
+          );
+          updateMicrophoneLastChecked();
+        });
+    } else {
+      setErrorMessage(
+        "Could not start speech recognition. Your browser may not support this feature."
+      );
+    }
+  };
+
+  // Start listening function
+  const startListening = () => {
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.start();
-        setIsListening(true);
         setErrorMessage(null);
         setTranscript("");
         setRecognizedDarts([]);
         setTotalScore(0);
+
+        recognitionRef.current.start();
+        setIsListening(true);
+
+        // Notify parent component about listening state change
+        if (onListeningChange) {
+          onListeningChange(true);
+        }
       } catch (error) {
         console.error("Error starting speech recognition:", error);
         setErrorMessage(
@@ -402,30 +504,32 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       return;
     }
 
+    const newListeningState = !isListening;
+
     if (isListening) {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
       setIsListening(false);
+      // Notify parent component about listening state change
+      if (onListeningChange) {
+        onListeningChange(false);
+      }
     } else {
+      // Check if microphone is enabled in settings
+      if (!permissionSettings.microphone.enabled) {
+        // Show dialog to redirect to settings
+        setSettingsRedirectDialogOpen(true);
+        return;
+      }
+
       // Check permission status before starting
       if (permissionStatus === "granted") {
         // Permission already granted, start listening
-        if (recognitionRef.current) {
-          setErrorMessage(null);
-          setTranscript("");
-          setRecognizedDarts([]);
-          setTotalScore(0);
-
-          try {
-            recognitionRef.current.start();
-            setIsListening(true);
-          } catch (error) {
-            console.error("Error starting speech recognition:", error);
-            setErrorMessage(
-              "Could not start speech recognition. Please try again."
-            );
-          }
+        startListening();
+        // Notify parent component about listening state change
+        if (onListeningChange) {
+          onListeningChange(true);
         }
       } else if (
         permissionStatus === "prompt" ||
@@ -440,6 +544,12 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         );
       }
     }
+  };
+
+  // Navigate to settings
+  const goToSettings = () => {
+    setSettingsRedirectDialogOpen(false);
+    navigate("/settings");
   };
 
   // Handle submitting the score
@@ -539,6 +649,21 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
   // Check if it's a valid checkout
   const isCheckout = remainingScore !== undefined && remainingScore === 0;
 
+  // Add effect to notify parent when component unmounts or listening state changes
+  useEffect(() => {
+    // Notify parent component about initial listening state
+    if (onListeningChange) {
+      onListeningChange(isListening);
+    }
+
+    return () => {
+      // Notify parent component when unmounting (no longer listening)
+      if (isListening && onListeningChange) {
+        onListeningChange(false);
+      }
+    };
+  }, [isListening, onListeningChange]);
+
   return (
     <Box
       sx={{
@@ -575,6 +700,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
               fontWeight: "bold",
               fontSize: "1rem",
               color: isCheckout ? "success.main" : "text.secondary",
+              zIndex: isListening ? 11 : 1,
             }}
           >
             {Math.max(0, remainingScore)}
@@ -645,22 +771,209 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         )}
       </Paper>
 
-      {/* Transcript display */}
-      {isListening && (
-        <Paper
-          elevation={1}
-          sx={{
-            mb: { xs: 1, sm: 2 },
-            p: { xs: 1, sm: 2 },
-            borderRadius: 2,
-            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.05),
-          }}
-        >
-          <Typography variant="body2" color="textSecondary">
-            {transcript || "Listening..."}
-          </Typography>
-        </Paper>
-      )}
+      {/* Main voice input area */}
+      <Paper
+        elevation={1}
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: isListening ? "flex-start" : "center",
+          p: 2,
+          mb: 2,
+          borderRadius: 2,
+          position: "relative",
+          overflow: "hidden",
+          backgroundColor: (theme) =>
+            isListening
+              ? alpha(theme.palette.primary.main, 0.05)
+              : theme.palette.background.paper,
+        }}
+      >
+        {!isListening ? (
+          // Not listening state - show instructions
+          <>
+            <Typography
+              variant="h5"
+              color="primary"
+              gutterBottom
+              align="center"
+            >
+              Voice Input Mode
+            </Typography>
+
+            <Box
+              sx={{
+                width: 100,
+                height: 100,
+                borderRadius: "50%",
+                backgroundColor: (theme) =>
+                  alpha(theme.palette.primary.main, 0.1),
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                my: 3,
+              }}
+            >
+              <Mic color="primary" sx={{ fontSize: 50 }} />
+            </Box>
+
+            <Typography variant="body1" align="center" paragraph>
+              Tap the microphone button below to start listening
+            </Typography>
+
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              align="center"
+              paragraph
+            >
+              When listening, say "Scored" or "Träffat" followed by your dart
+              scores
+            </Typography>
+
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              align="center"
+              paragraph
+            >
+              Examples:
+            </Typography>
+
+            <Box
+              sx={{ mb: 3, display: "flex", flexDirection: "column", gap: 1 }}
+            >
+              <Chip label="Scored twenty, triple nineteen, double twelve" />
+              <Chip label="Träffat triple twenty, double twenty, five" />
+            </Box>
+
+            <VibrationButton
+              id="voice-input-mic-button"
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={toggleListening}
+              startIcon={<Mic />}
+              vibrationPattern={100}
+              sx={{ mt: 2 }}
+            >
+              Start Listening
+            </VibrationButton>
+          </>
+        ) : (
+          // Listening state - show active listening UI
+          <>
+            <Box
+              sx={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                pt: 3,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  backgroundColor: (theme) =>
+                    alpha(theme.palette.primary.main, 0.1),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  animation: `${pulse} 1.5s infinite ease-in-out`,
+                  mb: 2,
+                }}
+              >
+                <Mic color="primary" sx={{ fontSize: 40 }} />
+              </Box>
+
+              <Typography
+                variant="h6"
+                color="primary"
+                fontWeight="bold"
+                gutterBottom
+              >
+                Listening...
+              </Typography>
+
+              {/* Sound wave visualization */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 0.5,
+                  height: 40,
+                  mb: 2,
+                }}
+              >
+                {[...Array(9)].map((_, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      width: 4,
+                      height: 10,
+                      backgroundColor: "primary.main",
+                      borderRadius: 4,
+                      animation: `${wave} ${
+                        0.5 + Math.random() * 0.5
+                      }s infinite ease-in-out`,
+                      animationDelay: `${i * 0.1}s`,
+                    }}
+                  />
+                ))}
+              </Box>
+
+              {/* Transcript display */}
+              {transcript && (
+                <Paper
+                  elevation={1}
+                  sx={{
+                    p: 2,
+                    width: "100%",
+                    borderRadius: 2,
+                    backgroundColor: (theme) =>
+                      alpha(theme.palette.background.paper, 0.9),
+                    borderLeft: "4px solid",
+                    borderColor: "primary.main",
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="body2" color="textSecondary">
+                    <Box
+                      component="span"
+                      fontWeight="bold"
+                      color="primary.main"
+                    >
+                      Heard:{" "}
+                    </Box>
+                    {transcript}
+                  </Typography>
+                </Paper>
+              )}
+
+              <Typography variant="body2" color="textSecondary" align="center">
+                Say "Scored" or "Träffat" followed by your dart scores
+              </Typography>
+
+              <VibrationButton
+                variant="outlined"
+                color="secondary"
+                onClick={toggleListening}
+                startIcon={<MicOff />}
+                vibrationPattern={[50, 50, 50]}
+                sx={{ mt: 2 }}
+              >
+                Stop Listening
+              </VibrationButton>
+            </Box>
+          </>
+        )}
+      </Paper>
 
       {/* Error message */}
       {errorMessage && (
@@ -676,44 +989,6 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
           settings.
         </Alert>
       )}
-
-      {/* Voice control buttons */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 2,
-          mb: 2,
-        }}
-      >
-        <VibrationButton
-          variant="contained"
-          color={isListening ? "secondary" : "primary"}
-          size="large"
-          onClick={toggleListening}
-          startIcon={isListening ? <MicOff /> : <Mic />}
-          vibrationPattern={isListening ? [50, 50, 50] : 100}
-          sx={{
-            borderRadius: 28,
-            height: 56,
-            width: isListening ? 200 : 56,
-            transition: "width 0.3s ease-in-out",
-          }}
-        >
-          {isListening ? "Stop Listening" : ""}
-        </VibrationButton>
-
-        <Tooltip title="Voice Input Help">
-          <IconButton
-            color="primary"
-            onClick={() => setInfoDialogOpen(true)}
-            size="large"
-          >
-            <Info />
-          </IconButton>
-        </Tooltip>
-      </Box>
 
       {/* Action buttons */}
       <Box
@@ -732,22 +1007,67 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
           Clear
         </VibrationButton>
 
-        <VibrationButton
-          variant="contained"
-          color="primary"
-          onClick={handleSubmitScore}
-          disabled={
-            recognizedDarts.length === 0 || !isValidScore || isSubmitting
-          }
-          vibrationPattern={100}
-        >
-          {isSubmitting ? (
-            <CircularProgress size={24} color="inherit" />
-          ) : (
-            "Submit"
-          )}
-        </VibrationButton>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Tooltip title="Voice Input Help">
+            <IconButton
+              color="primary"
+              onClick={() => setInfoDialogOpen(true)}
+              size="medium"
+            >
+              <Info />
+            </IconButton>
+          </Tooltip>
+
+          <VibrationButton
+            variant="contained"
+            color="primary"
+            onClick={handleSubmitScore}
+            disabled={
+              recognizedDarts.length === 0 || !isValidScore || isSubmitting
+            }
+            vibrationPattern={100}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Submit"
+            )}
+          </VibrationButton>
+        </Box>
       </Box>
+
+      {/* Settings Redirect Dialog */}
+      <Dialog
+        open={settingsRedirectDialogOpen}
+        onClose={() => setSettingsRedirectDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Microphone Access Required</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" paragraph>
+            Voice input requires microphone access, which is currently disabled
+            in your settings.
+          </Typography>
+          <Typography variant="body1">
+            Would you like to go to the settings page to enable microphone
+            access?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSettingsRedirectDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={goToSettings}
+            variant="contained"
+            color="primary"
+            startIcon={<Mic />}
+          >
+            Go to Settings
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Permission Request Dialog */}
       <Dialog

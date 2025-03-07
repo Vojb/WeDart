@@ -13,6 +13,8 @@ import {
   ListItem,
   ListItemText,
   IconButton,
+  Tooltip,
+  Chip,
 } from "@mui/material";
 import {
   Calculate,
@@ -36,8 +38,25 @@ import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import checkoutGuide from "../utils/checkoutGuide";
 import VibrationButton from "../components/VibrationButton";
 import VoiceInput from "../components/VoiceInput";
+import { keyframes } from "@mui/system";
 
 type InputMode = "numeric" | "board" | "voice";
+
+// Define a pulsing animation for the voice mode indicator
+const pulse = keyframes`
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+`;
 
 const X01Game: React.FC = () => {
   const navigate = useNavigate();
@@ -54,6 +73,10 @@ const X01Game: React.FC = () => {
   const { addCompletedGame } = useHistoryStore();
   const [inputMode, setInputMode] = useState<InputMode>("numeric");
   const [showRoundAvg, setShowRoundAvg] = useState(false);
+
+  // Get microphone permission status from store
+  const { permissionSettings } = useStore();
+  const isMicrophoneEnabled = permissionSettings.microphone.enabled;
 
   // Handle game finished dialog
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -85,6 +108,13 @@ const X01Game: React.FC = () => {
       setIsInitialized(true);
     }
   }, [currentGame, inputMode, setStoreInputMode, isInitialized]);
+
+  // If microphone is disabled and current input mode is voice, switch to numeric
+  useEffect(() => {
+    if (!isMicrophoneEnabled && inputMode === "voice") {
+      setInputMode("numeric");
+    }
+  }, [isMicrophoneEnabled, inputMode]);
 
   useEffect(() => {
     // Initialize inputMode from store when currentGame is available
@@ -209,6 +239,11 @@ const X01Game: React.FC = () => {
 
   // Handle changes to inputMode without creating an infinite loop
   const handleInputModeChange = (newMode: InputMode) => {
+    // Don't allow switching to voice if microphone is not enabled
+    if (newMode === "voice" && !isMicrophoneEnabled) {
+      return;
+    }
+
     setInputMode(newMode);
 
     // Update the store with the appropriate value
@@ -546,9 +581,11 @@ const X01Game: React.FC = () => {
               <ToggleButton value="board" sx={{ px: { xs: 0.5, sm: 1 } }}>
                 <GridOn />
               </ToggleButton>
-              <ToggleButton value="voice" sx={{ px: { xs: 0.5, sm: 1 } }}>
-                <Mic />
-              </ToggleButton>
+              {isMicrophoneEnabled && (
+                <ToggleButton value="voice" sx={{ px: { xs: 0.5, sm: 1 } }}>
+                  <Mic />
+                </ToggleButton>
+              )}
             </ToggleButtonGroup>
           </Box>
 

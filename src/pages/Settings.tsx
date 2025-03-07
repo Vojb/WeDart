@@ -19,12 +19,21 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Button,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
+import InfoIcon from "@mui/icons-material/Info";
 import { useNavigate } from "react-router-dom";
 import { useStore, predefinedThemes } from "../store/useStore";
 import React from "react";
@@ -257,6 +266,11 @@ const Settings: React.FC = () => {
     toggleTheme,
     currentThemeId,
     setCurrentTheme,
+    vibrationEnabled,
+    toggleVibration,
+    permissionSettings,
+    setMicrophoneEnabled,
+    updateMicrophoneLastChecked,
   } = useStore();
 
   // State for color values
@@ -295,6 +309,14 @@ const Settings: React.FC = () => {
   const [expandedCustomColors, setExpandedCustomColors] =
     useState<boolean>(false);
   const [expandedPreview, setExpandedPreview] = useState<boolean>(false);
+  const [expandedPermissions, setExpandedPermissions] = useState<boolean>(true);
+
+  // Microphone permission state
+  const [micPermissionStatus, setMicPermissionStatus] = useState<
+    "prompt" | "granted" | "denied" | "unknown"
+  >("unknown");
+  const [isMicPermissionDialogOpen, setIsMicPermissionDialogOpen] =
+    useState(false);
 
   // Helper function to determine text color based on background
   const getTextColor = (backgroundColor: string) => {
@@ -428,6 +450,116 @@ const Settings: React.FC = () => {
     setSnackbarOpen(true);
   };
 
+  // Check microphone permission on component mount
+  useEffect(() => {
+    checkMicrophonePermission();
+  }, []);
+
+  // Function to check microphone permission
+  const checkMicrophonePermission = () => {
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions
+        .query({ name: "microphone" as PermissionName })
+        .then((permissionStatus) => {
+          setMicPermissionStatus(permissionStatus.state);
+
+          // Update store if permission is granted
+          if (
+            permissionStatus.state === "granted" &&
+            !permissionSettings.microphone.enabled
+          ) {
+            setMicrophoneEnabled(true);
+          } else if (
+            permissionStatus.state === "denied" &&
+            permissionSettings.microphone.enabled
+          ) {
+            setMicrophoneEnabled(false);
+          }
+
+          updateMicrophoneLastChecked();
+
+          // Listen for permission changes
+          permissionStatus.onchange = () => {
+            setMicPermissionStatus(permissionStatus.state);
+
+            if (permissionStatus.state === "granted") {
+              setMicrophoneEnabled(true);
+              setSnackbarMessage("Microphone access granted!");
+              setSnackbarOpen(true);
+            } else if (permissionStatus.state === "denied") {
+              setMicrophoneEnabled(false);
+              setSnackbarMessage("Microphone access denied.");
+              setSnackbarOpen(true);
+            }
+
+            updateMicrophoneLastChecked();
+          };
+        })
+        .catch((error) => {
+          console.error("Error checking microphone permission:", error);
+          setMicPermissionStatus("unknown");
+        });
+    } else {
+      // Older browsers don't support the permissions API
+      setMicPermissionStatus("unknown");
+    }
+  };
+
+  // Function to request microphone permission
+  const requestMicrophonePermission = () => {
+    setIsMicPermissionDialogOpen(false);
+
+    // Try to start the recognition - this will trigger the browser's permission prompt
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          // Permission granted
+          setMicPermissionStatus("granted");
+          setMicrophoneEnabled(true);
+          setSnackbarMessage("Microphone access granted!");
+          setSnackbarOpen(true);
+
+          // Stop all tracks to release the microphone
+          stream.getTracks().forEach((track) => track.stop());
+
+          updateMicrophoneLastChecked();
+        })
+        .catch((error) => {
+          console.error("Error requesting microphone permission:", error);
+          setMicPermissionStatus("denied");
+          setMicrophoneEnabled(false);
+          setSnackbarMessage("Microphone access denied.");
+          setSnackbarOpen(true);
+
+          updateMicrophoneLastChecked();
+        });
+    } else {
+      setSnackbarMessage("Your browser doesn't support microphone access.");
+      setSnackbarOpen(true);
+    }
+  };
+
+  // Function to handle microphone toggle
+  const handleMicrophoneToggle = () => {
+    if (micPermissionStatus === "granted") {
+      // Already have permission, just toggle the setting
+      setMicrophoneEnabled(!permissionSettings.microphone.enabled);
+    } else if (
+      micPermissionStatus === "prompt" ||
+      micPermissionStatus === "unknown"
+    ) {
+      // Need to request permission
+      setIsMicPermissionDialogOpen(true);
+    } else if (micPermissionStatus === "denied") {
+      // Permission was denied, show message
+      setSnackbarMessage(
+        "Microphone access is blocked. Please enable it in your browser settings."
+      );
+      setSnackbarOpen(true);
+    }
+  };
+
   return (
     <Container
       maxWidth="md"
@@ -452,6 +584,123 @@ const Settings: React.FC = () => {
           Settings
         </Typography>
       </Box>
+
+      {/* Permissions Accordion */}
+      <Accordion
+        expanded={expandedPermissions}
+        onChange={() => setExpandedPermissions(!expandedPermissions)}
+        sx={{ mb: 2 }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="permissions-content"
+          id="permissions-header"
+          sx={{
+            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6">App Permissions</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          {/* Microphone Permission */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Microphone Access
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={
+                      permissionSettings.microphone.enabled &&
+                      micPermissionStatus === "granted"
+                    }
+                    onChange={handleMicrophoneToggle}
+                    color="primary"
+                    disabled={micPermissionStatus === "denied"}
+                  />
+                }
+                label=""
+              />
+              {micPermissionStatus === "granted" ? (
+                <MicIcon
+                  color={
+                    permissionSettings.microphone.enabled
+                      ? "primary"
+                      : "disabled"
+                  }
+                />
+              ) : (
+                <MicOffIcon color="disabled" />
+              )}
+              <Typography sx={{ ml: 1 }}>
+                {micPermissionStatus === "granted"
+                  ? permissionSettings.microphone.enabled
+                    ? "Microphone Enabled"
+                    : "Microphone Disabled"
+                  : micPermissionStatus === "denied"
+                  ? "Microphone Blocked"
+                  : "Microphone Not Set"}
+              </Typography>
+
+              <Tooltip title="Used for voice input in games">
+                <IconButton size="small" sx={{ ml: 1 }}>
+                  <InfoIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {micPermissionStatus === "granted"
+                ? "Microphone access is granted. You can use voice input in games."
+                : micPermissionStatus === "denied"
+                ? "Microphone access is blocked by your browser. Please enable it in your browser settings to use voice input."
+                : "Enable microphone access to use voice input for scoring in games."}
+            </Typography>
+
+            {micPermissionStatus !== "granted" && (
+              <Button
+                variant="outlined"
+                startIcon={<MicIcon />}
+                onClick={() => setIsMicPermissionDialogOpen(true)}
+                disabled={micPermissionStatus === "denied"}
+              >
+                {micPermissionStatus === "denied"
+                  ? "Access Blocked by Browser"
+                  : "Request Microphone Access"}
+              </Button>
+            )}
+          </Box>
+
+          {/* Vibration Setting */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Vibration
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={vibrationEnabled}
+                    onChange={toggleVibration}
+                    color="primary"
+                  />
+                }
+                label=""
+              />
+              <Typography sx={{ ml: 1 }}>
+                {vibrationEnabled ? "Vibration Enabled" : "Vibration Disabled"}
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary">
+              Enable vibration feedback for button presses and game events.
+            </Typography>
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+        </AccordionDetails>
+      </Accordion>
 
       {/* Theme Mode Accordion */}
       <Accordion
@@ -1086,6 +1335,43 @@ const Settings: React.FC = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* Microphone Permission Dialog */}
+      <Dialog
+        open={isMicPermissionDialogOpen}
+        onClose={() => setIsMicPermissionDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Microphone Access Required</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" paragraph>
+            To use voice input for scoring in games, this app needs permission
+            to access your microphone.
+          </Typography>
+          <Typography variant="body1" paragraph>
+            When you click "Allow", your browser will show a permission request.
+            Please click "Allow" to enable voice input.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Note: We only use your microphone to recognize dart scores. No audio
+            is recorded or stored.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsMicPermissionDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={requestMicrophonePermission}
+            variant="contained"
+            color="primary"
+            startIcon={<MicIcon />}
+          >
+            Allow Microphone Access
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

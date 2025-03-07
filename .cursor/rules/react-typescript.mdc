@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+Make all files typescript, and follow lint rules , make all new components const "name" = React.fC 
+
