@@ -13,8 +13,6 @@ import {
   ListItem,
   ListItemText,
   IconButton,
-  Tooltip,
-  Chip,
 } from "@mui/material";
 import {
   Calculate,
@@ -38,25 +36,8 @@ import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import checkoutGuide from "../utils/checkoutGuide";
 import VibrationButton from "../components/VibrationButton";
 import VoiceInput from "../components/VoiceInput";
-import { keyframes } from "@mui/system";
 
 type InputMode = "numeric" | "board" | "voice";
-
-// Define a pulsing animation for the voice mode indicator
-const pulse = keyframes`
-  0% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-`;
 
 const X01Game: React.FC = () => {
   const navigate = useNavigate();
@@ -118,11 +99,12 @@ const X01Game: React.FC = () => {
 
   useEffect(() => {
     // Initialize inputMode from store when currentGame is available
-    if (currentGame && currentGame.inputMode) {
+    if (currentGame && currentGame.inputMode && !isInitialized) {
       const newMode = currentGame.inputMode === "numeric" ? "numeric" : "board";
       setInputMode(newMode);
+      setIsInitialized(true);
     }
-  }, [currentGame]);
+  }, [currentGame, isInitialized]);
 
   useEffect(() => {
     if (!currentGame) {
@@ -244,19 +226,18 @@ const X01Game: React.FC = () => {
       return;
     }
 
+    // Set the input mode regardless of the current game state
     setInputMode(newMode);
 
-    // Update the store with the appropriate value
+    // Update the store with the appropriate value only if there's a current game
     if (currentGame) {
       // Convert "board" or "voice" to "dart" for the store
       const storeMode: "numeric" | "dart" =
         newMode === "numeric" ? "numeric" : "dart";
 
-      // Fix: Use setInputMode method from the store instead of direct state update
-      if (currentGame) {
-        useX01Store.getState().setInputMode(storeMode);
-        console.log("X01Game: Updated store inputMode to", storeMode);
-      }
+      // Use setInputMode method from the store
+      useX01Store.getState().setInputMode(storeMode);
+      console.log("X01Game: Updated store inputMode to", storeMode);
     }
   };
 

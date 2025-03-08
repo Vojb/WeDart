@@ -13,21 +13,20 @@ import {
   Button,
   Alert,
   Tooltip,
+  DialogContentText,
 } from "@mui/material";
 import {
   Mic,
   MicOff,
-  LooksOne,
-  LooksTwo,
-  Looks3,
   Info,
+  Close,
+  CheckCircle,
+  Language,
 } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
 import VibrationButton from "./VibrationButton";
 import { alpha } from "@mui/material/styles";
-import { useStore } from "../store/useStore";
-import { useNavigate } from "react-router-dom";
 import { keyframes } from "@mui/system";
 
 // Add SpeechRecognition type definitions
@@ -74,6 +73,14 @@ interface RecognizedDart {
   description: string;
 }
 
+// Add interface for recognized point log
+interface RecognizedPointLog {
+  timestamp: number;
+  darts: RecognizedDart[];
+  totalScore: number;
+  transcript: string;
+}
+
 // Define a pulsing animation for the listening indicator
 const pulse = keyframes`
   0% {
@@ -90,41 +97,11 @@ const pulse = keyframes`
   }
 `;
 
-// Define a wave animation for the sound waves
-const wave = keyframes`
-  0% {
-    height: 10px;
-  }
-  50% {
-    height: 30px;
-  }
-  100% {
-    height: 10px;
-  }
-`;
-
-// Define a rotation animation for the mic button
-const rotate = keyframes`
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-`;
-
 const VoiceInput: React.FC<VoiceInputProps> = ({
   onScore,
   currentPlayerScore,
   onListeningChange,
 }) => {
-  const navigate = useNavigate();
-  const {
-    permissionSettings,
-    setMicrophoneEnabled,
-    updateMicrophoneLastChecked,
-  } = useStore();
-
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [recognizedDarts, setRecognizedDarts] = useState<RecognizedDart[]>([]);
@@ -137,8 +114,12 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     "prompt" | "granted" | "denied" | "unknown"
   >("unknown");
   const [permissionDialogOpen, setPermissionDialogOpen] = useState(false);
-  const [settingsRedirectDialogOpen, setSettingsRedirectDialogOpen] =
-    useState(false);
+  const [pointsLog, setPointsLog] = useState<RecognizedPointLog[]>([]);
+  const [directScore, setDirectScore] = useState<number | null>(null);
+  const [isManualDartInput, setIsManualDartInput] = useState(false);
+  const [manualDarts, setManualDarts] = useState<RecognizedDart[]>([]);
+  const [showScoreConfirmation, setShowScoreConfirmation] = useState(false);
+  const [language, setLanguage] = useState<"en-US" | "sv-SE">("en-US");
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timeoutRef = useRef<number | null>(null);
@@ -146,6 +127,13 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
   // Check if SpeechRecognition is available
   const isSpeechRecognitionAvailable =
     "SpeechRecognition" in window || "webkitSpeechRecognition" in window;
+
+  // Notify parent component when listening state changes
+  useEffect(() => {
+    if (onListeningChange) {
+      onListeningChange(isListening);
+    }
+  }, [isListening, onListeningChange]);
 
   // Check microphone permission status on component mount
   useEffect(() => {
@@ -161,16 +149,6 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         .then((permissionStatus) => {
           setPermissionStatus(permissionStatus.state);
 
-          // Update store if permission is granted
-          if (
-            permissionStatus.state === "granted" &&
-            !permissionSettings.microphone.enabled
-          ) {
-            setMicrophoneEnabled(true);
-          }
-
-          updateMicrophoneLastChecked();
-
           // Listen for permission changes
           permissionStatus.onchange = () => {
             setPermissionStatus(permissionStatus.state);
@@ -180,12 +158,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
               setErrorMessage(
                 "Microphone access was denied. Please enable microphone access in your browser settings."
               );
-              setMicrophoneEnabled(false);
-            } else if (permissionStatus.state === "granted") {
-              setMicrophoneEnabled(true);
             }
-
-            updateMicrophoneLastChecked();
           };
         })
         .catch((error) => {
@@ -197,12 +170,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       // Older browsers don't support the permissions API
       setPermissionStatus("prompt");
     }
-  }, [
-    isSpeechRecognitionAvailable,
-    permissionSettings.microphone.enabled,
-    setMicrophoneEnabled,
-    updateMicrophoneLastChecked,
-  ]);
+  }, [isSpeechRecognitionAvailable]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -218,7 +186,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     if (recognitionRef.current) {
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = "en-US"; // Default to English
+      recognitionRef.current.lang = language; // Use the selected language
 
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         const current = event.resultIndex;
@@ -257,7 +225,28 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isSpeechRecognitionAvailable]);
+  }, [isSpeechRecognitionAvailable, language]);
+
+  // Update recognition language when language changes
+  useEffect(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.lang = language;
+
+      // If currently listening, restart recognition with new language
+      if (isListening) {
+        recognitionRef.current.stop();
+        setTimeout(() => {
+          if (recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (error) {
+              console.error("Error restarting speech recognition:", error);
+            }
+          }
+        }, 200);
+      }
+    }
+  }, [language, isListening]);
 
   // Process the transcript to find dart scores
   const processTranscript = (text: string) => {
@@ -266,28 +255,146 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       clearTimeout(timeoutRef.current);
     }
 
-    // Check for trigger words: "Scored" in English or "Träffat" in Swedish
     const lowerText = text.toLowerCase();
+
+    // Check for "final" command in English or "klar" in Swedish
+    if (lowerText.includes("final") || lowerText.includes("klar")) {
+      // Check if there's a number after "final" or "klar"
+      const finalScoreMatch = lowerText.match(/(final|klar)\s+(\d+)/i);
+      if (finalScoreMatch) {
+        // If there's a number, use it as the direct score
+        const score = parseInt(finalScoreMatch[2]);
+        if (score >= 0 && score <= 180) {
+          setDirectScore(score);
+          setShowScoreConfirmation(true);
+
+          // Add to points log
+          setPointsLog((prevLog) => [
+            {
+              timestamp: Date.now(),
+              darts: [],
+              totalScore: score,
+              transcript: `Final score: ${score}`,
+            },
+            ...prevLog.slice(0, 9),
+          ]);
+        }
+      } else {
+        // If just "final" or "klar" without a number, show score confirmation for current recognized darts
+        if (recognizedDarts.length > 0) {
+          setShowScoreConfirmation(true);
+
+          // Add to points log if not already added
+          if (!showScoreConfirmation) {
+            setPointsLog((prevLog) => [
+              {
+                timestamp: Date.now(),
+                darts: [...recognizedDarts],
+                totalScore: totalScore,
+                transcript: `Final command: ${totalScore}`,
+              },
+              ...prevLog.slice(0, 9),
+            ]);
+          }
+        }
+      }
+      return;
+    }
+
+    // Check for "darts" command in English or "pilar" in Swedish to start manual dart input
+    if (lowerText.includes("darts") || lowerText.includes("pilar")) {
+      setIsManualDartInput(true);
+      setManualDarts([]);
+      return;
+    }
+
+    // If in manual dart input mode, process individual darts
+    if (isManualDartInput) {
+      // Extract a single dart from the text
+      const darts = extractDartScores(lowerText);
+      if (darts.length > 0) {
+        // Add the new dart to the manual darts array
+        const newDart = darts[0];
+        setManualDarts((prevDarts) => {
+          const updatedDarts = [...prevDarts, newDart];
+
+          // If we have 3 darts or the user says "done", calculate the score
+          if (updatedDarts.length >= 3 || lowerText.includes("done")) {
+            const totalScore = updatedDarts.reduce(
+              (sum, dart) => sum + dart.value * dart.multiplier,
+              0
+            );
+
+            // Add to points log
+            setPointsLog((prevLog) => [
+              {
+                timestamp: Date.now(),
+                darts: [...updatedDarts],
+                totalScore,
+                transcript:
+                  "Manual dart input: " +
+                  updatedDarts.map((d) => d.description).join(", "),
+              },
+              ...prevLog.slice(0, 9),
+            ]);
+
+            // Set recognized darts and total score
+            setRecognizedDarts(updatedDarts);
+            setTotalScore(totalScore);
+            setShowScoreConfirmation(true);
+            setIsManualDartInput(false);
+
+            return updatedDarts;
+          }
+
+          return updatedDarts;
+        });
+
+        return;
+      }
+    }
+
+    // Check for trigger words: "Scored" or "Träffat" in Swedish
     if (lowerText.includes("scored") || lowerText.includes("träffat")) {
       // Extract the dart scores from the text
       const darts = extractDartScores(lowerText);
 
       if (darts.length > 0) {
-        setRecognizedDarts(darts);
+        // Limit to 3 darts maximum
+        const limitedDarts = darts.slice(0, 3);
+        setRecognizedDarts(limitedDarts);
 
         // Calculate total score
-        const score = darts.reduce(
+        const score = limitedDarts.reduce(
           (sum, dart) => sum + dart.value * dart.multiplier,
           0
         );
         setTotalScore(score);
 
-        // Auto-submit after a short delay if we have recognized darts
-        timeoutRef.current = window.setTimeout(() => {
-          if (darts.length > 0) {
-            handleSubmitScore();
-          }
-        }, 2000);
+        // Add to points log
+        setPointsLog((prevLog) => [
+          {
+            timestamp: Date.now(),
+            darts: [...limitedDarts],
+            totalScore: score,
+            transcript: text,
+          },
+          ...prevLog.slice(0, 9), // Keep only the 10 most recent entries
+        ]);
+
+        // Show score confirmation instead of auto-submitting
+        setShowScoreConfirmation(true);
+
+        // If we recognized 3 darts, stop listening after a short delay
+        if (limitedDarts.length >= 3) {
+          // Add a small delay to allow the user to see what was recognized
+          setTimeout(() => {
+            if (recognitionRef.current && isListening) {
+              recognitionRef.current.stop();
+              setIsListening(false);
+            }
+          }, 1500);
+        }
       }
     }
   };
@@ -446,58 +553,19 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     return darts.slice(0, 3);
   };
 
-  // Request microphone permission
+  // Request microphone permission and start listening
   const requestMicrophonePermission = () => {
     setPermissionDialogOpen(false);
 
     // Try to start the recognition - this will trigger the browser's permission prompt
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then((stream) => {
-          // Permission granted
-          setPermissionStatus("granted");
-          setMicrophoneEnabled(true);
-          updateMicrophoneLastChecked();
-
-          // Stop all tracks to release the microphone
-          stream.getTracks().forEach((track) => track.stop());
-
-          // Now try to start speech recognition
-          startListening();
-        })
-        .catch((error) => {
-          console.error("Error requesting microphone permission:", error);
-          setPermissionStatus("denied");
-          setMicrophoneEnabled(false);
-          setErrorMessage(
-            "Microphone access was denied. Please enable microphone access in your browser settings."
-          );
-          updateMicrophoneLastChecked();
-        });
-    } else {
-      setErrorMessage(
-        "Could not start speech recognition. Your browser may not support this feature."
-      );
-    }
-  };
-
-  // Start listening function
-  const startListening = () => {
     if (recognitionRef.current) {
       try {
+        recognitionRef.current.start();
+        setIsListening(true);
         setErrorMessage(null);
         setTranscript("");
         setRecognizedDarts([]);
         setTotalScore(0);
-
-        recognitionRef.current.start();
-        setIsListening(true);
-
-        // Notify parent component about listening state change
-        if (onListeningChange) {
-          onListeningChange(true);
-        }
       } catch (error) {
         console.error("Error starting speech recognition:", error);
         setErrorMessage(
@@ -514,32 +582,30 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       return;
     }
 
-    const newListeningState = !isListening;
-
     if (isListening) {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
       setIsListening(false);
-      // Notify parent component about listening state change
-      if (onListeningChange) {
-        onListeningChange(false);
-      }
     } else {
-      // Check if microphone is enabled in settings
-      if (!permissionSettings.microphone.enabled) {
-        // Show dialog to redirect to settings
-        setSettingsRedirectDialogOpen(true);
-        return;
-      }
-
       // Check permission status before starting
       if (permissionStatus === "granted") {
         // Permission already granted, start listening
-        startListening();
-        // Notify parent component about listening state change
-        if (onListeningChange) {
-          onListeningChange(true);
+        if (recognitionRef.current) {
+          setErrorMessage(null);
+          setTranscript("");
+          setRecognizedDarts([]);
+          setTotalScore(0);
+
+          try {
+            recognitionRef.current.start();
+            setIsListening(true);
+          } catch (error) {
+            console.error("Error starting speech recognition:", error);
+            setErrorMessage(
+              "Could not start speech recognition. Please try again."
+            );
+          }
         }
       } else if (
         permissionStatus === "prompt" ||
@@ -554,12 +620,6 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         );
       }
     }
-  };
-
-  // Navigate to settings
-  const goToSettings = () => {
-    setSettingsRedirectDialogOpen(false);
-    navigate("/settings");
   };
 
   // Handle submitting the score
@@ -632,11 +692,33 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     }, 150);
   };
 
+  // Handle accepting the recognized score
+  const handleAcceptScore = () => {
+    if (directScore !== null) {
+      // Submit the direct score
+      setIsSubmitting(true);
+      setTimeout(() => {
+        onScore(directScore, 3, 1); // Use default 3 darts and multiplier 1
+        resetInput();
+        setIsSubmitting(false);
+      }, 150);
+    } else if (recognizedDarts.length > 0) {
+      // Submit the recognized darts score
+      handleSubmitScore();
+    }
+
+    setShowScoreConfirmation(false);
+  };
+
   // Reset the input state
   const resetInput = () => {
     setTranscript("");
     setRecognizedDarts([]);
     setTotalScore(0);
+    setDirectScore(null);
+    setIsManualDartInput(false);
+    setManualDarts([]);
+    setShowScoreConfirmation(false);
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -659,20 +741,31 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
   // Check if it's a valid checkout
   const isCheckout = remainingScore !== undefined && remainingScore === 0;
 
-  // Add effect to notify parent when component unmounts or listening state changes
-  useEffect(() => {
-    // Notify parent component about initial listening state
-    if (onListeningChange) {
-      onListeningChange(isListening);
-    }
+  // Toggle language between English and Swedish
+  const toggleLanguage = () => {
+    setLanguage((prevLang) => (prevLang === "en-US" ? "sv-SE" : "en-US"));
+  };
 
-    return () => {
-      // Notify parent component when unmounting (no longer listening)
-      if (isListening && onListeningChange) {
-        onListeningChange(false);
-      }
-    };
-  }, [isListening, onListeningChange]);
+  // Function to remove a dart from the recognized darts
+  const removeDart = (index: number) => {
+    setRecognizedDarts((prevDarts) => {
+      const updatedDarts = prevDarts.filter((_, i) => i !== index);
+
+      // Recalculate total score
+      const newTotalScore = updatedDarts.reduce(
+        (sum, dart) => sum + dart.value * dart.multiplier,
+        0
+      );
+      setTotalScore(newTotalScore);
+
+      return updatedDarts;
+    });
+  };
+
+  // Function to remove a dart from manual darts
+  const removeManualDart = (index: number) => {
+    setManualDarts((prevDarts) => prevDarts.filter((_, i) => i !== index));
+  };
 
   return (
     <Box
@@ -683,6 +776,62 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         p: { xs: 0.5, sm: 1 },
       }}
     >
+      {/* Top controls with language toggle and start listening button */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        {/* Language toggle */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Tooltip
+            title={`Recognition Language: ${
+              language === "en-US" ? "English" : "Swedish"
+            }`}
+          >
+            <Button
+              onClick={toggleLanguage}
+              color="primary"
+              variant="outlined"
+              size="small"
+              startIcon={<Language />}
+              sx={{ mr: 1 }}
+            >
+              {language === "en-US" ? "EN" : "SV"}
+            </Button>
+          </Tooltip>
+        </Box>
+
+        {/* Start listening button */}
+        {!isListening && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={toggleListening}
+            startIcon={<Mic />}
+            size="small"
+          >
+            Start Listening
+          </Button>
+        )}
+
+        {/* Stop listening button */}
+        {isListening && (
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={toggleListening}
+            startIcon={<MicOff />}
+            size="small"
+          >
+            Stop Listening
+          </Button>
+        )}
+      </Box>
+
       {/* Score display area */}
       <Paper
         elevation={2}
@@ -710,7 +859,6 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
               fontWeight: "bold",
               fontSize: "1rem",
               color: isCheckout ? "success.main" : "text.secondary",
-              zIndex: isListening ? 11 : 1,
             }}
           >
             {Math.max(0, remainingScore)}
@@ -794,172 +942,635 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
           mb: 2,
           borderRadius: 2,
           position: "relative",
-          overflow: "hidden",
-          backgroundColor: (theme) =>
-            isListening
-              ? alpha(theme.palette.primary.main, 0.05)
-              : theme.palette.background.paper,
+          overflow: "auto",
         }}
       >
-        {/* Instructions */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: 16,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            opacity: isListening ? 0.7 : 1,
-            transition: "opacity 0.3s ease",
-          }}
-        >
-          <Typography variant="h6" color="primary" gutterBottom>
-            {isListening ? "Listening..." : "Voice Input"}
-          </Typography>
-          <Typography variant="body2" color="textSecondary" align="center">
-            {isListening
-              ? 'Say "Scored" or "Träffat" followed by your dart scores'
-              : "Tap the microphone to start listening"}
-          </Typography>
-        </Box>
-
-        {/* Central Microphone Button */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            flex: 1,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {/* Sound wave visualization - only shown when listening */}
-          {isListening && (
+        {isListening ? (
+          // Listening state - show active listening UI
+          <Box
+            sx={{
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            {/* Microphone and listening indicator */}
             <Box
               sx={{
-                position: "absolute",
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                backgroundColor: (theme) =>
+                  alpha(theme.palette.primary.main, 0.1),
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 0.5,
-                width: "100%",
-                height: "100%",
+                animation: `${pulse} 1.5s infinite ease-in-out`,
+                mb: 2,
               }}
             >
-              {[...Array(20)].map((_, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    width: 4,
-                    height: 10,
-                    backgroundColor: (theme) =>
-                      alpha(theme.palette.primary.main, 0.5),
-                    borderRadius: 4,
-                    animation: `${wave} ${
-                      0.5 + Math.random() * 0.5
-                    }s infinite ease-in-out`,
-                    animationDelay: `${i * 0.05}s`,
-                    position: "absolute",
-                    transform: `rotate(${i * 18}deg) translateY(-80px)`,
-                  }}
-                />
-              ))}
+              <Mic color="primary" sx={{ fontSize: 40 }} />
             </Box>
-          )}
 
-          {/* The main microphone button */}
-          <VibrationButton
-            id="voice-input-mic-button"
-            variant={isListening ? "contained" : "outlined"}
-            color={isListening ? "secondary" : "primary"}
-            onClick={toggleListening}
-            vibrationPattern={isListening ? [50, 50, 50] : 100}
-            sx={{
-              width: isListening ? 120 : 140,
-              height: isListening ? 120 : 140,
-              borderRadius: "50%",
-              transition: "all 0.3s ease",
-              position: "relative",
-              overflow: "hidden",
-              boxShadow: isListening
-                ? (theme) =>
-                    `0 0 20px ${alpha(theme.palette.secondary.main, 0.5)}`
-                : "none",
-              animation: isListening
-                ? `${pulse} 1.5s infinite ease-in-out`
-                : "none",
-              zIndex: 2,
-            }}
-          >
-            {isListening ? (
-              <MicOff sx={{ fontSize: 50, animation: `${rotate} 0.3s ease` }} />
-            ) : (
-              <Mic sx={{ fontSize: 60 }} />
-            )}
-
-            {/* Background animation when listening */}
-            {isListening && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  opacity: 0.2,
-                  background: (theme) =>
-                    `radial-gradient(circle, ${theme.palette.secondary.main} 0%, transparent 70%)`,
-                  animation: `${pulse} 2s infinite ease-in-out`,
-                }}
-              />
-            )}
-          </VibrationButton>
-        </Box>
-
-        {/* Transcript display - only shown when listening and there's a transcript */}
-        {isListening && transcript && (
-          <Paper
-            elevation={1}
-            sx={{
-              p: 2,
-              width: "100%",
-              borderRadius: 2,
-              backgroundColor: (theme) =>
-                alpha(theme.palette.background.paper, 0.9),
-              borderLeft: "4px solid",
-              borderColor: "primary.main",
-              mt: 3,
-              maxHeight: "30%",
-              overflow: "auto",
-            }}
-          >
-            <Typography variant="body2" color="textSecondary">
-              <Box component="span" fontWeight="bold" color="primary.main">
-                Heard:{" "}
-              </Box>
-              {transcript}
-            </Typography>
-          </Paper>
-        )}
-
-        {/* Examples - only shown when not listening */}
-        {!isListening && (
-          <Box sx={{ mt: 3, width: "100%", maxWidth: 400 }}>
             <Typography
-              variant="body2"
-              color="textSecondary"
-              align="center"
+              variant="h6"
+              color="primary"
+              fontWeight="bold"
               gutterBottom
             >
-              Examples:
+              {isManualDartInput
+                ? `Dart Input (${manualDarts.length}/3)`
+                : "Listening..."}
             </Typography>
-            <Stack spacing={1} sx={{ mt: 1 }}>
-              <Chip label="Scored twenty, triple nineteen, double twelve" />
-              <Chip label="Träffat triple twenty, double twenty, five" />
-            </Stack>
+
+            {/* Voice command instructions - more prominent */}
+            <Paper
+              elevation={2}
+              sx={{
+                p: 2,
+                width: "100%",
+                borderRadius: 2,
+                mb: 3,
+                backgroundColor: (theme) => alpha(theme.palette.info.main, 0.1),
+                borderLeft: "4px solid",
+                borderColor: "info.main",
+              }}
+            >
+              <Typography
+                variant="subtitle2"
+                fontWeight="bold"
+                color="info.main"
+                gutterBottom
+              >
+                Voice Commands:
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <Typography variant="body2">
+                  • Say <b>{language === "en-US" ? '"Final"' : '"Klar"'}</b> to
+                  confirm the current score
+                </Typography>
+                <Typography variant="body2">
+                  • Say <b>{language === "en-US" ? '"Darts"' : '"Pilar"'}</b> to
+                  enter darts one by one
+                </Typography>
+                <Typography variant="body2">
+                  • Say{" "}
+                  <b>
+                    {language === "en-US"
+                      ? '"Scored triple 20, double 20, 5"'
+                      : '"Träffat trippel 20, dubbel 20, 5"'}
+                  </b>{" "}
+                  to enter multiple darts
+                </Typography>
+              </Box>
+            </Paper>
+
+            {/* Live transcript display */}
+            <Paper
+              elevation={1}
+              sx={{
+                p: 2,
+                width: "100%",
+                borderRadius: 2,
+                backgroundColor: (theme) =>
+                  alpha(theme.palette.background.paper, 0.9),
+                borderLeft: "4px solid",
+                borderColor: "primary.main",
+                mb: 3,
+                position: "relative",
+              }}
+            >
+              <Typography
+                variant="subtitle2"
+                fontWeight="bold"
+                color="primary.main"
+                gutterBottom
+              >
+                Currently Hearing:
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                {transcript || "Waiting for speech..."}
+              </Typography>
+            </Paper>
+
+            {/* Manual dart input guidance */}
+            {isManualDartInput && (
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  width: "100%",
+                  borderRadius: 2,
+                  mb: 3,
+                  borderLeft: "4px solid",
+                  borderColor: "secondary.main",
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  color="secondary.main"
+                  gutterBottom
+                >
+                  Manual Dart Input Mode
+                </Typography>
+                <Typography variant="body2" paragraph>
+                  Say each dart one at a time. For example: "Triple 20"
+                </Typography>
+                <Typography variant="body2">
+                  Say "Done" when finished or continue until 3 darts are
+                  entered.
+                </Typography>
+
+                {manualDarts.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Darts entered:
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ flexWrap: "wrap", gap: 1 }}
+                    >
+                      {manualDarts.map((dart, index) => (
+                        <Chip
+                          key={index}
+                          label={dart.description}
+                          color={
+                            dart.multiplier === 1
+                              ? "default"
+                              : dart.multiplier === 2
+                              ? "secondary"
+                              : "primary"
+                          }
+                          variant="outlined"
+                          onDelete={() => removeManualDart(index)}
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </Paper>
+            )}
+
+            {/* Score confirmation - Make it more prominent */}
+            {showScoreConfirmation && (
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 3,
+                  width: "100%",
+                  borderRadius: 2,
+                  mb: 3,
+                  backgroundColor: (theme) =>
+                    alpha(theme.palette.success.main, 0.1),
+                  borderLeft: "4px solid",
+                  borderColor: "success.main",
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  color="success.main"
+                  gutterBottom
+                  align="center"
+                >
+                  Score Recognized!
+                </Typography>
+
+                {directScore !== null ? (
+                  // Direct score display
+                  <Box sx={{ textAlign: "center", my: 2 }}>
+                    <Typography
+                      variant="h3"
+                      color="success.main"
+                      fontWeight="bold"
+                    >
+                      {directScore}
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary">
+                      points
+                    </Typography>
+                  </Box>
+                ) : (
+                  // Darts display
+                  <Box sx={{ my: 2 }}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{
+                        flexWrap: "wrap",
+                        gap: 1,
+                        justifyContent: "center",
+                        mb: 2,
+                      }}
+                    >
+                      {recognizedDarts.map((dart, index) => (
+                        <Chip
+                          key={index}
+                          label={dart.description}
+                          color={
+                            dart.multiplier === 1
+                              ? "default"
+                              : dart.multiplier === 2
+                              ? "secondary"
+                              : "primary"
+                          }
+                          variant="outlined"
+                          size="medium"
+                          onDelete={() => removeDart(index)}
+                        />
+                      ))}
+                    </Stack>
+                    <Typography
+                      variant="h4"
+                      align="center"
+                      fontWeight="bold"
+                      color="success.main"
+                    >
+                      {totalScore} points
+                    </Typography>
+                  </Box>
+                )}
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mt: 3,
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={resetInput}
+                    startIcon={<Close />}
+                    size="large"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    onClick={handleAcceptScore}
+                    startIcon={<CheckCircle />}
+                    size="large"
+                  >
+                    Accept Score
+                  </Button>
+                </Box>
+              </Paper>
+            )}
+
+            {/* Direct score input display */}
+            {directScore !== null && !showScoreConfirmation && (
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  width: "100%",
+                  borderRadius: 2,
+                  mb: 3,
+                  borderLeft: "4px solid",
+                  borderColor: "success.main",
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  fontWeight="bold"
+                  color="success.main"
+                  gutterBottom
+                >
+                  Direct Score Input
+                </Typography>
+                <Typography variant="h4" align="center" sx={{ my: 1 }}>
+                  {directScore} points
+                </Typography>
+              </Paper>
+            )}
+
+            {/* Recognized darts in current session */}
+            {recognizedDarts.length > 0 &&
+              !isManualDartInput &&
+              directScore === null &&
+              !showScoreConfirmation && (
+                <Paper
+                  elevation={1}
+                  sx={{
+                    p: 2,
+                    width: "100%",
+                    borderRadius: 2,
+                    mb: 3,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    Recognized Darts:
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ flexWrap: "wrap", gap: 1 }}
+                  >
+                    {recognizedDarts.map((dart, index) => (
+                      <Chip
+                        key={index}
+                        label={dart.description}
+                        color={
+                          dart.multiplier === 1
+                            ? "default"
+                            : dart.multiplier === 2
+                            ? "secondary"
+                            : "primary"
+                        }
+                        variant="outlined"
+                        onDelete={() => removeDart(index)}
+                      />
+                    ))}
+                  </Stack>
+                  <Typography variant="subtitle2" sx={{ mt: 1 }}>
+                    Total: {totalScore} points
+                  </Typography>
+                </Paper>
+              )}
+
+            {/* Points log */}
+            {pointsLog.length > 0 && (
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  width: "100%",
+                  borderRadius: 2,
+                  mb: 3,
+                  maxHeight: 200,
+                  overflow: "auto",
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  Recognition History:
+                </Typography>
+                {pointsLog.map((log, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      mb: 2,
+                      pb: 2,
+                      borderBottom:
+                        index < pointsLog.length - 1 ? "1px solid" : "none",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontStyle: "italic", mb: 1 }}
+                    >
+                      "{log.transcript}"
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ flexWrap: "wrap", gap: 1 }}
+                    >
+                      {log.darts.map((dart, dartIndex) => (
+                        <Chip
+                          key={dartIndex}
+                          label={dart.description}
+                          size="small"
+                          color={
+                            dart.multiplier === 1
+                              ? "default"
+                              : dart.multiplier === 2
+                              ? "secondary"
+                              : "primary"
+                          }
+                          variant="outlined"
+                        />
+                      ))}
+                      <Chip
+                        label={`Total: ${log.totalScore}`}
+                        size="small"
+                        color="success"
+                      />
+                    </Stack>
+                  </Box>
+                ))}
+              </Paper>
+            )}
+
+            <VibrationButton
+              variant="outlined"
+              color="secondary"
+              onClick={toggleListening}
+              startIcon={<MicOff />}
+              vibrationPattern={[50, 50, 50]}
+              sx={{ mt: 2 }}
+            >
+              Stop Listening
+            </VibrationButton>
           </Box>
+        ) : (
+          // Not listening state - show instructions
+          <>
+            <Typography
+              variant="h6"
+              color="primary"
+              gutterBottom
+              align="center"
+            >
+              Voice Input Mode
+            </Typography>
+
+            <Box
+              sx={{
+                width: 100,
+                height: 100,
+                borderRadius: "50%",
+                backgroundColor: (theme) =>
+                  alpha(theme.palette.primary.main, 0.1),
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                my: 3,
+              }}
+            >
+              <Mic color="primary" sx={{ fontSize: 50 }} />
+            </Box>
+
+            <Typography variant="body1" align="center" paragraph>
+              Tap the microphone button below to start listening
+            </Typography>
+
+            {/* More prominent voice command instructions in non-listening state */}
+            <Paper
+              elevation={2}
+              sx={{
+                p: 2,
+                width: "100%",
+                maxWidth: 500,
+                borderRadius: 2,
+                mb: 3,
+                backgroundColor: (theme) => alpha(theme.palette.info.main, 0.1),
+                borderLeft: "4px solid",
+                borderColor: "info.main",
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                color="info.main"
+                gutterBottom
+                align="center"
+              >
+                Voice Commands
+              </Typography>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                  mt: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Direct Score Input:
+                  </Typography>
+                  <Chip
+                    label={language === "en-US" ? "Final" : "Klar"}
+                    color="secondary"
+                    sx={{ fontWeight: "bold" }}
+                  />
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
+                    Say {language === "en-US" ? '"Final"' : '"Klar"'} to confirm
+                    the current score
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Manual Dart Input:
+                  </Typography>
+                  <Chip
+                    label={language === "en-US" ? "Darts" : "Pilar"}
+                    color="secondary"
+                    sx={{ fontWeight: "bold", mb: 1 }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Then say each dart:{" "}
+                    {language === "en-US"
+                      ? '"Triple 20", "Double 5"'
+                      : '"Trippel 20", "Dubbel 5"'}
+                    , etc.
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Multiple Darts:
+                  </Typography>
+                  <Chip
+                    label={
+                      language === "en-US"
+                        ? "Scored twenty, triple nineteen, double twelve"
+                        : "Träffat tjugo, trippel nitton, dubbel tolv"
+                    }
+                  />
+                </Box>
+              </Box>
+            </Paper>
+
+            <VibrationButton
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={toggleListening}
+              startIcon={<Mic />}
+              vibrationPattern={100}
+              sx={{ mt: 2 }}
+            >
+              Start Listening
+            </VibrationButton>
+
+            {/* Show points log even when not listening */}
+            {pointsLog.length > 0 && (
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  width: "100%",
+                  borderRadius: 2,
+                  mt: 3,
+                  maxHeight: 200,
+                  overflow: "auto",
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                  Recognition History:
+                </Typography>
+                {pointsLog.map((log, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      mb: 2,
+                      pb: 2,
+                      borderBottom:
+                        index < pointsLog.length - 1 ? "1px solid" : "none",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontStyle: "italic", mb: 1 }}
+                    >
+                      "{log.transcript}"
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ flexWrap: "wrap", gap: 1 }}
+                    >
+                      {log.darts.map((dart, dartIndex) => (
+                        <Chip
+                          key={dartIndex}
+                          label={dart.description}
+                          size="small"
+                          color={
+                            dart.multiplier === 1
+                              ? "default"
+                              : dart.multiplier === 2
+                              ? "secondary"
+                              : "primary"
+                          }
+                          variant="outlined"
+                        />
+                      ))}
+                      <Chip
+                        label={`Total: ${log.totalScore}`}
+                        size="small"
+                        color="success"
+                      />
+                    </Stack>
+                  </Box>
+                ))}
+              </Paper>
+            )}
+          </>
         )}
       </Paper>
 
@@ -983,17 +1594,18 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          mt: "auto",
         }}
       >
-        <VibrationButton
+        <Button
           variant="outlined"
           onClick={resetInput}
-          disabled={recognizedDarts.length === 0 || isSubmitting}
-          vibrationPattern={50}
+          disabled={
+            (recognizedDarts.length === 0 && directScore === null) ||
+            isSubmitting
+          }
         >
           Clear
-        </VibrationButton>
+        </Button>
 
         <Box sx={{ display: "flex", gap: 1 }}>
           <Tooltip title="Voice Input Help">
@@ -1006,183 +1618,148 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
             </IconButton>
           </Tooltip>
 
-          <VibrationButton
+          <Button
             variant="contained"
             color="primary"
             onClick={handleSubmitScore}
             disabled={
-              recognizedDarts.length === 0 || !isValidScore || isSubmitting
+              (recognizedDarts.length === 0 && directScore === null) ||
+              !isValidScore ||
+              isSubmitting
             }
-            vibrationPattern={100}
           >
             {isSubmitting ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
               "Submit"
             )}
-          </VibrationButton>
+          </Button>
         </Box>
       </Box>
 
-      {/* Settings Redirect Dialog */}
-      <Dialog
-        open={settingsRedirectDialogOpen}
-        onClose={() => setSettingsRedirectDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Microphone Access Required</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" paragraph>
-            Voice input requires microphone access, which is currently disabled
-            in your settings.
-          </Typography>
-          <Typography variant="body1">
-            Would you like to go to the settings page to enable microphone
-            access?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSettingsRedirectDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={goToSettings}
-            variant="contained"
-            color="primary"
-            startIcon={<Mic />}
-          >
-            Go to Settings
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Permission Request Dialog */}
+      {/* Permission dialog */}
       <Dialog
         open={permissionDialogOpen}
         onClose={() => setPermissionDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
+        aria-labelledby="permission-dialog-title"
       >
-        <DialogTitle>Microphone Access Required</DialogTitle>
+        <DialogTitle id="permission-dialog-title">
+          Microphone Access Required
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" paragraph>
-            To use voice input, this app needs permission to access your
-            microphone.
-          </Typography>
-          <Typography variant="body1" paragraph>
-            When you click "Allow", your browser will show a permission request.
-            Please click "Allow" to enable voice input.
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Note: We only use your microphone to recognize dart scores. No audio
-            is recorded or stored.
-          </Typography>
+          <DialogContentText>
+            This feature requires microphone access to recognize your voice.
+            Please allow microphone access when prompted by your browser.
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPermissionDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={() => setPermissionDialogOpen(false)}
+            color="primary"
+          >
+            Cancel
+          </Button>
           <Button
             onClick={requestMicrophonePermission}
-            variant="contained"
             color="primary"
-            startIcon={<Mic />}
+            variant="contained"
           >
-            Allow Microphone Access
+            Continue
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Help Dialog */}
-      <Dialog
-        open={infoDialogOpen}
-        onClose={() => setInfoDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Voice Input Help</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" paragraph>
-            To use voice input, tap the microphone button and say one of the
-            trigger phrases followed by your dart scores:
-          </Typography>
-
-          <Typography variant="subtitle1" fontWeight="bold">
-            Trigger phrases:
-          </Typography>
-          <Typography variant="body2" paragraph>
-            • "Scored" (English)
-            <br />• "Träffat" (Swedish)
-          </Typography>
-
-          <Typography variant="subtitle1" fontWeight="bold">
-            Examples:
-          </Typography>
-          <Typography variant="body2" paragraph>
-            • "Scored twenty, triple nineteen, double twelve"
-            <br />• "Träffat triple twenty, double twenty, five"
-          </Typography>
-
-          <Typography variant="subtitle1" fontWeight="bold">
-            Tips:
-          </Typography>
-          <Typography variant="body2">
-            • Speak clearly and pause slightly between darts
-            <br />
-            • For multipliers, say "double" or "triple" before the number
-            <br />
-            • You can use numbers (1-20) or words (one-twenty)
-            <br />
-            • For bullseye, say "bull" or "bullseye" (25 points)
-            <br />• The system will automatically submit after recognizing your
-            darts
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dart Count Dialog for Checkout */}
+      {/* Dart count selection dialog */}
       <Dialog
         open={dartCountDialogOpen}
         onClose={() => setDartCountDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
+        aria-labelledby="dart-count-dialog-title"
       >
-        <DialogTitle>How many darts used?</DialogTitle>
+        <DialogTitle id="dart-count-dialog-title">
+          How many darts did you use?
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="body1">
-            Select how many darts you used for this checkout:
-          </Typography>
+          <DialogContentText>
+            Select the number of darts you used for this score.
+          </DialogContentText>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-around",
+              mt: 2,
+            }}
+          >
+            {[1, 2, 3].map((count) => (
+              <Button
+                key={count}
+                variant="outlined"
+                onClick={() => handleDartCountSelection(count)}
+                sx={{ minWidth: 60 }}
+              >
+                {count}
+              </Button>
+            ))}
+          </Box>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
-          <VibrationButton
-            onClick={() => handleDartCountSelection(1)}
-            variant="contained"
-            color="primary"
-            startIcon={<LooksOne />}
-            vibrationPattern={100}
-          >
-            1 Dart
-          </VibrationButton>
-          <VibrationButton
-            onClick={() => handleDartCountSelection(2)}
-            variant="contained"
-            color="primary"
-            startIcon={<LooksTwo />}
-            vibrationPattern={100}
-          >
-            2 Darts
-          </VibrationButton>
-          <VibrationButton
-            onClick={() => handleDartCountSelection(3)}
-            variant="contained"
-            color="primary"
-            startIcon={<Looks3 />}
-            vibrationPattern={100}
-          >
-            3 Darts
-          </VibrationButton>
+        <DialogActions>
+          <Button onClick={() => setDartCountDialogOpen(false)} color="primary">
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Info dialog */}
+      <Dialog
+        open={infoDialogOpen}
+        onClose={() => setInfoDialogOpen(false)}
+        aria-labelledby="info-dialog-title"
+      >
+        <DialogTitle id="info-dialog-title">Voice Input Help</DialogTitle>
+        <DialogContent>
+          <DialogContentText component="div">
+            <Typography variant="subtitle1" gutterBottom>
+              How to use voice input:
+            </Typography>
+            <Typography variant="body2" paragraph>
+              1. Tap the microphone button to start listening.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              2. Speak clearly and say your dart scores.
+            </Typography>
+            <Typography variant="body2" paragraph>
+              3. You can use the following voice commands:
+            </Typography>
+
+            <Box sx={{ ml: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: "bold", mt: 1 }}>
+                Direct score:
+              </Typography>
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                {language === "en-US" ? '"Final"' : '"Klar"'}
+              </Typography>
+
+              <Typography variant="body2" sx={{ fontWeight: "bold", mt: 1 }}>
+                Manual dart input:
+              </Typography>
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                {language === "en-US" ? '"Darts"' : '"Pilar"'}
+              </Typography>
+
+              <Typography variant="body2" sx={{ fontWeight: "bold", mt: 1 }}>
+                Multiple darts:
+              </Typography>
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                {language === "en-US"
+                  ? '"Scored triple 20, double 5, 1"'
+                  : '"Träffat trippel 20, dubbel 5, 1"'}
+              </Typography>
+            </Box>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInfoDialogOpen(false)} color="primary">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
