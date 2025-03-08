@@ -301,6 +301,28 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       return;
     }
 
+    // Check for just a number (direct score input)
+    const justNumberMatch = lowerText.match(/^(\d+)$/);
+    if (justNumberMatch) {
+      const score = parseInt(justNumberMatch[1]);
+      if (score >= 0 && score <= 180) {
+        setDirectScore(score);
+        setShowScoreConfirmation(true);
+
+        // Add to points log
+        setPointsLog((prevLog) => [
+          {
+            timestamp: Date.now(),
+            darts: [],
+            totalScore: score,
+            transcript: `Direct score: ${score}`,
+          },
+          ...prevLog.slice(0, 9),
+        ]);
+        return;
+      }
+    }
+
     // Check for "darts" command in English or "pilar" in Swedish to start manual dart input
     if (lowerText.includes("darts") || lowerText.includes("pilar")) {
       setIsManualDartInput(true);
@@ -1007,6 +1029,10 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 <Typography variant="body2">
+                  • Say <b>just a number</b> like <b>"120"</b> to enter a direct
+                  score
+                </Typography>
+                <Typography variant="body2">
                   • Say <b>{language === "en-US" ? '"Final"' : '"Klar"'}</b> to
                   confirm the current score
                 </Typography>
@@ -1445,6 +1471,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
                     Direct Score Input:
                   </Typography>
                   <Chip
+                    label="120"
+                    color="secondary"
+                    sx={{ fontWeight: "bold", mr: 1 }}
+                  />
+                  <Chip
                     label={language === "en-US" ? "Final" : "Klar"}
                     color="secondary"
                     sx={{ fontWeight: "bold" }}
@@ -1454,8 +1485,8 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
                     color="text.secondary"
                     sx={{ mt: 0.5 }}
                   >
-                    Say {language === "en-US" ? '"Final"' : '"Klar"'} to confirm
-                    the current score
+                    Just say a number like <b>"120"</b> or{" "}
+                    {language === "en-US" ? '"Final"' : '"Klar"'}
                   </Typography>
                 </Box>
 
@@ -1735,6 +1766,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
                 Direct score:
               </Typography>
               <Typography variant="body2" sx={{ ml: 2 }}>
+                Just say a number like <b>"120"</b> or{" "}
                 {language === "en-US" ? '"Final"' : '"Klar"'}
               </Typography>
 
