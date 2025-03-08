@@ -12,8 +12,9 @@ import {
   DialogActions,
   DialogContentText,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
-import { Mic, MicOff, Language, CheckCircle } from "@mui/icons-material";
+import { Mic, MicOff, Language, CheckCircle, Close } from "@mui/icons-material";
 import VibrationButton from "./VibrationButton";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@mui/system";
@@ -208,6 +209,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
   const [scoreToConfirm, setScoreToConfirm] = useState<number | null>(null);
   const [lastEnteredScore, setLastEnteredScore] = useState<number | null>(null);
   const [switchingPlayer, setSwitchingPlayer] = useState(false);
+  const [showLastScore, setShowLastScore] = useState(false);
 
   // Reference to the transcription object
   const transcriptionRef = useRef<any>(null);
@@ -399,6 +401,7 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     setRecognizedScore(score);
     setShowScoreConfirmation(true);
     setLastEnteredScore(score);
+    setShowLastScore(true);
 
     // Validate the score before submitting
     if (score < 0 || score > 180) {
@@ -453,6 +456,11 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       setTranscript("");
       setRecognizedScore(null);
       setSwitchingPlayer(false);
+
+      // Keep showing the last score for a bit longer
+      setTimeout(() => {
+        setShowLastScore(false);
+      }, 3000);
 
       // Automatically start listening again after a short delay
       setTimeout(() => {
@@ -1161,27 +1169,112 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       </Dialog>
 
       {/* Display last entered score when not showing score confirmation */}
-      {!showScoreConfirmation && lastEnteredScore !== null && (
-        <Paper
-          elevation={1}
-          sx={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            padding: "4px 10px",
-            borderRadius: 1,
-            backgroundColor: (theme) => alpha(theme.palette.info.light, 0.1),
-            border: "1px solid",
-            borderColor: "info.light",
-            display: "flex",
-            alignItems: "center",
-            zIndex: 5,
-          }}
-        >
-          <Typography variant="body2" color="info.main" fontWeight="medium">
-            Last score: <strong>{lastEnteredScore}</strong>
-          </Typography>
-        </Paper>
+      {!showScoreConfirmation && showLastScore && lastEnteredScore !== null && (
+        <>
+          {/* Semi-transparent backdrop */}
+          <Box
+            sx={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.3)",
+              zIndex: 999,
+              animation: "fadeIn 0.3s ease-in-out",
+              "@keyframes fadeIn": {
+                "0%": { opacity: 0 },
+                "100%": { opacity: 1 },
+              },
+            }}
+            onClick={() => setShowLastScore(false)}
+          />
+          <Paper
+            elevation={3}
+            sx={{
+              position: "fixed",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              padding: "12px 24px",
+              borderRadius: 2,
+              backgroundColor: (theme) => alpha(theme.palette.info.main, 0.1),
+              border: "2px solid",
+              borderColor: "info.main",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              minWidth: "180px",
+              boxShadow: (theme) =>
+                `0 4px 20px ${alpha(theme.palette.info.main, 0.25)}`,
+            }}
+          >
+            {/* Close button */}
+            <IconButton
+              size="small"
+              onClick={() => setShowLastScore(false)}
+              sx={{
+                position: "absolute",
+                top: 5,
+                right: 5,
+                color: "info.main",
+              }}
+            >
+              <Close fontSize="small" />
+            </IconButton>
+
+            <Typography
+              variant="body1"
+              color="info.main"
+              fontWeight="medium"
+              sx={{ mb: 0.5 }}
+            >
+              Last Score
+            </Typography>
+            <Typography
+              variant="h3"
+              color="info.dark"
+              fontWeight="bold"
+              sx={{
+                animation: "pulseScore 2s infinite ease-in-out",
+                "@keyframes pulseScore": {
+                  "0%": { transform: "scale(1)" },
+                  "50%": { transform: "scale(1.05)" },
+                  "100%": { transform: "scale(1)" },
+                },
+              }}
+            >
+              {lastEnteredScore}
+            </Typography>
+
+            {/* Next Player indication */}
+            {switchingPlayer && (
+              <Typography
+                variant="subtitle1"
+                color="primary.main"
+                fontWeight="bold"
+                sx={{
+                  mt: 2,
+                  backgroundColor: (theme) =>
+                    alpha(theme.palette.primary.main, 0.1),
+                  padding: "4px 12px",
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "primary.main",
+                  animation: "fadeInUp 0.5s ease-out",
+                  "@keyframes fadeInUp": {
+                    "0%": { opacity: 0, transform: "translateY(10px)" },
+                    "100%": { opacity: 1, transform: "translateY(0)" },
+                  },
+                }}
+              >
+                Next Player
+              </Typography>
+            )}
+          </Paper>
+        </>
       )}
     </Box>
   );
