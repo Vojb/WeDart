@@ -304,15 +304,37 @@ const X01Game: React.FC = () => {
     darts: number,
     lastDartMultiplier?: number
   ) => {
+    console.log("handleScore called with:", {
+      score,
+      darts,
+      lastDartMultiplier,
+    });
+
     if (currentGame && !currentGame.isGameFinished) {
       const player = currentGame.players[currentGame.currentPlayerIndex];
+      console.log("Current player:", player.name, "Score:", player.score);
+
       const remainingAfterScore = player.score - score;
+      console.log("Remaining after score:", remainingAfterScore);
+
+      // When using voice input, always ensure lastDartMultiplier is 2 if it's a potential winning score
+      if (
+        inputMode === "voice" &&
+        remainingAfterScore === 0 &&
+        (!lastDartMultiplier || lastDartMultiplier !== 2)
+      ) {
+        console.log(
+          "Voice input with winning score - forcing lastDartMultiplier to 2"
+        );
+        lastDartMultiplier = 2;
+      }
 
       // Record the score
       recordScore(score, darts, lastDartMultiplier);
 
       // Check if the player has won (reached exactly 0)
       if (remainingAfterScore === 0) {
+        console.log("Player has won! Saving game to history.");
         // Save the game to history and display the game finished dialog
         saveGameToHistory();
         setDialogOpen(true);

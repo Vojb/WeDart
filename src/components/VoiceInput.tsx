@@ -5,20 +5,23 @@ import {
   Paper,
   Button,
   Alert,
-  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText,
-  CircularProgress,
   IconButton,
+  Switch,
+  List,
+  ListItem,
+  ListItemText,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
-import { Mic, MicOff, Language, CheckCircle, Close } from "@mui/icons-material";
+import { Mic, EmojiEvents, ExpandMore } from "@mui/icons-material";
 import VibrationButton from "./VibrationButton";
 import { alpha } from "@mui/material/styles";
 import { keyframes } from "@mui/system";
-import { vibrateDevice } from "../theme/ThemeProvider";
 
 // Define a pulse animation for the microphone
 const pulse = keyframes`
@@ -44,39 +47,42 @@ interface VoiceInputProps {
 }
 
 // Language options for speech recognition
-const LANGUAGE_OPTIONS = [
-  { code: "ar-SA", name: "Arabic (Saudi Arabia)" },
-  { code: "bg-BG", name: "Bulgarian" },
-  { code: "cs-CZ", name: "Czech" },
-  { code: "da-DK", name: "Danish" },
-  { code: "de-DE", name: "German" },
-  { code: "el-GR", name: "Greek" },
-  { code: "en-AU", name: "English (Australia)" },
-  { code: "en-CA", name: "English (Canada)" },
-  { code: "en-GB", name: "English (UK)" },
-  { code: "en-IE", name: "English (Ireland)" },
-  { code: "en-US", name: "English (US)" },
-  { code: "es-ES", name: "Spanish (Spain)" },
-  { code: "es-MX", name: "Spanish (Mexico)" },
-  { code: "fi-FI", name: "Finnish" },
-  { code: "fr-CA", name: "French (Canada)" },
-  { code: "fr-FR", name: "French (France)" },
-  { code: "hi-IN", name: "Hindi" },
-  { code: "it-IT", name: "Italian" },
-  { code: "ja-JP", name: "Japanese" },
-  { code: "ko-KR", name: "Korean" },
-  { code: "nl-NL", name: "Dutch" },
-  { code: "no-NO", name: "Norwegian" },
-  { code: "pl-PL", name: "Polish" },
-  { code: "pt-BR", name: "Portuguese (Brazil)" },
-  { code: "pt-PT", name: "Portuguese (Portugal)" },
-  { code: "ro-RO", name: "Romanian" },
-  { code: "ru-RU", name: "Russian" },
-  { code: "sv-SE", name: "Swedish" },
-  { code: "tr-TR", name: "Turkish" },
-  { code: "zh-CN", name: "Chinese (Simplified)" },
-  { code: "zh-TW", name: "Chinese (Traditional)" },
-];
+// const LANGUAGE_OPTIONS = [
+//   { code: "ar-SA", name: "Arabic (Saudi Arabia)" },
+//   { code: "bg-BG", name: "Bulgarian" },
+//   { code: "cs-CZ", name: "Czech" },
+//   { code: "da-DK", name: "Danish" },
+//   { code: "de-DE", name: "German" },
+//   { code: "el-GR", name: "Greek" },
+//   { code: "en-AU", name: "English (Australia)" },
+//   { code: "en-CA", name: "English (Canada)" },
+//   { code: "en-GB", name: "English (UK)" },
+//   { code: "en-IE", name: "English (Ireland)" },
+//   { code: "en-US", name: "English (US)" },
+//   { code: "es-ES", name: "Spanish (Spain)" },
+//   { code: "es-MX", name: "Spanish (Mexico)" },
+//   { code: "fi-FI", name: "Finnish" },
+//   { code: "fr-CA", name: "French (Canada)" },
+//   { code: "fr-FR", name: "French (France)" },
+//   { code: "hi-IN", name: "Hindi" },
+//   { code: "it-IT", name: "Italian" },
+//   { code: "ja-JP", name: "Japanese" },
+//   { code: "ko-KR", name: "Korean" },
+//   { code: "nl-NL", name: "Dutch" },
+//   { code: "no-NO", name: "Norwegian" },
+//   { code: "pl-PL", name: "Polish" },
+//   { code: "pt-BR", name: "Portuguese (Brazil)" },
+//   { code: "pt-PT", name: "Portuguese (Portugal)" },
+//   { code: "ro-RO", name: "Romanian" },
+//   { code: "ru-RU", name: "Russian" },
+//   { code: "sk-SK", name: "Slovak" },
+//   { code: "sv-SE", name: "Swedish" },
+//   { code: "th-TH", name: "Thai" },
+//   { code: "tr-TR", name: "Turkish" },
+//   { code: "zh-CN", name: "Chinese (Simplified)" },
+//   { code: "zh-HK", name: "Chinese (Hong Kong)" },
+//   { code: "zh-TW", name: "Chinese (Traditional)" },
+// ];
 
 // Number dictionaries for different languages
 const NUMBER_DICTIONARIES: Record<string, Record<string, number>> = {
@@ -190,30 +196,69 @@ const NUMBER_DICTIONARIES: Record<string, Record<string, number>> = {
 const VoiceInput: React.FC<VoiceInputProps> = ({
   onScore,
   currentPlayerScore,
-  doubleOutRequired,
   onListeningChange,
 }) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [transcriptLog, setTranscriptLog] = useState<string[]>([]);
   const [recognizedScore, setRecognizedScore] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<
     "prompt" | "granted" | "denied" | "unknown"
   >("unknown");
-  const [permissionDialogOpen, setPermissionDialogOpen] = useState(false);
   const [showScoreConfirmation, setShowScoreConfirmation] = useState(false);
   const [language, setLanguage] = useState<string>("sv-SE");
-  const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
-  const [confirmScoreDialogOpen, setConfirmScoreDialogOpen] = useState(false);
-  const [scoreToConfirm, setScoreToConfirm] = useState<number | null>(null);
-  const [lastEnteredScore, setLastEnteredScore] = useState<number | null>(null);
-  const [switchingPlayer, setSwitchingPlayer] = useState(false);
-  const [showLastScore, setShowLastScore] = useState(false);
+  const countdownIntervalRef = useRef<number | null>(null);
+  const retryTimeoutRef = useRef<number | null>(null);
+  const [inCooldown, setInCooldown] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const cooldownIntervalRef = useRef<number | null>(null);
+  // New state for dart count dialog
+  const [dartCountDialogOpen, setDartCountDialogOpen] = useState(false);
+  const [selectedDartCount, setSelectedDartCount] = useState<number>(3);
+  const [winDialogOpen, setWinDialogOpen] = useState(false);
 
   // Reference to the transcription object
   const transcriptionRef = useRef<any>(null);
   const timeoutRef = useRef<number | null>(null);
+
+  // Clean up intervals when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear countdown interval
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+
+      // Clear cooldown interval
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
+      }
+
+      // Clear retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
+      // Clear timeout if any
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      // Stop listening if active
+      stopListening();
+    };
+  }, []);
+
+  // Log current player score for debugging
+  useEffect(() => {
+    console.log(transcript, "Current player score:", currentPlayerScore);
+  }, [currentPlayerScore]);
 
   // Check if SpeechRecognition is available
   const isSpeechRecognitionAvailable =
@@ -284,12 +329,21 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     isListening,
   ]);
 
-  // Clean up on unmount
+  // Add cleanup on component unmount
   useEffect(() => {
     return () => {
-      stopListening();
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      // Clean up on unmount
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+
+      if (transcriptionRef.current) {
+        try {
+          transcriptionRef.current.stop();
+        } catch (error) {
+          console.error("Error stopping speech recognition on unmount:", error);
+        }
+        transcriptionRef.current = null;
       }
     };
   }, []);
@@ -301,6 +355,12 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
 
   // Process the transcript to find a score
   const processTranscript = (text: string): number | null => {
+    // Immediately return null if in cooldown to prevent any score processing
+    if (inCooldown) {
+      console.log("In cooldown period, ignoring transcript:", text);
+      return null;
+    }
+
     if (!text || text.trim() === "") return null;
 
     const lowerText = text.toLowerCase().trim();
@@ -395,19 +455,36 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
 
   // Submit the score after confirmation
   const submitScore = (score: number) => {
-    if (isSubmitting) return;
+    if (isSubmitting || inCooldown) {
+      console.log("Not submitting score - already submitting or in cooldown");
+      return;
+    }
 
     setIsSubmitting(true);
     setRecognizedScore(score);
     setShowScoreConfirmation(true);
-    setLastEnteredScore(score);
-    setShowLastScore(true);
+
+    // Clear transcript again to be extra safe
+    setTranscript("");
 
     // Validate the score before submitting
-    if (score < 0 || score > 180) {
+    if (score > 180) {
       console.error("Invalid score:", score);
+
       setErrorMessage("Invalid score. Please try again.");
       setIsSubmitting(false);
+      setTranscript("");
+      return;
+    }
+
+    // Check if this would be a winning score
+    if (currentPlayerScore !== undefined && score === currentPlayerScore) {
+      console.log("Game winning score detected!", score, currentPlayerScore);
+
+      setDartCountDialogOpen(true);
+      setIsSubmitting(false);
+      // For winning scores, we don't start the cooldown interval
+      // The score will be submitted by handleDartCountSelection
       return;
     }
 
@@ -422,118 +499,194 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       // Still show the score but mark as bust
     }
 
-    // Check if double out is required for checkout
-    if (
-      doubleOutRequired &&
-      currentPlayerScore !== undefined &&
-      currentPlayerScore === score
-    ) {
-      // For double out, we need to ensure the last dart is a double
-      // Default to assuming the last dart is a double for checkout
-      const lastDartMultiplier = 2;
-      console.log("Checkout with double out:", score);
+    // Start cooldown period (4 seconds)
+    setInCooldown(true);
+    setCooldownSeconds(4);
 
-      // Submit the score to the game with double out
-      onScore(score, 3, lastDartMultiplier);
-    } else {
-      // Normal score submission
-      console.log("Submitting score:", score);
-
-      // Submit the score to the game
-      onScore(score, 3, 1); // Use default 3 darts and multiplier 1
+    // Clear any existing cooldown interval
+    if (cooldownIntervalRef.current) {
+      clearInterval(cooldownIntervalRef.current);
     }
 
-    // Show "Next Player" indication for 2 seconds
-    setSwitchingPlayer(true);
+    // Set up cooldown interval
+    cooldownIntervalRef.current = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          // Clear interval when cooldown reaches 0
+          if (cooldownIntervalRef.current) {
+            clearInterval(cooldownIntervalRef.current);
+            cooldownIntervalRef.current = null;
+          }
+          setInCooldown(false);
 
-    // Vibrate device to indicate player switch
-    vibrateDevice([100, 50, 100]);
+          // Only submit the score after cooldown is finished
+          console.log("Cooldown finished, now submitting score to game");
+          // Submit the score to the game
+          // Always use lastDartMultiplier of 2 to ensure it works with double-out rule
+          onScore(score, 3, 2); // Use default 3 darts and always use double as last dart
 
-    // Reset after showing confirmation and automatically start listening again
-    setTimeout(() => {
-      setShowScoreConfirmation(false);
-      setIsSubmitting(false);
-      setTranscript("");
-      setRecognizedScore(null);
-      setSwitchingPlayer(false);
-
-      // Keep showing the last score for a bit longer
-      setTimeout(() => {
-        setShowLastScore(false);
-      }, 3000);
-
-      // Automatically start listening again after a short delay
-      setTimeout(() => {
-        if (permissionStatus === "granted") {
-          startListening();
+          return 0;
         }
-      }, 500);
-    }, 2000); // Reduced from 3000ms to 2000ms to make the transition faster
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Clear any existing interval
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+
+    setIsSubmitting(false);
   };
 
-  // Start speech recognition
-  const startListening = () => {
-    if (!isSpeechRecognitionAvailable) {
-      setErrorMessage("Speech recognition is not supported in your browser.");
+  // Handle speech recognition result with transcript logging
+  const handleSpeechRecognitionResult = (e: any) => {
+    // Ignore results if in cooldown
+    if (inCooldown) {
+      console.log("In cooldown period, ignoring speech recognition results");
       return;
     }
 
-    // Stop any existing transcription
-    stopListening();
+    const resultText = e.results[0][0].transcript;
+    setTranscript(resultText);
+
+    // Add to transcript log
+    setTranscriptLog((prev) => {
+      // Keep only the last 10 entries
+      const newLog = [...prev, resultText];
+      if (newLog.length > 10) {
+        return newLog.slice(newLog.length - 10);
+      }
+      return newLog;
+    });
+
+    // Only process final results to avoid premature score detection
+    if (e.results[0].isFinal) {
+      const detectedScore = processTranscript(resultText);
+      console.log(
+        "Detected score:",
+        detectedScore,
+        "Current player score:",
+        currentPlayerScore
+      );
+
+      if (detectedScore !== null) {
+        // Clear transcript immediately to prevent double registration
+        setTranscript("");
+
+        // Immediately stop the current recognition session to prevent duplicate processing
+        if (transcriptionRef.current) {
+          try {
+            transcriptionRef.current.stop();
+          } catch (error) {
+            console.error("Error stopping speech recognition:", error);
+          }
+        }
+
+        // Submit the detected score
+        submitScore(detectedScore);
+      }
+    }
+  };
+
+  const stopListening = () => {
+    console.log("stop listening");
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+
+    if (transcriptionRef.current) {
+      try {
+        transcriptionRef.current.stop();
+        // Don't set to null here, as the 'end' event will handle cleanup
+      } catch (error) {
+        console.error("Error stopping speech recognition:", error);
+        // If there was an error stopping, we should clean up the reference
+        transcriptionRef.current = null;
+      }
+    }
+
+    // Set listening state immediately to avoid UI flicker
+    setIsListening(false);
+  };
+
+  // Handle speech recognition end event properly
+  const handleSpeechRecognitionEnd = () => {
+    console.log("Speech recognition ended");
+    setIsListening(false);
+
+    // Store the current state of transcriptionRef before nullifying it
+    transcriptionRef.current = null;
+
+    // Don't restart listening if in cooldown
+    if (inCooldown) {
+      console.log("In cooldown period, not restarting speech recognition");
+      return;
+    }
+
+    // Always restart listening unless component is unmounting or permission is denied
+    if (permissionStatus === "granted") {
+      const delay = 300;
+      console.log(`Auto-restarting speech recognition in ${delay}ms`);
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+
+      retryTimeoutRef.current = setTimeout(() => {
+        // Only check permission status and cooldown status before restarting
+        if (permissionStatus === "granted" && !inCooldown) {
+          // Clear transcript before starting new recognition session
+          setTranscript("");
+          startListening();
+        } else if (inCooldown) {
+          console.log("Still in cooldown, not starting speech recognition");
+        }
+      }, delay);
+    }
+  };
+
+  // Start listening with improved error handling
+  const startListening = () => {
+    // Prevent starting if already listening or in cooldown
+    if (isListening || transcriptionRef.current || inCooldown) {
+      console.log(
+        "Not starting speech recognition - already listening or in cooldown"
+      );
+      return;
+    }
+
+    // Clear any pending retry timeouts
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
 
     try {
-      // Create a new transcription object using the Progressier approach
-      if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-        const SpeechRecognitionAPI =
+      // Check if speech recognition is available
+      if (isSpeechRecognitionAvailable) {
+        // Create a new speech recognition instance
+        const SpeechRecognition =
           window.SpeechRecognition || window.webkitSpeechRecognition;
-        transcriptionRef.current = new SpeechRecognitionAPI();
+        transcriptionRef.current = new SpeechRecognition();
 
-        // Configure the transcription
-        transcriptionRef.current.lang = language;
+        // Configure the speech recognition
+        transcriptionRef.current.continuous = true; // Set to true to keep listening
         transcriptionRef.current.interimResults = true;
+        transcriptionRef.current.lang = language;
 
         // Handle results
-        transcriptionRef.current.addEventListener("result", (e: any) => {
-          const resultText = e.results[0][0].transcript;
-          setTranscript(resultText);
-
-          // Only process final results to avoid premature score detection
-          if (e.results[0].isFinal) {
-            const detectedScore = processTranscript(resultText);
-            if (detectedScore !== null) {
-              // Show confirmation dialog instead of immediately submitting
-
-              if (detectedScore !== null) {
-                // Validate the score before submitting
-                if (detectedScore < 0 || detectedScore > 180) {
-                  setErrorMessage("Invalid score. Please try again.");
-                  setScoreToConfirm(null);
-                  return;
-                }
-
-                // Submit the confirmed score
-                submitScore(detectedScore);
-                setTranscript("");
-                setRecognizedScore(null);
-                setShowScoreConfirmation(false);
-              } else {
-                // If not confirmed, do NOT automatically resume listening
-                // Just reset the score to confirm
-                setScoreToConfirm(null);
-              }
-
-              // Stop listening while confirming
-              stopListening();
-            }
-          }
-        });
+        transcriptionRef.current.addEventListener(
+          "result",
+          handleSpeechRecognitionResult
+        );
 
         // Handle end event
-        transcriptionRef.current.addEventListener("end", () => {
-          console.log("Speech recognition ended");
-          setIsListening(false);
-          transcriptionRef.current = null;
-        });
+        transcriptionRef.current.addEventListener(
+          "end",
+          handleSpeechRecognitionEnd
+        );
 
         // Handle start event
         transcriptionRef.current.addEventListener("start", () => {
@@ -542,68 +695,28 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
           setErrorMessage(null);
         });
 
-        // Handle errors
-        transcriptionRef.current.addEventListener("error", (e: any) => {
-          console.error("Speech recognition error:", e.error);
-
-          if (e.error === "not-allowed" || e.error === "permission-denied") {
-            setPermissionStatus("denied");
-            setErrorMessage(
-              "Microphone access was denied. Please enable microphone access in your browser settings."
-            );
-          } else {
-            setErrorMessage(`Speech recognition error: ${e.error}`);
-          }
-
-          setIsListening(false);
-        });
-
-        // Start the transcription
+        // Start the speech recognition
         transcriptionRef.current.start();
-        // Set listening state immediately to avoid UI flicker
-        setIsListening(true);
+
+        // Notify parent component about listening state change
+        if (onListeningChange) {
+          onListeningChange(true);
+        }
       } else {
-        setErrorMessage("Speech recognition is not supported in your browser.");
+        console.error("Speech recognition not available");
+        setErrorMessage("Speech recognition not available on this device");
       }
     } catch (error) {
       console.error("Error starting speech recognition:", error);
-      setErrorMessage("Could not start speech recognition. Please try again.");
+      setErrorMessage("Error starting speech recognition");
       setIsListening(false);
-    }
-  };
-
-  // Stop speech recognition
-  const stopListening = () => {
-    if (transcriptionRef.current) {
-      try {
-        transcriptionRef.current.stop();
-      } catch (error) {
-        console.error("Error stopping speech recognition:", error);
-      }
       transcriptionRef.current = null;
     }
-    // Set listening state immediately to avoid UI flicker
-    setIsListening(false);
-  };
-
-  // Toggle listening state
-
-  // Request microphone permission and start listening
-  const requestMicrophonePermission = () => {
-    setPermissionDialogOpen(false);
-    startListening();
-  };
-
-  // Open language selection dialog
-  const openLanguageDialog = () => {
-    setLanguageDialogOpen(true);
   };
 
   // Change language
   const changeLanguage = (languageCode: string) => {
     setLanguage(languageCode);
-    setLanguageDialogOpen(false);
-
     // Restart listening if active
     if (isListening) {
       stopListening();
@@ -613,45 +726,41 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
     }
   };
 
-  // Handle score confirmation
-  const handleScoreConfirmation = (confirmed: boolean) => {
-    setConfirmScoreDialogOpen(false);
+  const toggleLanguage = () => {
+    const newLanguage = language === "sv-SE" ? "en-US" : "sv-SE";
+    changeLanguage(newLanguage);
+  };
 
-    if (confirmed && scoreToConfirm !== null) {
-      // Validate the score before submitting
-      if (scoreToConfirm < 0 || scoreToConfirm > 180) {
-        setErrorMessage("Invalid score. Please try again.");
-        setScoreToConfirm(null);
-        return;
-      }
+  // Clear transcript log
+  const clearTranscriptLog = () => {
+    setTranscriptLog([]);
+  };
 
-      // Submit the confirmed score
-      submitScore(scoreToConfirm);
-    } else {
-      // If not confirmed, do NOT automatically resume listening
-      // Just reset the score to confirm
-      setScoreToConfirm(null);
+  // Handle dart count selection for winning throw
+  const handleDartCountSelection = (dartCount: number) => {
+    setSelectedDartCount(dartCount);
+    setDartCountDialogOpen(false);
+
+    if (recognizedScore !== null) {
+      // Show win dialog
+      setWinDialogOpen(true);
+
+      // Submit the score with the selected dart count
+      console.log(
+        "Submitting winning score with dart count:",
+        recognizedScore,
+        dartCount
+      );
+      // For a winning score, always use 2 as the lastDartMultiplier to indicate a double-out
+      onScore(recognizedScore, dartCount, 2);
     }
   };
 
-  // Calculate remaining score if currentPlayerScore is provided
-  const remainingScore =
-    currentPlayerScore !== undefined && recognizedScore !== null
-      ? currentPlayerScore - recognizedScore
-      : undefined;
-
-  // Determine if this would be a bust (score < 0)
-  const isBust = remainingScore !== undefined && remainingScore < 0;
-
-  // Check if it's a valid checkout
-  const isCheckout = remainingScore !== undefined && remainingScore === 0;
-
-  // Get current language display name
-  const getCurrentLanguageName = () => {
-    const langOption = LANGUAGE_OPTIONS.find(
-      (option) => option.code === language
-    );
-    return langOption ? langOption.name : "English (US)";
+  // Close win dialog
+  const handleCloseWinDialog = () => {
+    setWinDialogOpen(false);
+    setRecognizedScore(null);
+    setIsSubmitting(false);
   };
 
   return (
@@ -663,619 +772,294 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
         p: { xs: 0.5, sm: 1 },
       }}
     >
-      {/* Top controls with language selection only - only show when not displaying score */}
-      {!showScoreConfirmation && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          {/* Language selection */}
-          <Tooltip title={`Current language: ${getCurrentLanguageName()}`}>
-            <Button
-              onClick={openLanguageDialog}
-              color="primary"
-              variant="outlined"
-              size="small"
-              startIcon={<Language />}
-            >
-              {language.split("-")[0].toUpperCase()}
-            </Button>
-          </Tooltip>
-
-          {/* Listening status indicator */}
+      {/* Listening status indicator */}
+      <Paper
+        elevation={3}
+        sx={{
+          p: 2,
+          mb: 2,
+          display: "flex",
+          flex: 1,
+          flexDirection: "column",
+          alignItems: "center",
+          backgroundColor: isListening
+            ? alpha("#4caf50", 0.1)
+            : "background.paper",
+          border: isListening ? "1px solid #4caf50" : "none",
+        }}
+      >
+        {inCooldown ? (
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              border: "1px solid",
-              borderColor: isListening ? "success.main" : "error.main",
-              borderRadius: 4,
-              px: 1.5,
-              py: 0.5,
-              backgroundColor: (theme) =>
-                alpha(
-                  isListening
-                    ? theme.palette.success.main
-                    : theme.palette.error.main,
-                  0.05
-                ),
+              flexDirection: "row",
+              flex: 1,
             }}
           >
             <Box
               sx={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                backgroundColor: isListening ? "success.main" : "error.main",
-                mr: 1,
-                ...(isListening && {
-                  animation: `${pulse} 1.5s infinite ease-in-out`,
-                }),
-              }}
-            />
-            <Typography
-              variant="body2"
-              color={isListening ? "success.main" : "error.main"}
-              fontWeight="medium"
-            >
-              {isListening ? "Listening" : "Not listening"}
-            </Typography>
-          </Box>
-        </Box>
-      )}
-
-      {/* Conditional rendering based on whether we're showing score or input UI */}
-      {recognizedScore !== null && showScoreConfirmation ? (
-        // Score display area - show when score is confirmed
-        <Paper
-          elevation={3}
-          sx={{
-            flex: 1,
-            mb: { xs: 1, sm: 2 },
-            p: { xs: 2, sm: 3 },
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 2,
-            position: "relative",
-            backgroundColor: (theme) => alpha(theme.palette.success.light, 0.1),
-            border: "1px solid",
-            borderColor: "success.light",
-            transition: "all 0.3s ease-in-out",
-          }}
-        >
-          {/* Remaining score indicator */}
-          {remainingScore !== undefined && !isBust && (
-            <Typography
-              variant="body2"
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 12,
-                opacity: 0.7,
-                fontWeight: "bold",
-                fontSize: "1rem",
-                color: isCheckout ? "success.main" : "text.secondary",
-              }}
-            >
-              {Math.max(0, remainingScore)}
-            </Typography>
-          )}
-
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              mb: 1,
-              animation: `${pulse} 1.5s 1`,
-            }}
-          >
-            <CheckCircle color="success" sx={{ mr: 1, fontSize: 28 }} />
-            <Typography variant="h6" color="success.main" fontWeight="bold">
-              Score Added
-            </Typography>
-          </Box>
-
-          <Typography
-            variant="h2"
-            align="center"
-            sx={{
-              fontWeight: "500",
-              color: isBust
-                ? "error.main"
-                : isCheckout
-                ? "success.main"
-                : "text.primary",
-              my: 1,
-              animation: "fadeIn 0.5s ease-in-out",
-              "@keyframes fadeIn": {
-                "0%": { opacity: 0, transform: "scale(0.9)" },
-                "100%": { opacity: 1, transform: "scale(1)" },
-              },
-            }}
-          >
-            {recognizedScore}
-          </Typography>
-
-          {/* Status display */}
-          {remainingScore !== undefined && (
-            <Typography
-              variant="body1"
-              sx={{
-                mt: 0.5,
-                fontWeight: "bold",
-                fontSize: "1.1rem",
-                color: isBust
-                  ? "error.main"
-                  : isCheckout
-                  ? "success.main"
-                  : "text.secondary",
-                padding: isBust || isCheckout ? "4px 12px" : 0,
-                borderRadius: 2,
-                backgroundColor: isBust
-                  ? alpha("#f44336", 0.1)
-                  : isCheckout
-                  ? alpha("#4caf50", 0.1)
-                  : "transparent",
-              }}
-            >
-              {isBust ? "Bust!" : isCheckout ? "Checkout!" : ""}
-            </Typography>
-          )}
-
-          {/* Next Player Indication */}
-          {switchingPlayer && (
-            <Box
-              sx={{
-                mt: 2,
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
-                animation: "fadeInUp 0.5s ease-out",
-                "@keyframes fadeInUp": {
-                  "0%": { opacity: 0, transform: "translateY(10px)" },
-                  "100%": { opacity: 1, transform: "translateY(0)" },
-                },
+                flexDirection: "column",
+                flex: 1,
               }}
             >
-              <Typography
-                variant="h6"
-                color="primary.main"
-                fontWeight="bold"
-                sx={{
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.primary.main, 0.1),
-                  padding: "6px 16px",
-                  borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "primary.main",
-                }}
-              >
-                Next Player
+              <Typography variant="body1" fontWeight="bold">
+                Cooldown: {cooldownSeconds}s
+              </Typography>
+              <Typography variant="body2">
+                Waiting before accepting new score
               </Typography>
             </Box>
-          )}
 
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mt: 2,
-              opacity: 0.7,
-              animation: "fadeIn 1s ease-in-out",
-            }}
-          >
-            Ready for next player...
-          </Typography>
-
-          <Box sx={{ mt: 2, display: "flex", alignItems: "center" }}>
-            <CircularProgress size={16} sx={{ mr: 1, opacity: 0.7 }} />
-            <Typography variant="body2" color="text.secondary">
-              Listening will start automatically
-            </Typography>
-          </Box>
-        </Paper>
-      ) : (
-        // Main voice input area - only show when not displaying score
-        <Paper
-          elevation={1}
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            p: 2,
-            mb: 2,
-            borderRadius: 2,
-            position: "relative",
-            overflow: "auto",
-          }}
-        >
-          {isListening ? (
-            // Listening state - show active listening UI
             <Box
               sx={{
-                width: "100%",
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
+                flexDirection: "column",
+                flex: 1,
               }}
             >
-              {/* Microphone and listening indicator */}
-              <Box
+              <Typography variant="h4" fontWeight="bold" color="success.main">
+                {recognizedScore} Points
+              </Typography>
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={() => {
+                  // Clear cooldown
+                  if (cooldownIntervalRef.current) {
+                    clearInterval(cooldownIntervalRef.current);
+                    cooldownIntervalRef.current = null;
+                  }
+                  setInCooldown(false);
+                  setCooldownSeconds(0);
+
+                  // Reset score states
+                  setRecognizedScore(null);
+
+                  if (countdownIntervalRef.current) {
+                    clearInterval(countdownIntervalRef.current);
+                    countdownIntervalRef.current = null;
+                  }
+                }}
+                sx={{
+                  height: "fit-content",
+                  alignSelf: "center",
+                  ml: 2,
+                }}
+              >
+                Undo
+              </Button>
+            </Box>
+          </Box>
+        ) : (
+          <>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                width: "100%",
+                mb: 1,
+              }}
+            >
+              <Typography variant="h6">Voice Input</Typography>
+
+              {/* Language toggle */}
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Typography variant="body2" sx={{ mr: 1 }}>
+                  {language === "sv-SE" ? "Swedish" : "English"}
+                </Typography>
+                <Switch
+                  checked={language === "en-US"}
+                  onChange={toggleLanguage}
+                  color="primary"
+                />
+              </Box>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              <IconButton
+                color={isListening ? "success" : "primary"}
                 sx={{
                   width: 80,
                   height: 80,
-                  borderRadius: "50%",
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.primary.main, 0.1),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  animation: `${pulse} 1.5s infinite ease-in-out`,
-                  mb: 2,
-                }}
-              >
-                <Mic color="primary" sx={{ fontSize: 40 }} />
-              </Box>
-
-              <Typography
-                variant="h6"
-                color="primary"
-                fontWeight="bold"
-                gutterBottom
-              >
-                Say your score...
-              </Typography>
-
-              {/* Live transcript display */}
-              <Paper
-                elevation={1}
-                sx={{
-                  p: 2,
-                  width: "100%",
-                  borderRadius: 2,
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.background.paper, 0.9),
-                  borderLeft: "4px solid",
-                  borderColor: "primary.main",
-                  mb: 3,
-                  position: "relative",
-                }}
-              >
-                <Typography
-                  variant="subtitle2"
-                  fontWeight="bold"
-                  color="primary.main"
-                  gutterBottom
-                >
-                  Currently Hearing:
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {transcript || "Waiting for speech..."}
-                </Typography>
-              </Paper>
-            </Box>
-          ) : (
-            // Not listening state - show instructions and permission request if needed
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-              }}
-            >
-              <Typography
-                variant="h6"
-                color="primary"
-                gutterBottom
-                align="center"
-              >
-                Voice Score Input
-              </Typography>
-
-              <Box
-                sx={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: "50%",
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.primary.main, 0.1),
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  my: 3,
-                }}
-              >
-                <Mic color="primary" sx={{ fontSize: 50 }} />
-              </Box>
-
-              {permissionStatus === "granted" ? (
-                <>
-                  <Typography variant="body1" align="center" paragraph>
-                    Initializing voice recognition...
-                  </Typography>
-                  <CircularProgress size={24} />
-                </>
-              ) : (
-                <>
-                  <Typography variant="body1" align="center" paragraph>
-                    Microphone access is required
-                  </Typography>
-                  <VibrationButton
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    onClick={requestMicrophonePermission}
-                    startIcon={<Mic />}
-                    vibrationPattern={100}
-                    sx={{ mt: 2 }}
-                  >
-                    Allow Microphone
-                  </VibrationButton>
-                </>
-              )}
-            </Box>
-          )}
-
-          {/* Error message */}
-          {errorMessage && (
-            <Alert
-              severity="error"
-              sx={{ mt: 2, width: "100%" }}
-              onClose={() => setErrorMessage(null)}
-            >
-              {errorMessage}
-            </Alert>
-          )}
-        </Paper>
-      )}
-
-      {/* Permission dialog */}
-      <Dialog
-        open={permissionDialogOpen}
-        onClose={() => setPermissionDialogOpen(false)}
-        aria-labelledby="permission-dialog-title"
-      >
-        <DialogTitle id="permission-dialog-title">
-          Microphone Access Required
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This feature requires microphone access to recognize your voice.
-            Please allow microphone access when prompted by your browser.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setPermissionDialogOpen(false)}
-            color="primary"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={requestMicrophonePermission}
-            color="primary"
-            variant="contained"
-          >
-            Continue
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Language selection dialog */}
-      <Dialog
-        open={languageDialogOpen}
-        onClose={() => setLanguageDialogOpen(false)}
-        aria-labelledby="language-dialog-title"
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle id="language-dialog-title">
-          Select Recognition Language
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {LANGUAGE_OPTIONS.map((option) => (
-              <Button
-                key={option.code}
-                variant={language === option.code ? "contained" : "outlined"}
-                onClick={() => changeLanguage(option.code)}
-                sx={{ justifyContent: "flex-start", textAlign: "left" }}
-              >
-                {option.name}
-              </Button>
-            ))}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLanguageDialogOpen(false)} color="primary">
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Score confirmation dialog */}
-      <Dialog
-        open={confirmScoreDialogOpen}
-        onClose={() => handleScoreConfirmation(false)}
-        aria-labelledby="confirm-score-dialog-title"
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            minWidth: { xs: "80%", sm: 400 },
-          },
-        }}
-      >
-        <DialogTitle
-          id="confirm-score-dialog-title"
-          sx={{ textAlign: "center", pb: 1 }}
-        >
-          Confirm Score
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ textAlign: "center", py: 2 }}>
-            <Typography
-              variant="h2"
-              color="primary"
-              gutterBottom
-              sx={{
-                fontWeight: "bold",
-                animation: "pulse 1s infinite ease-in-out",
-                "@keyframes pulse": {
-                  "0%": { opacity: 0.8 },
-                  "50%": { opacity: 1 },
-                  "100%": { opacity: 0.8 },
-                },
-              }}
-            >
-              {scoreToConfirm}
-            </Typography>
-            <DialogContentText>
-              Is this the correct score you want to submit?
-            </DialogContentText>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3, justifyContent: "space-between" }}>
-          <Button
-            onClick={() => handleScoreConfirmation(false)}
-            color="error"
-            variant="outlined"
-            startIcon={<MicOff />}
-            size="large"
-          >
-            Try Again
-          </Button>
-          <Button
-            onClick={() => handleScoreConfirmation(true)}
-            color="success"
-            variant="contained"
-            startIcon={<CheckCircle />}
-            size="large"
-            autoFocus
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Display last entered score when not showing score confirmation */}
-      {!showScoreConfirmation && showLastScore && lastEnteredScore !== null && (
-        <>
-          {/* Semi-transparent backdrop */}
-          <Box
-            sx={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.3)",
-              zIndex: 999,
-              animation: "fadeIn 0.3s ease-in-out",
-              "@keyframes fadeIn": {
-                "0%": { opacity: 0 },
-                "100%": { opacity: 1 },
-              },
-            }}
-            onClick={() => setShowLastScore(false)}
-          />
-          <Paper
-            elevation={3}
-            sx={{
-              position: "fixed",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              padding: "12px 24px",
-              borderRadius: 2,
-              backgroundColor: (theme) => alpha(theme.palette.info.main, 0.1),
-              border: "2px solid",
-              borderColor: "info.main",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-              minWidth: "180px",
-              boxShadow: (theme) =>
-                `0 4px 20px ${alpha(theme.palette.info.main, 0.25)}`,
-            }}
-          >
-            {/* Close button */}
-            <IconButton
-              size="small"
-              onClick={() => setShowLastScore(false)}
-              sx={{
-                position: "absolute",
-                top: 5,
-                right: 5,
-                color: "info.main",
-              }}
-            >
-              <Close fontSize="small" />
-            </IconButton>
-
-            <Typography
-              variant="body1"
-              color="info.main"
-              fontWeight="medium"
-              sx={{ mb: 0.5 }}
-            >
-              Last Score
-            </Typography>
-            <Typography
-              variant="h3"
-              color="info.dark"
-              fontWeight="bold"
-              sx={{
-                animation: "pulseScore 2s infinite ease-in-out",
-                "@keyframes pulseScore": {
-                  "0%": { transform: "scale(1)" },
-                  "50%": { transform: "scale(1.05)" },
-                  "100%": { transform: "scale(1)" },
-                },
-              }}
-            >
-              {lastEnteredScore}
-            </Typography>
-
-            {/* Next Player indication */}
-            {switchingPlayer && (
-              <Typography
-                variant="subtitle1"
-                color="primary.main"
-                fontWeight="bold"
-                sx={{
-                  mt: 2,
-                  backgroundColor: (theme) =>
-                    alpha(theme.palette.primary.main, 0.1),
-                  padding: "4px 12px",
-                  borderRadius: 1,
-                  border: "1px solid",
-                  borderColor: "primary.main",
-                  animation: "fadeInUp 0.5s ease-out",
-                  "@keyframes fadeInUp": {
-                    "0%": { opacity: 0, transform: "translateY(10px)" },
-                    "100%": { opacity: 1, transform: "translateY(0)" },
+                  animation: isListening ? `${pulse} 1.5s infinite` : "none",
+                  backgroundColor: isListening
+                    ? alpha("#4caf50", 0.1)
+                    : alpha("#1976d2", 0.1),
+                  "&:hover": {
+                    backgroundColor: isListening
+                      ? alpha("#4caf50", 0.2)
+                      : alpha("#1976d2", 0.2),
                   },
                 }}
               >
-                Next Player
-              </Typography>
-            )}
-          </Paper>
-        </>
+                <Mic sx={{ fontSize: 40 }} />
+              </IconButton>
+
+              {isListening && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: -25,
+                    textAlign: "center",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    color="success.main"
+                    fontWeight="bold"
+                  >
+                    Listening...
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </>
+        )}
+      </Paper>
+
+      {/* Transcript log */}
+      <Accordion sx={{ mb: 2 }} elevation={2}>
+        <AccordionSummary
+          expandIcon={<ExpandMore />}
+          sx={{
+            display: "flex",
+            flex: 0.4,
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight="bold">
+            Transcript Log
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={(e) => {
+              e.stopPropagation();
+              clearTranscriptLog();
+            }}
+            disabled={transcriptLog.length === 0}
+            sx={{ mr: 2 }}
+          >
+            Clear
+          </Button>
+        </AccordionSummary>
+
+        <AccordionDetails sx={{ maxHeight: 200, overflow: "auto" }}>
+          {transcriptLog.length === 0 ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center", py: 2 }}
+            >
+              No transcripts yet. Start speaking when the microphone is active.
+            </Typography>
+          ) : (
+            <List dense>
+              {transcriptLog.map((text, index) => (
+                <ListItem
+                  key={index}
+                  divider={index < transcriptLog.length - 1}
+                >
+                  <ListItemText
+                    primary={text}
+                    secondary={`Entry ${transcriptLog.length - index}`}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Show error message if any */}
+      {errorMessage && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {errorMessage}
+        </Alert>
       )}
+
+      {/* Dart count dialog for winning score */}
+      <Dialog
+        open={dartCountDialogOpen}
+        onClose={() => {
+          setDartCountDialogOpen(false);
+          setIsSubmitting(false);
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>How many darts did you use?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom>
+            You've scored {recognizedScore} to finish the game!
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please select how many darts you used to finish.
+          </Typography>
+
+          <Box sx={{ display: "flex", justifyContent: "space-around", mt: 2 }}>
+            {[1, 2, 3].map((count) => (
+              <VibrationButton
+                key={count}
+                variant={selectedDartCount === count ? "contained" : "outlined"}
+                size="large"
+                onClick={() => handleDartCountSelection(count)}
+                sx={{ width: "30%", height: 60, fontSize: "1.5rem" }}
+                vibrationPattern={50}
+              >
+                {count}
+              </VibrationButton>
+            ))}
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Win dialog */}
+      <Dialog
+        open={winDialogOpen}
+        onClose={handleCloseWinDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
+          <EmojiEvents color="primary" sx={{ mr: 1 }} />
+          Game Won!
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="h5" color="primary" gutterBottom>
+            Congratulations!
+          </Typography>
+          <Typography variant="body1" paragraph>
+            You've finished the game with a score of {recognizedScore}!
+          </Typography>
+          <Typography variant="body2">
+            Darts used: {selectedDartCount}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseWinDialog}
+            color="primary"
+            variant="contained"
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
