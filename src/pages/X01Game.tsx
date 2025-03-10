@@ -83,8 +83,7 @@ const X01Game: React.FC = () => {
       } else if (inputMode === "board") {
         setStoreInputMode("dart");
       } else if (inputMode === "voice") {
-        // Voice input still uses dart mode in the store
-        setStoreInputMode("dart");
+        setStoreInputMode("numeric");
       }
       setIsInitialized(true);
     }
@@ -541,11 +540,9 @@ const X01Game: React.FC = () => {
               </DartInputErrorBoundary>
             ) : (
               <VoiceInput
-                onScore={handleScore}
-                currentPlayerScore={
-                  currentGame?.players[currentGame.currentPlayerIndex]?.score
+                handleScore={(score, darts, lastDartMultiplier) =>
+                  handleScore(score, darts, lastDartMultiplier)
                 }
-                doubleOutRequired={false}
               />
             )}
           </Box>

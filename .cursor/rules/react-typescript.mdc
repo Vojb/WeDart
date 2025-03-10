@@ -1,10 +1,8 @@
 ---
-description: 
+description:  Make all files typescript, and follow lint rules , make all new components const "name" = React.fC 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
-
-# Your rule content
 
 Make all files typescript, and follow lint rules , make all new components const "name" = React.fC 
 
