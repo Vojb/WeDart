@@ -83,6 +83,9 @@ const VoiceInput: React.FC<{
   const [transcriptLog, setTranscriptLog] = useState<TranscriptLogEntry[]>([]);
   const [expandedLog, setExpandedLog] = useState(false);
 
+  // Add a ref to track if we should keep listening
+  const keepListeningRef = useRef(false);
+
   // Define language options - only Swedish and English as requested
   const languageOptions = [
     { code: "en-US", label: "English (US)" },
@@ -107,6 +110,9 @@ const VoiceInput: React.FC<{
       return;
     }
 
+    // Set the flag to keep listening
+    keepListeningRef.current = true;
+
     // Initialize speech recognition
     const SpeechRecognitionAPI =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -116,7 +122,7 @@ const VoiceInput: React.FC<{
       // Configure recognition settings
       recognitionRef.current.lang = language;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.continuous = true; // Set to true to keep listening
+      recognitionRef.current.continuous = true;
 
       // Handle recognition results
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
@@ -146,10 +152,20 @@ const VoiceInput: React.FC<{
       // Handle recognition end
       recognitionRef.current.onend = () => {
         console.log("Speech recognition ended");
-        // Restart if still in listening mode
-        if (isListening) {
+
+        // If we should keep listening, restart immediately
+        if (keepListeningRef.current) {
           console.log("Restarting speech recognition");
-          startListening();
+          // Small timeout to prevent potential issues with rapid restarts
+          setTimeout(() => {
+            try {
+              if (keepListeningRef.current) {
+                startListening();
+              }
+            } catch (error) {
+              console.error("Error restarting speech recognition:", error);
+            }
+          }, 100);
         } else {
           setIsListening(false);
         }
@@ -161,18 +177,32 @@ const VoiceInput: React.FC<{
       };
 
       // Start recognition
-      recognitionRef.current.start();
-      setIsListening(true);
-      console.log("Speech recognition started");
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        console.log("Speech recognition started");
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        keepListeningRef.current = false;
+        setIsListening(false);
+      }
     }
   };
 
   // Stop speech recognition
   const stopListening = () => {
+    // Set the flag to stop listening
+    keepListeningRef.current = false;
+
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      console.log("Speech recognition stopped by user");
+      try {
+        recognitionRef.current.stop();
+        console.log("Speech recognition stopped by user");
+      } catch (error) {
+        console.error("Error stopping speech recognition:", error);
+      }
     }
+
     setIsListening(false);
   };
 
@@ -188,8 +218,13 @@ const VoiceInput: React.FC<{
   // Clean up on component unmount
   useEffect(() => {
     return () => {
+      keepListeningRef.current = false;
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.error("Error stopping speech recognition on unmount:", error);
+        }
       }
     };
   }, []);
@@ -244,6 +279,9 @@ const VoiceInput: React.FC<{
           border: "1px solid #ddd",
           borderRadius: 1,
           minHeight: "60px",
+          backgroundColor: isListening
+            ? "rgba(0, 255, 0, 0.05)"
+            : "transparent",
         }}
       >
         <Typography id="results">
@@ -290,6 +328,12 @@ const VoiceInput: React.FC<{
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Typography>
             Speech Recognition Log ({transcriptLog.length} entries)
+            {isListening && (
+              <Typography component="span" color="success.main">
+                {" "}
+                - Listening
+              </Typography>
+            )}
           </Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 0, maxHeight: "300px", overflow: "auto" }}>
