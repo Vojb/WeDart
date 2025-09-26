@@ -8,28 +8,18 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   IconButton,
   Stack,
   Chip,
   Button,
   DialogContentText,
-  Card,
-  CardContent,
 } from "@mui/material";
 import {
   Calculate,
   GridOn,
   Undo,
-  EmojiEvents,
-  ExitToApp,
   ArrowBack,
   Mic,
-  TrendingUp,
-  Timer,
 } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
@@ -41,7 +31,6 @@ import { alpha } from "@mui/material/styles";
 import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
-import VibrationButton from "../components/VibrationButton";
 import VoiceInput from "../components/VoiceInput";
 
 type InputMode = "numeric" | "board" | "voice";
@@ -78,7 +67,19 @@ const ProgressiveFinishGame: React.FC = () => {
 
   // Update cached players in ProgressiveFinishStore
   useEffect(() => {
-    setPlayers(players);
+    // Convert Player[] to ProgressiveFinishPlayer[]
+    const progressiveFinishPlayers = players.map((player) => ({
+      id: player.id,
+      name: player.name,
+      currentScore: 0,
+      dartsThrown: 0,
+      levelsCompleted: 0,
+      totalDartsUsed: 0,
+      scores: [],
+      avgPerDart: 0,
+      avgPerLevel: 0,
+    }));
+    setPlayers(progressiveFinishPlayers);
   }, [players, setPlayers]);
 
   useEffect(() => {
@@ -254,12 +255,6 @@ const ProgressiveFinishGame: React.FC = () => {
     navigate(-1);
   };
 
-  const handleLeaveGame = () => {
-    // End the current game and navigate back
-    endGame();
-    setLeaveDialogOpen(false);
-    navigate(-1);
-  };
 
   const handleCancelLeave = () => {
     setLeaveDialogOpen(false);
@@ -268,20 +263,11 @@ const ProgressiveFinishGame: React.FC = () => {
   // Handle recording scores
   const handleScore = (
     score: number,
-    darts: number,
-    lastDartMultiplier?: number
+    darts: number
   ) => {
     if (currentGame && !currentGame.isGameFinished) {
-      // Determine input mode for the store
-      const storeInputMode =
-        inputMode === "voice"
-          ? "voice"
-          : inputMode === "board"
-          ? "dart"
-          : "numeric";
-
-      // Record the score with input mode
-      recordScore(score, darts, lastDartMultiplier, storeInputMode);
+      // Record the score
+      recordScore(score, darts);
 
       // Check if the game is finished after the score is recorded
       const updatedGame = useProgressiveFinishStore.getState().currentGame;
@@ -376,11 +362,8 @@ const ProgressiveFinishGame: React.FC = () => {
               <PlayerBox
                 key={player.id}
                 player={player}
-                index={index}
                 isCurrentPlayer={currentGame.currentPlayerIndex === index}
-                currentLevel={currentGame.currentLevel}
                 remainingScore={currentGame.remainingScore}
-                targetScore={currentGame.targetScore}
               />
             ))}
           </Box>
@@ -400,13 +383,12 @@ const ProgressiveFinishGame: React.FC = () => {
               <NumericInput
                 onScore={handleScore}
                 currentPlayerScore={currentGame.remainingScore}
-                doubleOutRequired={false}
               />
             ) : inputMode === "board" ? (
               <DartInputErrorBoundary>
                 <DartInput
-                  onScore={(score, dartsUsed, lastDartMultiplier) =>
-                    handleScore(score, dartsUsed, lastDartMultiplier)
+                  onScore={(score, dartsUsed) =>
+                    handleScore(score, dartsUsed)
                   }
                   gameContext={{
                     currentPlayerIndex: currentGame.currentPlayerIndex,
@@ -423,8 +405,8 @@ const ProgressiveFinishGame: React.FC = () => {
               </DartInputErrorBoundary>
             ) : (
               <VoiceInput
-                handleScore={(score, darts, lastDartMultiplier) =>
-                  handleScore(score, darts, lastDartMultiplier)
+                handleScore={(score, darts) =>
+                  handleScore(score, darts)
                 }
               />
             )}
@@ -539,18 +521,12 @@ const ProgressiveFinishGame: React.FC = () => {
 // Move PlayerBox to its own dedicated component
 function PlayerBox({
   player,
-  index,
   isCurrentPlayer,
-  currentLevel,
   remainingScore,
-  targetScore,
 }: {
   player: any;
-  index: number;
   isCurrentPlayer: boolean;
-  currentLevel: number;
   remainingScore: number;
-  targetScore: number;
 }) {
   return (
     <Paper

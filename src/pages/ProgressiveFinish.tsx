@@ -3,11 +3,6 @@ import {
   Box,
   Paper,
   Typography,
-  FormControl,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-  FormLabel,
   Card,
   CardContent,
   Stack,
@@ -15,7 +10,6 @@ import {
   Tab,
   Button,
   TextField,
-  Divider,
   List,
   ListItem,
   ListItemText,
@@ -107,12 +101,19 @@ const ProgressiveFinish: React.FC = () => {
       dartLimit,
     });
 
-    // Save selected players
-    const simplePlayers = selectedPlayers.map((p) => ({
+    // Save selected players - create ProgressiveFinishPlayer objects
+    const progressiveFinishPlayers = selectedPlayers.map((p) => ({
       id: p.id,
       name: p.name,
+      currentScore: 0,
+      dartsThrown: 0,
+      levelsCompleted: 0,
+      totalDartsUsed: 0,
+      scores: [],
+      avgPerDart: 0,
+      avgPerLevel: 0,
     }));
-    setPlayers(simplePlayers);
+    setPlayers(progressiveFinishPlayers);
 
     // Start a new game
     startGame(selectedPlayerIds);

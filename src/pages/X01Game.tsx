@@ -8,10 +8,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   IconButton,
   Stack,
   Chip,
@@ -22,8 +18,6 @@ import {
   Calculate,
   GridOn,
   Undo,
-  EmojiEvents,
-  ExitToApp,
   ArrowBack,
   Mic,
 } from "@mui/icons-material";
@@ -38,41 +32,11 @@ import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import checkoutGuide from "../utils/checkoutGuide";
-import VibrationButton from "../components/VibrationButton";
 import VoiceInput from "../components/VoiceInput";
 
 type InputMode = "numeric" | "board" | "voice";
 
-interface GameState {
-  gameType: "301" | "501" | "701";
-  players: GamePlayer[];
-  currentPlayerIndex: number;
-  isDoubleOut: boolean;
-  isDoubleIn: boolean;
-  isGameFinished: boolean;
-  inputMode: "numeric" | "dart";
-  totalLegs: number;
-  currentLeg: number;
-  legsWon: Record<number, number>;
-}
 
-interface GamePlayer {
-  id: number;
-  name: string;
-  score: number;
-  dartsThrown: number;
-  scores: { score: number; darts: number }[];
-  rounds100Plus: number;
-  rounds140Plus: number;
-  rounds180: number;
-  checkoutAttempts: number;
-  checkoutSuccess: number;
-  avgPerDart: number;
-  avgPerRound: number;
-  initialScore: number;
-  lastRoundScore: number;
-  legsWon?: number;
-}
 
 const X01Game: React.FC = () => {
   const navigate = useNavigate();
@@ -106,7 +70,6 @@ const X01Game: React.FC = () => {
   const gameSavedToHistoryRef = useRef<boolean>(false);
   // Add new state for leg won dialog
   const [legWonDialogOpen, setLegWonDialogOpen] = useState(false);
-  const [legWinner, setLegWinner] = useState<GamePlayer | null>(null);
 
   // Update cached players in X01Store
   useEffect(() => {
@@ -317,26 +280,6 @@ const X01Game: React.FC = () => {
     setDialogOpen(false);
   };
 
-  const handleLegWin = (winnerId: number) => {
-    if (!currentGame) return;
-
-    // Find the winning player
-    const winner = currentGame.players.find((p) => p.id === winnerId);
-    if (winner) {
-      setLegWinner(winner);
-      setLegWonDialogOpen(true);
-    }
-
-    // Use the store's handleLegWin function directly
-    useX01Store.getState().handleLegWin(winnerId);
-
-    // Check if the game is finished after handling the leg win
-    const updatedGame = useX01Store.getState().currentGame;
-    if (updatedGame && updatedGame.isGameFinished) {
-      saveGameToHistory();
-      setDialogOpen(true);
-    }
-  };
 
   const handleReturnToSetup = () => {
     // End the current game and navigate back to setup
@@ -345,12 +288,6 @@ const X01Game: React.FC = () => {
     navigate(-1);
   };
 
-  const handleLeaveGame = () => {
-    // End the current game and navigate back
-    endGame();
-    setLeaveDialogOpen(false);
-    navigate(-1);
-  };
 
   const handleCancelLeave = () => {
     setLeaveDialogOpen(false);
@@ -465,7 +402,6 @@ const X01Game: React.FC = () => {
                 <PlayerBox
                   key={player.id}
                   player={player}
-                  index={index}
                   isCurrentPlayer={currentGame.currentPlayerIndex === index}
                   showRoundAvg={showRoundAvg}
                   onToggleAvgView={() => setShowRoundAvg(!showRoundAvg)}
@@ -495,7 +431,6 @@ const X01Game: React.FC = () => {
                       currentGame.currentPlayerIndex
                   )?.score
                 }
-                doubleOutRequired={currentGame.isDoubleOut}
               />
             ) : inputMode === "board" ? (
               <DartInputErrorBoundary>
@@ -626,29 +561,25 @@ const X01Game: React.FC = () => {
       >
         <DialogTitle id="leg-won-dialog-title">Leg Complete!</DialogTitle>
         <DialogContent>
-          {legWinner && (
-            <>
-              <Typography variant="h6" color="primary" gutterBottom>
-                {legWinner.name} won the leg!
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                Current Legs Won:
-              </Typography>
-              {currentGame.players.map((player) => (
-                <Typography key={player.id} variant="body2">
-                  {player.name}: {currentGame.legsWon[player.id] || 0} legs
-                </Typography>
-              ))}
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 2, display: "block" }}
-              >
-                First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
-                match
-              </Typography>
-            </>
-          )}
+          <Typography variant="h6" color="primary" gutterBottom>
+            Leg Complete!
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            Current Legs Won:
+          </Typography>
+          {currentGame.players.map((player) => (
+            <Typography key={player.id} variant="body2">
+              {player.name}: {currentGame.legsWon[player.id] || 0} legs
+            </Typography>
+          ))}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 2, display: "block" }}
+          >
+            First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
+            match
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button
@@ -667,14 +598,12 @@ const X01Game: React.FC = () => {
 // Move PlayerBox to its own dedicated component
 function PlayerBox({
   player,
-  index,
   isCurrentPlayer,
   showRoundAvg,
   onToggleAvgView,
   legsWon,
 }: {
   player: any;
-  index: number;
   isCurrentPlayer: boolean;
   showRoundAvg: boolean;
   onToggleAvgView: () => void;

@@ -47,13 +47,6 @@ interface GameState {
   legsWon: Record<number, number>;
 }
 
-interface GameSettings {
-  isDoubleOut: boolean;
-  isDoubleIn: boolean;
-  defaultLegs: number;
-  defaultGameType: "301" | "501" | "701";
-  legsWon?: Record<number, number>;
-}
 
 interface X01StoreState {
   // Game settings
@@ -62,6 +55,7 @@ interface X01StoreState {
     isDoubleIn: boolean;
     defaultLegs: number;
     defaultGameType: "301" | "501" | "701";
+    lastCustomGameType?: string;
   };
   updateGameSettings: (
     settings: Partial<X01StoreState["gameSettings"]>
@@ -229,6 +223,7 @@ export const useX01Store = create<X01StoreState>()(
         isDoubleIn: false,
         defaultLegs: 3,
         defaultGameType: "501",
+        lastCustomGameType: undefined,
       },
       updateGameSettings: (settings) =>
         set((state) => ({

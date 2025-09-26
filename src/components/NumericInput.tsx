@@ -25,13 +25,11 @@ import VibrationButton from "./VibrationButton";
 interface NumericInputProps {
   onScore: (score: number, darts: number, lastDartMultiplier?: number) => void;
   currentPlayerScore?: number; // Add optional currentPlayerScore prop
-  doubleOutRequired?: boolean; // Add flag for double out requirement
 }
 
 const NumericInput: React.FC<NumericInputProps> = ({
   onScore,
   currentPlayerScore,
-  doubleOutRequired,
 }) => {
   const [currentInput, setCurrentInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);

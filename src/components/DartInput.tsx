@@ -375,9 +375,6 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
     recordDart(number, selectedMultiplier, true);
   };
 
-  const handleEnd = () => {
-    // No longer needed with direct multiplier selection
-  };
 
   const handleMultiplierSelect = (multiplier: Multiplier) => {
     if (selectedNumber !== null && currentDarts.length < 3) {
@@ -465,7 +462,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
           return prev - 1;
         });
       }, 1000);
-      countdownIntervalRef.current = countdownInterval;
+      countdownIntervalRef.current = countdownInterval as unknown as number;
 
       // KEY FIX: Create a callback function that has access to the updated darts
       const autoSubmitCallback = () => {
@@ -700,6 +697,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
               currentPlayerIndex={currentGame.currentPlayerIndex}
               currentDartsLength={currentDarts.length}
               recordDart={recordDart}
+              selectedMultiplier={selectedMultiplier}
             />
           </>
         )}
@@ -989,6 +987,7 @@ function FrequentDartButtons({
   currentPlayerIndex,
   currentDartsLength,
   recordDart,
+  selectedMultiplier,
 }: {
   currentPlayerIndex: number;
   currentDartsLength: number;
@@ -997,6 +996,7 @@ function FrequentDartButtons({
     multiplier: Multiplier,
     fromMultiplierSelection?: boolean
   ) => void;
+  selectedMultiplier: Multiplier;
 }) {
   const { currentGame, getPlayerMostFrequentDarts } = useX01Store();
 

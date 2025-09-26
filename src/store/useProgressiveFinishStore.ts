@@ -48,9 +48,7 @@ interface ProgressiveFinishStoreState {
   startGame: (playerIds: number[], startingPlayerIndex?: number) => void;
   recordScore: (
     score: number,
-    dartsUsed: number,
-    lastDartMultiplier?: number,
-    inputMode?: "numeric" | "dart" | "voice"
+    dartsUsed: number
   ) => void;
   undoLastScore: () => void;
   endGame: () => void;
@@ -90,7 +88,7 @@ function calculatePlayerAverages(player: ProgressiveFinishPlayer): {
 // Create the Progressive Finish store with persistence
 export const useProgressiveFinishStore = create<ProgressiveFinishStoreState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       gameSettings: {
         startingScore: 40,
         maxFailures: 3,
@@ -158,7 +156,7 @@ export const useProgressiveFinishStore = create<ProgressiveFinishStoreState>()(
         });
       },
 
-      recordScore: (score, dartsUsed, lastDartMultiplier, inputMode) => {
+      recordScore: (score, dartsUsed) => {
         set((state) => {
           if (!state.currentGame) return state;
 
@@ -331,7 +329,17 @@ export const useProgressiveFinishStore = create<ProgressiveFinishStoreState>()(
       },
 
       getPlayers: () => {
-        return cachedPlayers;
+        return cachedPlayers.map((player) => ({
+          id: player.id,
+          name: player.name,
+          currentScore: 0,
+          dartsThrown: 0,
+          levelsCompleted: 0,
+          totalDartsUsed: 0,
+          scores: [],
+          avgPerDart: 0,
+          avgPerLevel: 0,
+        }));
       },
 
       setPlayers: (players) => {
