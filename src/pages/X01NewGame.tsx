@@ -66,11 +66,39 @@ const X01NewGame: React.FC = () => {
   const [customValue, setCustomValue] = useState<string>("");
   const [isCustom, setIsCustom] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [numberOfLegs, setNumberOfLegs] = useState(gameSettings.defaultLegs);
 
   // Update X01Store with players from main store
   useEffect(() => {
     setPlayers(players);
   }, [players, setPlayers]);
+
+  // Load saved preferences
+  useEffect(() => {
+    if (!isCustom) {
+      setGameType(gameSettings.defaultGameType);
+    } else if (gameSettings.lastCustomGameType) {
+      // Load last custom game type if available
+      setCustomValue(gameSettings.lastCustomGameType);
+      setGameType(gameSettings.lastCustomGameType);
+    }
+    setNumberOfLegs(gameSettings.defaultLegs);
+  }, [gameSettings, isCustom]);
+
+  // Save preferences when they change
+  useEffect(() => {
+    if (!isCustom) {
+      updateGameSettings({
+        defaultGameType: gameType,
+      });
+    } else if (customValue) {
+      // Save custom game type
+      updateGameSettings({
+        lastCustomGameType: customValue,
+      });
+    }
+    updateGameSettings({ defaultLegs: numberOfLegs });
+  }, [gameType, numberOfLegs, isCustom, customValue, updateGameSettings]);
 
   // Handle back button navigation
   useEffect(() => {
@@ -95,6 +123,7 @@ const X01NewGame: React.FC = () => {
   }, [location.pathname]);
 
   const handlePlayersChange = (selectedIds: number[]) => {
+    // Maintain the order of selection by using the array as is
     setSelectedPlayers(selectedIds.map((id) => id.toString()));
   };
 
@@ -122,6 +151,10 @@ const X01NewGame: React.FC = () => {
     setIsCustom(type === "custom");
     if (type !== "custom") {
       setCustomValue("");
+    } else if (gameSettings.lastCustomGameType) {
+      // Load last custom game type if available
+      setCustomValue(gameSettings.lastCustomGameType);
+      setGameType(gameSettings.lastCustomGameType);
     }
   };
 
@@ -129,10 +162,11 @@ const X01NewGame: React.FC = () => {
     // Use the custom value if it's set, otherwise use the selected game type
     const finalGameType = isCustom && customValue ? customValue : gameType;
 
-    startGame(
-      finalGameType as "301" | "501" | "701",
-      selectedPlayers.map((id) => parseInt(id))
-    );
+    // Convert strings back to numbers while maintaining order
+    const orderedPlayerIds = selectedPlayers.map((id) => parseInt(id));
+
+    // Start game with ordered player IDs and number of legs
+    startGame(finalGameType, orderedPlayerIds, numberOfLegs);
     navigate("/x01/game");
   };
 
@@ -253,6 +287,21 @@ const X01NewGame: React.FC = () => {
                 Game Rules
               </Typography>
               <Stack spacing={2}>
+                <TextField
+                  fullWidth
+                  label="Number of Legs"
+                  type="number"
+                  value={numberOfLegs}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value > 0) {
+                      setNumberOfLegs(value);
+                    }
+                  }}
+                  inputProps={{ min: 1 }}
+                  sx={{ mb: 2 }}
+                />
+
                 <FormControlLabel
                   control={
                     <Switch

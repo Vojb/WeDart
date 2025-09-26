@@ -36,11 +36,23 @@ interface GamePlayer extends Player {
 interface GameState {
   gameType: "301" | "501" | "701";
   players: GamePlayer[];
+  playerPositions: Record<number, number>; // Maps player ID to position (1-based)
   currentPlayerIndex: number;
   isDoubleOut: boolean;
   isDoubleIn: boolean;
   isGameFinished: boolean;
   inputMode: "numeric" | "dart";
+  totalLegs: number;
+  currentLeg: number;
+  legsWon: Record<number, number>;
+}
+
+interface GameSettings {
+  isDoubleOut: boolean;
+  isDoubleIn: boolean;
+  defaultLegs: number;
+  defaultGameType: "301" | "501" | "701";
+  legsWon?: Record<number, number>;
 }
 
 interface X01StoreState {
@@ -48,12 +60,21 @@ interface X01StoreState {
   gameSettings: {
     isDoubleOut: boolean;
     isDoubleIn: boolean;
+    defaultLegs: number;
+    defaultGameType: "301" | "501" | "701";
   };
-  updateGameSettings: (settings: Partial<GameState>) => void;
+  updateGameSettings: (
+    settings: Partial<X01StoreState["gameSettings"]>
+  ) => void;
 
   // Current game state
   currentGame: GameState | null;
-  startGame: (gameType: GameState["gameType"], playerIds: number[]) => void;
+  startGame: (
+    gameType: GameState["gameType"],
+    playerIds: number[],
+    totalLegs: number,
+    startingPlayerIndex?: number
+  ) => void;
   recordScore: (
     score: number,
     dartsUsed: number,
@@ -61,17 +82,15 @@ interface X01StoreState {
   ) => void;
   undoLastScore: () => void;
   endGame: () => void;
+  handleLegWin: (winnerId: number) => void;
   setInputMode: (mode: "numeric" | "dart") => void;
   getPlayerMostFrequentDarts: (playerId: number, limit?: number) => string[];
   getPlayerAllTimeMostFrequentDarts: (
     playerId: number,
     limit?: number
   ) => string[];
-  lastDartNotations: string[]; // Track the notations of the last darts thrown
-
-  // Get all players (for integration with main store)
+  lastDartNotations: string[];
   getPlayers: () => Player[];
-  // Set players from main store
   setPlayers: (players: Player[]) => void;
 }
 
@@ -208,6 +227,8 @@ export const useX01Store = create<X01StoreState>()(
       gameSettings: {
         isDoubleOut: true,
         isDoubleIn: false,
+        defaultLegs: 3,
+        defaultGameType: "501",
       },
       updateGameSettings: (settings) =>
         set((state) => ({
@@ -215,7 +236,7 @@ export const useX01Store = create<X01StoreState>()(
         })),
 
       currentGame: null,
-      startGame: (gameType, playerIds) => {
+      startGame: (gameType, playerIds, totalLegs, startingPlayerIndex = 0) => {
         // Create a new game with the selected settings
         set((state) => {
           // Find the selected players from the cached players
@@ -226,7 +247,7 @@ export const useX01Store = create<X01StoreState>()(
           // Create game players with the necessary in-game properties
           const gamePlayers: GamePlayer[] = selectedPlayers.map((player) => ({
             ...player,
-            score: parseInt(gameType), // Start with the selected game score
+            score: parseInt(gameType),
             dartsThrown: 0,
             scores: [],
             rounds100Plus: 0,
@@ -238,19 +259,84 @@ export const useX01Store = create<X01StoreState>()(
             avgPerRound: 0,
             initialScore: parseInt(gameType),
             lastRoundScore: 0,
-            dartHits: { ...player.dartHits }, // Copy the player's existing dart hits
+            dartHits: {},
           }));
 
+          // Create positions map based on selection order
+          const playerPositions: Record<number, number> = {};
+          playerIds.forEach((id, index) => {
+            playerPositions[id] = index + 1;
+          });
+
+          const newGame: GameState = {
+            gameType,
+            players: gamePlayers,
+            playerPositions,
+            currentPlayerIndex: startingPlayerIndex,
+            isDoubleOut: state.gameSettings.isDoubleOut,
+            isDoubleIn: state.gameSettings.isDoubleIn,
+            isGameFinished: false,
+            inputMode: "numeric",
+            totalLegs,
+            currentLeg: 1,
+            legsWon: playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}),
+          };
+
+          return { currentGame: newGame };
+        });
+      },
+
+      handleLegWin: (winnerId: number) => {
+        set((state) => {
+          if (!state.currentGame) return state;
+
+          const currentGame = state.currentGame;
+          const updatedLegsWon = { ...currentGame.legsWon };
+          updatedLegsWon[winnerId] = (updatedLegsWon[winnerId] || 0) + 1;
+
+          // Check if the player has won enough legs to win the match
+          const isMatchWinner =
+            updatedLegsWon[winnerId] > currentGame.totalLegs / 2;
+
+          if (isMatchWinner) {
+            return {
+              currentGame: {
+                ...currentGame,
+                isGameFinished: true,
+                legsWon: updatedLegsWon,
+              },
+            };
+          }
+
+          // Reset players for the next leg
+          const resetPlayers = currentGame.players.map((player) => ({
+            ...player,
+            score: parseInt(currentGame.gameType),
+            dartsThrown: 0,
+            scores: [],
+            rounds100Plus: 0,
+            rounds140Plus: 0,
+            rounds180: 0,
+            checkoutAttempts: 0,
+            checkoutSuccess: 0,
+            avgPerDart: 0,
+            avgPerRound: 0,
+            initialScore: parseInt(currentGame.gameType),
+            lastRoundScore: 0,
+            dartHits: {},
+          }));
+
+          // Determine the starting player for the next leg
+          const nextLeg = currentGame.currentLeg + 1;
+          const nextStartingPlayerIndex = nextLeg % currentGame.players.length;
+
           return {
-            ...state,
             currentGame: {
-              gameType,
-              players: gamePlayers,
-              currentPlayerIndex: 0,
-              isDoubleOut: get().gameSettings.isDoubleOut,
-              isDoubleIn: get().gameSettings.isDoubleIn,
-              isGameFinished: false,
-              inputMode: "numeric",
+              ...currentGame,
+              players: resetPlayers,
+              currentPlayerIndex: nextStartingPlayerIndex,
+              currentLeg: nextLeg,
+              legsWon: updatedLegsWon,
             },
           };
         });
@@ -271,29 +357,33 @@ export const useX01Store = create<X01StoreState>()(
       // Improved recordScore function with correct average calculations
       recordScore: (score, dartsUsed, lastDartMultiplier) => {
         try {
-          // Add debounce to prevent duplicate score registrations
           const now = Date.now();
           if (now - lastScoreTimestamp < DEBOUNCE_DELAY) {
             console.log("Prevented duplicate score registration");
-            return; // Ignore rapid repeated calls
+            return;
           }
           lastScoreTimestamp = now;
 
-          // Get the lastDartNotations from state for use in the setter function
           const currentNotations = get().lastDartNotations;
-          console.log(
-            "RECORDING SCORE - Current notations in store:",
-            currentNotations
-          );
 
           set((state) => {
-            // Guard clauses
             if (!state.currentGame) return state;
 
-            // Create shallow copies to work with
             const newGame = { ...state.currentGame };
             const players = [...newGame.players];
-            const playerIndex = newGame.currentPlayerIndex;
+
+            // Find current player by position
+            const currentPosition = newGame.currentPlayerIndex + 1;
+            const currentPlayerId = Object.entries(
+              newGame.playerPositions
+            ).find(([_, pos]) => pos === currentPosition)?.[0];
+            if (!currentPlayerId) return state;
+
+            const playerIndex = players.findIndex(
+              (p) => p.id === parseInt(currentPlayerId)
+            );
+            if (playerIndex === -1) return state;
+
             const player = { ...players[playerIndex] };
 
             // Clone dartHits object to avoid reference issues
@@ -301,6 +391,35 @@ export const useX01Store = create<X01StoreState>()(
 
             // Simple score calculation
             const newPlayerScore = player.score - score;
+
+            // Check if this is the player's first score and double-in is required
+            const isFirstScore = player.scores.length === 0;
+            if (
+              isFirstScore &&
+              newGame.isDoubleIn &&
+              lastDartMultiplier !== 2
+            ) {
+              // If double-in is required but the last dart wasn't a double, count as bust
+              player.scores = [
+                ...player.scores,
+                { score: 0, darts: dartsUsed },
+              ];
+              player.dartsThrown += dartsUsed;
+              player.lastRoundScore = 0;
+
+              // Update the player in the array
+              players[playerIndex] = player;
+
+              // Move to the next player using position
+              const nextPosition = (currentPosition % players.length) + 1;
+              newGame.currentPlayerIndex = nextPosition - 1;
+
+              return {
+                ...state,
+                currentGame: newGame,
+                lastDartNotations: [], // Reset last dart notations after processing
+              };
+            }
 
             // Check if using dart input and there are notations
             const isDartInput = newGame.inputMode === "dart";
@@ -404,10 +523,9 @@ export const useX01Store = create<X01StoreState>()(
               // Update the player in the array
               players[playerIndex] = player;
 
-              // Move to the next player
-              const nextPlayerIndex = (playerIndex + 1) % players.length;
-              newGame.players = players;
-              newGame.currentPlayerIndex = nextPlayerIndex;
+              // Move to the next player using position
+              const nextPosition = (currentPosition % players.length) + 1;
+              newGame.currentPlayerIndex = nextPosition - 1;
 
               return {
                 ...state,
@@ -439,13 +557,29 @@ export const useX01Store = create<X01StoreState>()(
             // Update the player in the array
             players[playerIndex] = player;
 
-            // Move to the next player
-            const nextPlayerIndex = (playerIndex + 1) % players.length;
+            // Move to the next player using position
+            const nextPosition = (currentPosition % players.length) + 1;
+            newGame.currentPlayerIndex = nextPosition - 1;
 
             // Update the game
             newGame.players = players;
-            newGame.currentPlayerIndex = nextPlayerIndex;
-            newGame.isGameFinished = hasWon; // Set game finished if player has won
+
+            // Instead of setting isGameFinished directly, call handleLegWin if the player has won the leg
+            if (hasWon) {
+              // Return the updated state first
+              const updatedState = {
+                ...state,
+                currentGame: newGame,
+                lastDartNotations: [], // Reset last dart notations after processing
+              };
+
+              // Then call handleLegWin after this state update is complete
+              setTimeout(() => {
+                get().handleLegWin(player.id);
+              }, 0);
+
+              return updatedState;
+            }
 
             return {
               ...state,
@@ -463,18 +597,27 @@ export const useX01Store = create<X01StoreState>()(
       undoLastScore: () => {
         try {
           set((state) => {
-            // Guard clauses
             if (!state.currentGame) return state;
 
-            // Calculate previous player index
-            const prevPlayerIndex =
-              state.currentGame.currentPlayerIndex === 0
-                ? state.currentGame.players.length - 1
-                : state.currentGame.currentPlayerIndex - 1;
-
-            // Create shallow copies to work with
             const newGame = { ...state.currentGame };
             const players = [...newGame.players];
+
+            // Calculate previous player position
+            const currentPosition = newGame.currentPlayerIndex + 1;
+            const prevPosition =
+              currentPosition === 1 ? players.length : currentPosition - 1;
+
+            // Find previous player by position
+            const prevPlayerId = Object.entries(newGame.playerPositions).find(
+              ([_, pos]) => pos === prevPosition
+            )?.[0];
+            if (!prevPlayerId) return state;
+
+            const prevPlayerIndex = players.findIndex(
+              (p) => p.id === parseInt(prevPlayerId)
+            );
+            if (prevPlayerIndex === -1) return state;
+
             const player = { ...players[prevPlayerIndex] };
 
             // Check if there are scores to undo
@@ -525,7 +668,7 @@ export const useX01Store = create<X01StoreState>()(
 
             // Update the game
             newGame.players = players;
-            newGame.currentPlayerIndex = prevPlayerIndex;
+            newGame.currentPlayerIndex = prevPosition - 1;
             newGame.isGameFinished = false; // Reset game finished status
 
             return {
@@ -794,7 +937,6 @@ export const useX01Store = create<X01StoreState>()(
       name: "wedart-x01-storage",
       version: 1,
       partialize: (state) => ({
-        // Only persist these items from the state
         gameSettings: state.gameSettings,
         currentGame: state.currentGame,
         lastDartNotations: state.lastDartNotations,

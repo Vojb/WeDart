@@ -13,6 +13,8 @@ import Cricket from "./pages/Cricket";
 import CricketGame from "./pages/CricketGame";
 import HalfIt from "./pages/HalfIt";
 import HalfItGame from "./pages/HalfItGame";
+import ProgressiveFinish from "./pages/ProgressiveFinish";
+import ProgressiveFinishGame from "./pages/ProgressiveFinishGame";
 import { Box } from "@mui/material";
 
 // Create a layout route component that applies the layout to all children
@@ -58,6 +60,10 @@ export const router = createHashRouter([
       {
         path: "halfit",
         element: <HalfIt />,
+      },
+      {
+        path: "progressive-finish",
+        element: <ProgressiveFinish />,
       },
       {
         path: "history",
@@ -109,6 +115,16 @@ export const router = createHashRouter([
       {
         index: true,
         element: <HalfItGame />,
+      },
+    ],
+  },
+  {
+    path: "/progressive-finish/game",
+    element: <GameLayoutRoute />,
+    children: [
+      {
+        index: true,
+        element: <ProgressiveFinishGame />,
       },
     ],
   },

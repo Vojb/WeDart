@@ -17,6 +17,8 @@ import {
   Chip,
   Button,
   DialogContentText,
+  Card,
+  CardContent,
 } from "@mui/material";
 import {
   Calculate,
@@ -26,10 +28,12 @@ import {
   ExitToApp,
   ArrowBack,
   Mic,
+  TrendingUp,
+  Timer,
 } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
-import { useX01Store } from "../store/useX01Store";
+import { useProgressiveFinishStore } from "../store/useProgressiveFinishStore";
 import { useHistoryStore } from "../store/useHistoryStore";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate, useBlocker, BlockerFunction } from "react-router-dom";
@@ -37,44 +41,12 @@ import { alpha } from "@mui/material/styles";
 import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
-import checkoutGuide from "../utils/checkoutGuide";
 import VibrationButton from "../components/VibrationButton";
 import VoiceInput from "../components/VoiceInput";
 
 type InputMode = "numeric" | "board" | "voice";
 
-interface GameState {
-  gameType: "301" | "501" | "701";
-  players: GamePlayer[];
-  currentPlayerIndex: number;
-  isDoubleOut: boolean;
-  isDoubleIn: boolean;
-  isGameFinished: boolean;
-  inputMode: "numeric" | "dart";
-  totalLegs: number;
-  currentLeg: number;
-  legsWon: Record<number, number>;
-}
-
-interface GamePlayer {
-  id: number;
-  name: string;
-  score: number;
-  dartsThrown: number;
-  scores: { score: number; darts: number }[];
-  rounds100Plus: number;
-  rounds140Plus: number;
-  rounds180: number;
-  checkoutAttempts: number;
-  checkoutSuccess: number;
-  avgPerDart: number;
-  avgPerRound: number;
-  initialScore: number;
-  lastRoundScore: number;
-  legsWon?: number;
-}
-
-const X01Game: React.FC = () => {
+const ProgressiveFinishGame: React.FC = () => {
   const navigate = useNavigate();
   const { players } = useStore();
   const {
@@ -85,10 +57,9 @@ const X01Game: React.FC = () => {
     startGame,
     setInputMode: setStoreInputMode,
     setPlayers,
-  } = useX01Store();
+  } = useProgressiveFinishStore();
   const { addCompletedGame } = useHistoryStore();
   const [inputMode, setInputMode] = useState<InputMode>("numeric");
-  const [showRoundAvg, setShowRoundAvg] = useState(false);
 
   // Get microphone permission status from store
   const { permissionSettings } = useStore();
@@ -104,11 +75,8 @@ const X01Game: React.FC = () => {
   const gameStartTimeRef = useRef<number>(Date.now());
   // Track if game is saved to history
   const gameSavedToHistoryRef = useRef<boolean>(false);
-  // Add new state for leg won dialog
-  const [legWonDialogOpen, setLegWonDialogOpen] = useState(false);
-  const [legWinner, setLegWinner] = useState<GamePlayer | null>(null);
 
-  // Update cached players in X01Store
+  // Update cached players in ProgressiveFinishStore
   useEffect(() => {
     setPlayers(players);
   }, [players, setPlayers]);
@@ -145,7 +113,7 @@ const X01Game: React.FC = () => {
 
   useEffect(() => {
     if (!currentGame) {
-      navigate("/x01");
+      navigate("/progressive-finish");
     } else if (currentGame.isGameFinished && !dialogOpen) {
       // Open dialog when game is finished
       setDialogOpen(true);
@@ -170,50 +138,33 @@ const X01Game: React.FC = () => {
   const saveGameToHistory = () => {
     if (!currentGame || !currentGame.isGameFinished) return;
 
-    // Find the winner (player with score of exactly 0)
-    const winner = currentGame.players.find((p) => p.score === 0);
-
     // Calculate game duration in seconds
     const gameDuration = Math.floor(
       (Date.now() - gameStartTimeRef.current) / 1000
     );
 
-    // Create the X01CompletedGame object
+    // Create the ProgressiveFinishCompletedGame object
     const completedGame = {
       id: uuidv4(),
-      gameType: currentGame.gameType,
+      gameType: "progressive-finish" as const,
       timestamp: Date.now(),
-      isDoubleOut: currentGame.isDoubleOut,
-      isDoubleIn: currentGame.isDoubleIn,
       duration: gameDuration,
-      winnerId: winner ? winner.id : null,
-      players: currentGame.players.map((player) => {
-        const initialScore = player.initialScore;
-        const pointsScored = initialScore - player.score;
-
-        return {
-          id: player.id,
-          name: player.name,
-          initialScore: player.initialScore,
-          finalScore: player.score,
-          dartsThrown: player.dartsThrown,
-          rounds100Plus: player.rounds100Plus,
-          rounds140Plus: player.rounds140Plus,
-          rounds180: player.rounds180,
-          checkoutSuccess: player.checkoutSuccess,
-          checkoutAttempts: player.checkoutAttempts,
-          avgPerDart:
-            player.dartsThrown > 0 ? pointsScored / player.dartsThrown : 0,
-          avgPerRound:
-            player.dartsThrown > 0
-              ? pointsScored / Math.ceil(player.dartsThrown / 3)
-              : 0,
-          scores: player.scores.map((score) => ({
-            score: score.score,
-            darts: score.darts,
-          })),
-        };
-      }),
+      winnerId: null, // Progressive Finish doesn't have a single winner
+      highestLevelReached: currentGame.highestLevelReached,
+      players: currentGame.players.map((player) => ({
+        id: player.id,
+        name: player.name,
+        dartsThrown: player.dartsThrown,
+        avgPerDart: player.avgPerDart,
+        levelsCompleted: player.levelsCompleted,
+        totalDartsUsed: player.totalDartsUsed,
+        avgPerLevel: player.avgPerLevel,
+        scores: player.scores.map((score) => ({
+          score: score.score,
+          darts: score.darts,
+          level: score.level,
+        })),
+      })),
     };
 
     // Add the completed game to history
@@ -273,36 +224,15 @@ const X01Game: React.FC = () => {
         newMode === "numeric" ? "numeric" : "dart";
 
       // Use setInputMode method from the store
-      useX01Store.getState().setInputMode(storeMode);
-      console.log("X01Game: Updated store inputMode to", storeMode);
+      useProgressiveFinishStore.getState().setInputMode(storeMode);
+      console.log(
+        "ProgressiveFinishGame: Updated store inputMode to",
+        storeMode
+      );
     }
   };
 
   if (!currentGame) return null;
-
-  // Find the winner (player with score of exactly 0)
-  const winner = currentGame.players.find((p) => p.score === 0);
-
-  // Calculate stats for all players
-  const playerStats = currentGame.players.map((player) => {
-    const initialScore = player.initialScore;
-    const pointsScored = initialScore - player.score;
-    const avgPerDart =
-      player.dartsThrown > 0
-        ? (pointsScored / player.dartsThrown).toFixed(1)
-        : "0.0";
-    const checkoutPercentage =
-      player.checkoutAttempts > 0
-        ? Math.round((player.checkoutSuccess / player.checkoutAttempts) * 100)
-        : 0;
-
-    return {
-      ...player,
-      avgPerDart,
-      pointsScored,
-      checkoutPercentage,
-    };
-  });
 
   const handleUndo = () => {
     if (currentGame) {
@@ -313,29 +243,8 @@ const X01Game: React.FC = () => {
   const handleNewGame = () => {
     // Start a new game with the same players and settings
     const playerIds = currentGame.players.map((player) => player.id);
-    startGame(currentGame.gameType, playerIds, currentGame.totalLegs);
+    startGame(playerIds);
     setDialogOpen(false);
-  };
-
-  const handleLegWin = (winnerId: number) => {
-    if (!currentGame) return;
-
-    // Find the winning player
-    const winner = currentGame.players.find((p) => p.id === winnerId);
-    if (winner) {
-      setLegWinner(winner);
-      setLegWonDialogOpen(true);
-    }
-
-    // Use the store's handleLegWin function directly
-    useX01Store.getState().handleLegWin(winnerId);
-
-    // Check if the game is finished after handling the leg win
-    const updatedGame = useX01Store.getState().currentGame;
-    if (updatedGame && updatedGame.isGameFinished) {
-      saveGameToHistory();
-      setDialogOpen(true);
-    }
   };
 
   const handleReturnToSetup = () => {
@@ -363,34 +272,11 @@ const X01Game: React.FC = () => {
     lastDartMultiplier?: number
   ) => {
     if (currentGame && !currentGame.isGameFinished) {
-      const player = currentGame.players[currentGame.currentPlayerIndex];
-      const remainingAfterScore = player.score - score;
-
-      // When using voice input, always ensure lastDartMultiplier is 2 if it's a potential winning score
-      if (
-        inputMode === "voice" &&
-        remainingAfterScore === 0 &&
-        (!lastDartMultiplier || lastDartMultiplier !== 2)
-      ) {
-        lastDartMultiplier = 2;
-      }
-
-      // For numeric input, always set lastDartMultiplier to 2 for checkouts to bypass double out check
-      if (
-        inputMode === "numeric" &&
-        remainingAfterScore === 0 &&
-        currentGame.isDoubleOut
-      ) {
-        lastDartMultiplier = 2;
-      }
-
       // Record the score
       recordScore(score, darts, lastDartMultiplier);
 
-      // We no longer need to check for leg win here as it's handled in the store
-      // The store will call handleLegWin when a player reaches 0
-      // We just need to check if the game is finished after the score is recorded
-      const updatedGame = useX01Store.getState().currentGame;
+      // Check if the game is finished after the score is recorded
+      const updatedGame = useProgressiveFinishStore.getState().currentGame;
       if (updatedGame && updatedGame.isGameFinished) {
         saveGameToHistory();
         setDialogOpen(true);
@@ -411,28 +297,52 @@ const X01Game: React.FC = () => {
               color="text.secondary"
               align="center"
             >
-              {currentGame.gameType} - Leg {currentGame.currentLeg} of{" "}
-              {currentGame.totalLegs}
+              Level {currentGame.currentLevel}
             </Typography>
-            <Typography variant="caption" color="text.secondary" align="center">
-              Starting Player:{" "}
-              {currentGame.players[currentGame.currentPlayerIndex].name}
-            </Typography>
-            {/* Legs Won Display */}
-            <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
-              {currentGame.players.map((player) => (
-                <Chip
-                  key={player.id}
-                  label={`${player.name}`}
-                  color={
-                    currentGame.currentPlayerIndex ===
-                    currentGame.players.indexOf(player)
-                      ? "primary"
-                      : "default"
-                  }
-                  size="small"
-                />
-              ))}
+
+            {/* Remaining Score - Big Display */}
+            <Box sx={{ textAlign: "center", my: 2 }}>
+              <Typography
+                variant="h1"
+                sx={{
+                  fontWeight: "bold",
+                  fontSize: { xs: "4rem", sm: "6rem" },
+                  lineHeight: 1,
+                  color: "primary.main",
+                }}
+              >
+                {currentGame.remainingScore}
+              </Typography>
+              <Typography variant="h6" color="text.secondary" sx={{ mt: 1 }}>
+                {currentGame.remainingScore === currentGame.targetScore
+                  ? "Target Score"
+                  : "Remaining"}
+              </Typography>
+            </Box>
+
+            {/* Current Player and Status */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 2,
+                flexWrap: "wrap",
+              }}
+            >
+              <Chip
+                label={`Darts Left: ${currentGame.remainingDarts}`}
+                color={currentGame.remainingDarts <= 2 ? "warning" : "default"}
+                size="small"
+              />
+              <Chip
+                label={`Failures: ${currentGame.failures}/${currentGame.maxFailures}`}
+                color={
+                  currentGame.failures >= currentGame.maxFailures - 1
+                    ? "error"
+                    : "default"
+                }
+                size="small"
+              />
             </Box>
           </Stack>
         </Box>
@@ -454,24 +364,15 @@ const X01Game: React.FC = () => {
               minWidth: "fit-content",
             }}
           >
-            {currentGame.players
-              .slice()
-              .sort(
-                (a, b) =>
-                  (currentGame.playerPositions[a.id] || 0) -
-                  (currentGame.playerPositions[b.id] || 0)
-              )
-              .map((player, index) => (
-                <PlayerBox
-                  key={player.id}
-                  player={player}
-                  index={index}
-                  isCurrentPlayer={currentGame.currentPlayerIndex === index}
-                  showRoundAvg={showRoundAvg}
-                  onToggleAvgView={() => setShowRoundAvg(!showRoundAvg)}
-                  legsWon={currentGame.legsWon[player.id] || 0}
-                />
-              ))}
+            {currentGame.players.map((player, index) => (
+              <PlayerBox
+                key={player.id}
+                player={player}
+                index={index}
+                isCurrentPlayer={currentGame.currentPlayerIndex === index}
+                currentLevel={currentGame.currentLevel}
+              />
+            ))}
           </Box>
         </Box>
 
@@ -488,14 +389,8 @@ const X01Game: React.FC = () => {
             {inputMode === "numeric" ? (
               <NumericInput
                 onScore={handleScore}
-                currentPlayerScore={
-                  currentGame?.players.find(
-                    (p) =>
-                      currentGame.playerPositions[p.id] - 1 ===
-                      currentGame.currentPlayerIndex
-                  )?.score
-                }
-                doubleOutRequired={currentGame.isDoubleOut}
+                currentPlayerScore={currentGame.remainingScore}
+                doubleOutRequired={false}
               />
             ) : inputMode === "board" ? (
               <DartInputErrorBoundary>
@@ -572,20 +467,19 @@ const X01Game: React.FC = () => {
           Game Finished!
         </DialogTitle>
         <DialogContent>
-          {winner && (
-            <Typography variant="h5" color="primary" gutterBottom>
-              {winner.name} won the match!
-            </Typography>
-          )}
-          <Typography variant="body1" gutterBottom>
-            Final Score:
+          <Typography variant="h5" color="primary" gutterBottom>
+            Highest Level Reached: {currentGame.highestLevelReached}
           </Typography>
-          {playerStats.map((player) => (
+          <Typography variant="body1" gutterBottom>
+            Final Results:
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            Team Performance:
+          </Typography>
+          {currentGame.players.map((player) => (
             <Typography key={player.id} variant="body2">
-              {player.name}: {player.pointsScored} points (Avg:{" "}
-              {player.avgPerDart})
-              {currentGame.legsWon[player.id] > 0 &&
-                ` - ${currentGame.legsWon[player.id]} legs won`}
+              {player.name}: {player.dartsThrown} darts (Avg:{" "}
+              {player.avgPerDart.toFixed(1)} per dart)
             </Typography>
           ))}
         </DialogContent>
@@ -617,49 +511,6 @@ const X01Game: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Leg Won Dialog */}
-      <Dialog
-        open={legWonDialogOpen}
-        onClose={() => setLegWonDialogOpen(false)}
-        aria-labelledby="leg-won-dialog-title"
-      >
-        <DialogTitle id="leg-won-dialog-title">Leg Complete!</DialogTitle>
-        <DialogContent>
-          {legWinner && (
-            <>
-              <Typography variant="h6" color="primary" gutterBottom>
-                {legWinner.name} won the leg!
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                Current Legs Won:
-              </Typography>
-              {currentGame.players.map((player) => (
-                <Typography key={player.id} variant="body2">
-                  {player.name}: {currentGame.legsWon[player.id] || 0} legs
-                </Typography>
-              ))}
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mt: 2, display: "block" }}
-              >
-                First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
-                match
-              </Typography>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setLegWonDialogOpen(false)}
-            variant="contained"
-            color="primary"
-          >
-            Continue
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
@@ -669,32 +520,13 @@ function PlayerBox({
   player,
   index,
   isCurrentPlayer,
-  showRoundAvg,
-  onToggleAvgView,
-  legsWon,
+  currentLevel,
 }: {
   player: any;
   index: number;
   isCurrentPlayer: boolean;
-  showRoundAvg: boolean;
-  onToggleAvgView: () => void;
-  legsWon: number;
+  currentLevel: number;
 }) {
-  // Calculate player-specific averages
-  const playerInitialScore = player.initialScore;
-  const playerPointsScored = playerInitialScore - player.score;
-  const playerDartsThrown = player.dartsThrown || 1; // Avoid division by zero
-  const playerRoundsPlayed = Math.ceil(playerDartsThrown / 3);
-
-  const playerAvgPerDart = (playerPointsScored / playerDartsThrown).toFixed(1);
-  const playerAvgPerRound = (
-    playerPointsScored / playerRoundsPlayed || 0
-  ).toFixed(1);
-
-  // Check if we need to display checkout guide (score below 170)
-  const showCheckoutGuide = player.score <= 170 && player.score > 1;
-  const checkoutPath = showCheckoutGuide ? checkoutGuide[player.score] : null;
-
   return (
     <Paper
       sx={{
@@ -727,72 +559,44 @@ function PlayerBox({
             alignItems: "center",
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: "bold",
-                color: "primary.main",
-                fontSize: { xs: "0.8rem", sm: "1rem" },
-              }}
-            >
-              {legsWon}
-            </Typography>
-            <Typography
-              variant="body1"
-              noWrap
-              sx={{ fontSize: { xs: "0.8rem", sm: "1rem" } }}
-            >
-              {player.name}
-            </Typography>
-          </Box>
-          {player.lastRoundScore === 0 && player.scores.length > 0 ? (
-            <Typography
-              variant="body2"
-              sx={{
-                opacity: 0.3,
-                color: "error.main",
-                position: "absolute",
-                top: 4,
-                right: 8,
-                fontWeight: "bold",
-                fontSize: { xs: "0.7rem", sm: "0.875rem" },
-              }}
-            >
-              Bust
-            </Typography>
-          ) : player.lastRoundScore > 0 ? (
-            <Typography
-              variant="body2"
-              sx={{
-                opacity: 0.3,
-                color: "text.secondary",
-                fontSize: { xs: "0.7rem", sm: "0.875rem" },
-              }}
-            >
-              {player.lastRoundScore}
-            </Typography>
-          ) : null}
+          <Typography
+            variant="body1"
+            noWrap
+            sx={{ fontSize: { xs: "0.8rem", sm: "1rem" } }}
+          >
+            {player.name}
+          </Typography>
         </Box>
 
-        {/* Player's current score */}
+        {/* Player's current stats */}
         <Box
           sx={{
             display: "flex",
-            flexDirection: "row",
+            flexDirection: "column",
             justifyContent: "center",
             mt: 1,
+            gap: 0.5,
           }}
         >
           <Typography
-            variant="h4"
+            variant="h6"
             sx={{
               fontWeight: 500,
-              fontSize: { xs: "1.8rem", sm: "2.125rem" },
+              fontSize: { xs: "1.2rem", sm: "1.5rem" },
               lineHeight: 1.1,
+              textAlign: "center",
             }}
           >
-            {player.score}
+            {player.dartsThrown}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              textAlign: "center",
+              fontSize: { xs: "0.6rem", sm: "0.75rem" },
+            }}
+          >
+            Darts
           </Typography>
         </Box>
 
@@ -807,12 +611,10 @@ function PlayerBox({
           <Typography
             variant="caption"
             sx={{
-              cursor: "pointer",
               fontSize: { xs: "0.65rem", sm: "0.75rem" },
             }}
-            onClick={onToggleAvgView}
           >
-            Avg: {showRoundAvg ? playerAvgPerRound : playerAvgPerDart}
+            Avg: {player.avgPerDart.toFixed(1)}
           </Typography>
           <Typography
             variant="caption"
@@ -821,39 +623,9 @@ function PlayerBox({
             Darts: {player.dartsThrown}
           </Typography>
         </Box>
-        {showCheckoutGuide && checkoutPath && (
-          <Box
-            sx={{
-              p: { xs: 0.5, sm: 0.75 },
-              borderRadius: 1,
-              backgroundColor: (theme) =>
-                theme.palette.mode === "dark"
-                  ? alpha(theme.palette.success.main, 0.2)
-                  : alpha(theme.palette.success.main, 0.1),
-              border: "1px solid",
-              borderColor: "success.main",
-              mt: { xs: 0.5, sm: 0.75 },
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: "bold",
-                lineHeight: 1.2,
-                fontSize: { xs: "0.7rem", sm: "0.875rem" },
-                color: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? theme.palette.success.light
-                    : theme.palette.success.dark,
-              }}
-            >
-              {checkoutPath}
-            </Typography>
-          </Box>
-        )}
       </Box>
     </Paper>
   );
 }
 
-export default X01Game;
+export default ProgressiveFinishGame;

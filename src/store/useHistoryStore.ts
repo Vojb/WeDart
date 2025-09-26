@@ -2,7 +2,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 // Define game types enum
-export type GameType = "301" | "501" | "701" | "cricket" | "split";
+export type GameType =
+  | "301"
+  | "501"
+  | "701"
+  | "cricket"
+  | "split"
+  | "progressive-finish";
 
 // Define the base completed game interface with common properties
 export interface BaseCompletedGame {
@@ -82,11 +88,32 @@ export interface SplitCompletedGamePlayer extends BaseCompletedGamePlayer {
   }[];
 }
 
+// Progressive Finish specific game properties
+export interface ProgressiveFinishCompletedGame extends BaseCompletedGame {
+  gameType: "progressive-finish";
+  highestLevelReached: number;
+  players: ProgressiveFinishCompletedGamePlayer[];
+}
+
+// Progressive Finish player stats
+export interface ProgressiveFinishCompletedGamePlayer
+  extends BaseCompletedGamePlayer {
+  levelsCompleted: number;
+  totalDartsUsed: number;
+  avgPerLevel: number;
+  scores: {
+    score: number;
+    darts: number;
+    level: number;
+  }[];
+}
+
 // Union type for all game types
 export type CompletedGame =
   | X01CompletedGame
   | CricketCompletedGame
-  | SplitCompletedGame;
+  | SplitCompletedGame
+  | ProgressiveFinishCompletedGame;
 
 // Type guard functions to check game types
 export function isX01Game(game: CompletedGame): game is X01CompletedGame {
@@ -105,6 +132,12 @@ export function isCricketGame(
 
 export function isSplitGame(game: CompletedGame): game is SplitCompletedGame {
   return game.gameType === "split";
+}
+
+export function isProgressiveFinishGame(
+  game: CompletedGame
+): game is ProgressiveFinishCompletedGame {
+  return game.gameType === "progressive-finish";
 }
 
 interface HistoryState {

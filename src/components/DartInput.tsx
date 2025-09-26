@@ -51,10 +51,11 @@ const DartIndicators = ({
       id: number;
       name: string;
       score: number;
-      // Other player properties
+      scores: Array<{ score: number; darts: number }>;
     }>;
     currentPlayerIndex: number;
-    // Other game properties
+    isDoubleIn: boolean;
+    isDoubleOut: boolean;
   };
   onClearDarts: () => void;
   onSubmitDarts: () => void;
@@ -65,10 +66,54 @@ const DartIndicators = ({
   // Calculate the total score of all darts
   const totalScore = currentDarts.reduce((sum, dart) => sum + dart.value, 0);
 
+  // Get the current player
+  const currentPlayer = currentGame?.players[currentGame.currentPlayerIndex];
+
   // Calculate the remaining score after the current darts
-  const currentPlayerScore =
-    currentGame?.players[currentGame.currentPlayerIndex]?.score || 0;
+  const currentPlayerScore = currentPlayer?.score || 0;
   const remainingScore = currentPlayerScore - totalScore;
+
+  // Check if this is the first score for the player and if double-in is required
+  const isFirstScore = currentPlayer?.scores.length === 0;
+  const requiresDoubleIn = currentGame.isDoubleIn && isFirstScore;
+  const lastDartIsDouble =
+    currentDarts.length > 0 &&
+    currentDarts[currentDarts.length - 1].multiplier === 2;
+  const isValidDoubleIn = !requiresDoubleIn || lastDartIsDouble;
+
+  // Check double-out requirement
+  const requiresDoubleOut = currentGame.isDoubleOut && remainingScore <= 170;
+  const isValidDoubleOut =
+    !requiresDoubleOut ||
+    (remainingScore === 0 && lastDartIsDouble) ||
+    remainingScore > 0;
+
+  // Determine if the score is valid
+  const isValidScore =
+    isValidDoubleIn &&
+    isValidDoubleOut &&
+    remainingScore >= 0 &&
+    remainingScore !== 1;
+
+  // Determine the error message
+  const getErrorMessage = () => {
+    if (requiresDoubleIn && !lastDartIsDouble && currentDarts.length > 0) {
+      return "Must start with double";
+    }
+    if (remainingScore < 0) {
+      return "Bust";
+    }
+    if (remainingScore === 1) {
+      return "Bust";
+    }
+    if (currentGame.isDoubleOut && remainingScore === 0 && !lastDartIsDouble) {
+      return "Must finish with double";
+    }
+    if (currentGame.isDoubleOut && remainingScore === 0) {
+      return "Game Shot!";
+    }
+    return `To go: ${remainingScore}`;
+  };
 
   return (
     <Box
@@ -101,18 +146,9 @@ const DartIndicators = ({
         </Typography>
         <Typography
           variant="body2"
-          color={
-            remainingScore < 0 || remainingScore === 1
-              ? "error.main"
-              : "text.secondary"
-          }
+          color={!isValidScore ? "error.main" : "text.secondary"}
         >
-          To go:{" "}
-          {remainingScore > 0
-            ? remainingScore
-            : remainingScore < 0
-            ? "Bust"
-            : "Zero!"}
+          {getErrorMessage()}
         </Typography>
       </Box>
 
@@ -450,13 +486,37 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
         const lastDartMultiplier =
           updatedDarts[updatedDarts.length - 1].multiplier;
 
-        // Log detailed information
-        console.log(
-          `Auto-submitting with score: ${totalScore}, darts: ${updatedDarts.length}, last multiplier: ${lastDartMultiplier}`
-        );
+        // Get current player's score
+        if (!currentGame) {
+          console.error("No active game found");
+          return;
+        }
 
-        // Use the onScore prop directly with the calculated values
-        onScore(totalScore, 3, lastDartMultiplier);
+        const currentPlayer =
+          currentGame.players[currentGame.currentPlayerIndex];
+        if (!currentPlayer) {
+          console.error("Current player not found");
+          return;
+        }
+
+        const remainingScore = currentPlayer.score - totalScore;
+
+        // Check if this would be a winning throw and validate double-out
+        if (remainingScore === 0 && currentGame.isDoubleOut) {
+          if (lastDartMultiplier !== 2) {
+            // If trying to finish without a double, record as bust
+            console.log(
+              "Attempted to finish without a double - recording as bust"
+            );
+            onScore(0, updatedDarts.length, lastDartMultiplier);
+          } else {
+            // Valid finish with a double
+            onScore(totalScore, updatedDarts.length, lastDartMultiplier);
+          }
+        } else {
+          // Not a finishing throw or double-out not required
+          onScore(totalScore, updatedDarts.length, lastDartMultiplier);
+        }
 
         // Reset UI state
         setCurrentDarts([]);
@@ -515,19 +575,54 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
         `Current player: ${currentPlayer.name}, Score before: ${currentPlayer.score}`
       );
 
-      // Get the multiplier of the last dart for double-out validation
+      // Get the multiplier of the last dart for double-out/double-in validation
       const lastDartMultiplier =
         currentDarts.length > 0
           ? currentDarts[currentDarts.length - 1].multiplier
           : 1;
 
+      // Check if this is the first score and double-in is required
+      const isFirstScore = currentPlayer.scores.length === 0;
+      const requiresDoubleIn = currentGame.isDoubleIn && isFirstScore;
+
+      // Calculate remaining score
+      const remainingScore = currentPlayer.score - totalScore;
+
+      // Validate double-in requirement
+      if (requiresDoubleIn && lastDartMultiplier !== 2) {
+        console.log("Double-in required but last dart was not a double");
+        onScore(0, currentDarts.length, lastDartMultiplier);
+        setCurrentDarts([]);
+        return;
+      }
+
+      // Validate the score is not a bust
+      if (remainingScore < 0 || remainingScore === 1) {
+        console.log("Score would result in bust");
+        onScore(0, currentDarts.length, lastDartMultiplier);
+        setCurrentDarts([]);
+        return;
+      }
+
+      // Check double-out requirement
+      if (remainingScore === 0 && currentGame.isDoubleOut) {
+        if (lastDartMultiplier !== 2) {
+          // If double-out is required and last dart isn't a double, record it as a bust
+          console.log(
+            "Double-out required but last dart was not a double - recording as bust"
+          );
+          onScore(0, currentDarts.length, lastDartMultiplier);
+          setCurrentDarts([]);
+          return;
+        }
+      }
+
       console.log(
-        `Submitting score: ${totalScore}, Darts used: 3, Last multiplier: ${lastDartMultiplier}`
+        `Submitting score: ${totalScore}, Darts used: ${currentDarts.length}, Last multiplier: ${lastDartMultiplier}`
       );
 
       // Call the onScore callback to update the game state
-      // Always count as 3 darts thrown, regardless of how many were actually entered
-      onScore(totalScore, 3, lastDartMultiplier);
+      onScore(totalScore, currentDarts.length, lastDartMultiplier);
 
       // Reset current darts after submission
       setCurrentDarts([]);

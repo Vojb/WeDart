@@ -31,6 +31,7 @@ interface NumericInputProps {
 const NumericInput: React.FC<NumericInputProps> = ({
   onScore,
   currentPlayerScore,
+  doubleOutRequired,
 }) => {
   const [currentInput, setCurrentInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,12 +114,13 @@ const NumericInput: React.FC<NumericInputProps> = ({
   const handleDartCountSelection = (dartCount: number) => {
     const score = parseInt(currentInput) || 0;
 
-    // No double out validation for numeric input
+    // For numeric input, we don't need to check for double out
+    // This is handled in the X01Game component
     setIsSubmitting(true);
 
     // Add a small delay to show the submission state
     setTimeout(() => {
-      onScore(score, dartCount, 1); // Always use multiplier 1 for numeric input
+      onScore(score, dartCount, 1);
       setCurrentInput("");
       setIsSubmitting(false);
       setDartCountDialogOpen(false);
@@ -276,7 +278,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
           }}
         >
           {/* Number buttons */}
-          {[7, 8, 9, 4, 5, 6, 1, 2, 3].map((num) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <Grid item xs={4} key={num} sx={{ height: "25%" }}>
               <VibrationButton
                 fullWidth
