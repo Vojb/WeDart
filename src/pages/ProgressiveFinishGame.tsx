@@ -272,8 +272,16 @@ const ProgressiveFinishGame: React.FC = () => {
     lastDartMultiplier?: number
   ) => {
     if (currentGame && !currentGame.isGameFinished) {
-      // Record the score
-      recordScore(score, darts, lastDartMultiplier);
+      // Determine input mode for the store
+      const storeInputMode =
+        inputMode === "voice"
+          ? "voice"
+          : inputMode === "board"
+          ? "dart"
+          : "numeric";
+
+      // Record the score with input mode
+      recordScore(score, darts, lastDartMultiplier, storeInputMode);
 
       // Check if the game is finished after the score is recorded
       const updatedGame = useProgressiveFinishStore.getState().currentGame;
@@ -371,6 +379,8 @@ const ProgressiveFinishGame: React.FC = () => {
                 index={index}
                 isCurrentPlayer={currentGame.currentPlayerIndex === index}
                 currentLevel={currentGame.currentLevel}
+                remainingScore={currentGame.remainingScore}
+                targetScore={currentGame.targetScore}
               />
             ))}
           </Box>
@@ -398,6 +408,17 @@ const ProgressiveFinishGame: React.FC = () => {
                   onScore={(score, dartsUsed, lastDartMultiplier) =>
                     handleScore(score, dartsUsed, lastDartMultiplier)
                   }
+                  gameContext={{
+                    currentPlayerIndex: currentGame.currentPlayerIndex,
+                    players: currentGame.players.map((player) => ({
+                      id: player.id,
+                      name: player.name,
+                      score: currentGame.remainingScore,
+                      scores: player.scores,
+                    })),
+                    isDoubleIn: false,
+                    isDoubleOut: false,
+                  }}
                 />
               </DartInputErrorBoundary>
             ) : (
@@ -521,11 +542,15 @@ function PlayerBox({
   index,
   isCurrentPlayer,
   currentLevel,
+  remainingScore,
+  targetScore,
 }: {
   player: any;
   index: number;
   isCurrentPlayer: boolean;
   currentLevel: number;
+  remainingScore: number;
+  targetScore: number;
 }) {
   return (
     <Paper
@@ -585,9 +610,10 @@ function PlayerBox({
               fontSize: { xs: "1.2rem", sm: "1.5rem" },
               lineHeight: 1.1,
               textAlign: "center",
+              color: isCurrentPlayer ? "primary.main" : "text.primary",
             }}
           >
-            {player.dartsThrown}
+            {remainingScore}
           </Typography>
           <Typography
             variant="caption"
@@ -596,7 +622,7 @@ function PlayerBox({
               fontSize: { xs: "0.6rem", sm: "0.75rem" },
             }}
           >
-            Darts
+            Remaining
           </Typography>
         </Box>
 

@@ -6,6 +6,8 @@ import {
   Paper,
   Popper,
   Chip,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { useState, useRef, useEffect } from "react";
 import { useX01Store } from "../store/useX01Store";
@@ -22,6 +24,17 @@ interface DartInputProps {
     dartsUsed: number,
     lastDartMultiplier: Multiplier
   ) => void;
+  gameContext?: {
+    currentPlayerIndex: number;
+    players: Array<{
+      id: number;
+      name: string;
+      score: number;
+      scores: Array<{ score: number; darts: number }>;
+    }>;
+    isDoubleIn: boolean;
+    isDoubleOut: boolean;
+  };
 }
 
 export type Multiplier = 1 | 2 | 3;
@@ -46,7 +59,7 @@ const DartIndicators = ({
   currentDarts: DartScore[];
   lastDartNotation: string | null;
   currentGame: {
-    gameType: "301" | "501" | "701";
+    gameType?: "301" | "501" | "701";
     players: Array<{
       id: number;
       name: string;
@@ -54,8 +67,8 @@ const DartIndicators = ({
       scores: Array<{ score: number; darts: number }>;
     }>;
     currentPlayerIndex: number;
-    isDoubleIn: boolean;
-    isDoubleOut: boolean;
+    isDoubleIn?: boolean;
+    isDoubleOut?: boolean;
   };
   onClearDarts: () => void;
   onSubmitDarts: () => void;
@@ -296,10 +309,13 @@ const DartIndicators = ({
   );
 };
 
-const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
+const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
   console.log("DartInput component rendering");
 
-  const { currentGame, lastDartNotations } = useX01Store();
+  const { currentGame: x01Game, lastDartNotations } = useX01Store();
+
+  // Use provided gameContext or fall back to X01 store
+  const currentGame = gameContext || x01Game;
 
   console.log("Current game from store:", currentGame);
   console.log("Is mobile device:", isMobile);
@@ -317,6 +333,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
   );
   // Add state to track the last dart notation
   const [lastDartNotation, setLastDartNotation] = useState<string | null>(null);
+  // Add state for multiplier toggle
+  const [selectedMultiplier, setSelectedMultiplier] = useState<Multiplier>(1);
 
   // Add a ref for the countdown interval
   const countdownIntervalRef = useRef<number | null>(null);
@@ -353,36 +371,12 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
     event.preventDefault();
     if (currentDarts.length >= 3) return;
 
-    // If clicking a new number while multiplier is shown, clear the previous state
-    if (showMultiplier && selectedNumber !== number) {
-      setShowMultiplier(false);
-      setAnchorEl(null);
-      setSelectedNumber(null);
-    }
-
-    const element = event.currentTarget as HTMLElement;
-    setSelectedNumber(number);
-    setAnchorEl(element);
-    setIsHolding(true);
-
-    pressTimer.current = window.setTimeout(() => {
-      setShowMultiplier(true);
-    }, 500);
+    // Use the selected multiplier directly
+    recordDart(number, selectedMultiplier, true);
   };
 
   const handleEnd = () => {
-    if (pressTimer.current) {
-      window.clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-
-    // Only register single score if not showing multiplier
-    if (selectedNumber !== null && currentDarts.length < 3 && !showMultiplier) {
-      recordDart(selectedNumber, 1, false);
-      setSelectedNumber(null);
-    }
-
-    setIsHolding(false);
+    // No longer needed with direct multiplier selection
   };
 
   const handleMultiplierSelect = (multiplier: Multiplier) => {
@@ -626,6 +620,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
 
       // Reset current darts after submission
       setCurrentDarts([]);
+      // Reset multiplier to Single for next turn
+      setSelectedMultiplier(1);
       console.log("Darts submitted and reset");
     } catch (err) {
       console.error("Error submitting darts:", err);
@@ -636,6 +632,8 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
     setCurrentDarts([]);
     // Clear the last dart notation when resetting
     setLastDartNotation(null);
+    // Reset multiplier to Single
+    setSelectedMultiplier(1);
 
     // Clear any auto-submit timer
     if (autoSubmitTimer.current) {
@@ -802,13 +800,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
                   : "contained"
               }
               disabled={currentDarts.length >= 3}
-              onMouseDown={!isMobile ? (e) => handleStart(num, e) : undefined}
-              onMouseUp={!isMobile ? () => handleEnd() : undefined}
-              onMouseLeave={
-                !isMobile ? () => isHolding && handleEnd() : undefined
-              }
-              onTouchStart={isMobile ? (e) => handleStart(num, e) : undefined}
-              onTouchEnd={isMobile ? () => handleEnd() : undefined}
+              onClick={(e) => handleStart(num, e)}
               sx={{
                 height: "100%",
                 width: "100%",
@@ -840,7 +832,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               color="error"
               onClick={() => {
                 if (currentDarts.length < 3) {
-                  recordDart(0, 1, true);
+                  recordDart(0, selectedMultiplier, true);
                 }
               }}
               disabled={isSubmitting || currentDarts.length >= 3}
@@ -867,7 +859,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               variant="contained"
               onClick={() => {
                 if (currentDarts.length < 3) {
-                  recordDart(25, 1, true);
+                  recordDart(25, selectedMultiplier, true);
                 }
               }}
               disabled={isSubmitting || currentDarts.length >= 3}
@@ -891,7 +883,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
               variant="contained"
               onClick={() => {
                 if (currentDarts.length < 3) {
-                  recordDart(25, 2, true);
+                  recordDart(25, selectedMultiplier, true);
                 }
               }}
               disabled={isSubmitting || currentDarts.length >= 3}
@@ -910,6 +902,38 @@ const DartInput: React.FC<DartInputProps> = ({ onScore }) => {
             </VibrationButton>
           </Box>
         </Box>
+      </Box>
+
+      {/* Multiplier Toggle */}
+      <Box
+        sx={{
+          p: 1,
+          borderTop: 1,
+          borderColor: "divider",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <ToggleButtonGroup
+          value={selectedMultiplier}
+          exclusive
+          onChange={(_, newMultiplier) => {
+            if (newMultiplier !== null) {
+              setSelectedMultiplier(newMultiplier);
+            }
+          }}
+          size="small"
+        >
+          <ToggleButton value={1} sx={{ px: 2 }}>
+            Single
+          </ToggleButton>
+          <ToggleButton value={2} sx={{ px: 2 }}>
+            Double
+          </ToggleButton>
+          <ToggleButton value={3} sx={{ px: 2 }}>
+            Triple
+          </ToggleButton>
+        </ToggleButtonGroup>
       </Box>
 
       {/* Multiplier Popper */}
@@ -1004,22 +1028,20 @@ function FrequentDartButtons({
 
   const handleFavoriteDartClick = (notation: string) => {
     console.log(`Favorite dart clicked: ${notation}`);
-    // Process the notation to extract the base number and multiplier
-    let multiplier: Multiplier = 1;
+    // Process the notation to extract the base number
     let baseNumber = 0;
 
     if (notation.startsWith("T")) {
-      multiplier = 3;
       baseNumber = Number(notation.substring(1));
     } else if (notation.startsWith("D")) {
-      multiplier = 2;
       baseNumber = Number(notation.substring(1));
     } else {
       baseNumber = Number(notation);
     }
 
     if (!isNaN(baseNumber) && baseNumber > 0) {
-      recordDart(baseNumber, multiplier, true);
+      // Use the selected multiplier instead of the notation's multiplier
+      recordDart(baseNumber, selectedMultiplier, true);
     } else {
       console.error(`Invalid dart notation: ${notation}`);
     }

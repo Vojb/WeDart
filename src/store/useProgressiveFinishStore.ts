@@ -49,7 +49,8 @@ interface ProgressiveFinishStoreState {
   recordScore: (
     score: number,
     dartsUsed: number,
-    lastDartMultiplier?: number
+    lastDartMultiplier?: number,
+    inputMode?: "numeric" | "dart" | "voice"
   ) => void;
   undoLastScore: () => void;
   endGame: () => void;
@@ -157,7 +158,7 @@ export const useProgressiveFinishStore = create<ProgressiveFinishStoreState>()(
         });
       },
 
-      recordScore: (score, dartsUsed, lastDartMultiplier) => {
+      recordScore: (score, dartsUsed, lastDartMultiplier, inputMode) => {
         set((state) => {
           if (!state.currentGame) return state;
 
@@ -165,11 +166,15 @@ export const useProgressiveFinishStore = create<ProgressiveFinishStoreState>()(
           const players = [...newGame.players];
           const currentPlayer = { ...players[newGame.currentPlayerIndex] };
 
+          // Determine actual darts used based on input mode
+          // Voice, numeric, and dart input all use 3 darts
+          const actualDartsUsed = dartsUsed;
+
           // Record the player's contribution
-          currentPlayer.dartsThrown += dartsUsed;
+          currentPlayer.dartsThrown += actualDartsUsed;
           currentPlayer.scores = [
             ...currentPlayer.scores,
-            { score, darts: dartsUsed, level: newGame.currentLevel },
+            { score, darts: actualDartsUsed, level: newGame.currentLevel },
           ];
 
           // Update averages
@@ -181,7 +186,7 @@ export const useProgressiveFinishStore = create<ProgressiveFinishStoreState>()(
           players[newGame.currentPlayerIndex] = currentPlayer;
 
           // Reduce remaining darts for this target
-          newGame.remainingDarts -= dartsUsed;
+          newGame.remainingDarts -= actualDartsUsed;
 
           // Check if darts have run out (failure condition)
           if (newGame.remainingDarts <= 0) {
@@ -211,7 +216,7 @@ export const useProgressiveFinishStore = create<ProgressiveFinishStoreState>()(
               // All players get credit for the level completion
               players.forEach((player) => {
                 player.levelsCompleted += 1;
-                player.totalDartsUsed += dartsUsed;
+                player.totalDartsUsed += actualDartsUsed; // Add actual darts used for completion
               });
 
               // Move to next level
