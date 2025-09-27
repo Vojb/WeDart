@@ -14,13 +14,7 @@ import {
   Button,
   DialogContentText,
 } from "@mui/material";
-import {
-  Calculate,
-  GridOn,
-  Undo,
-  ArrowBack,
-  Mic,
-} from "@mui/icons-material";
+import { Calculate, GridOn, Undo, ArrowBack, Mic } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
 import { useProgressiveFinishStore } from "../store/useProgressiveFinishStore";
@@ -255,16 +249,12 @@ const ProgressiveFinishGame: React.FC = () => {
     navigate(-1);
   };
 
-
   const handleCancelLeave = () => {
     setLeaveDialogOpen(false);
   };
 
   // Handle recording scores
-  const handleScore = (
-    score: number,
-    darts: number
-  ) => {
+  const handleScore = (score: number, darts: number) => {
     if (currentGame && !currentGame.isGameFinished) {
       // Record the score
       recordScore(score, darts);
@@ -387,9 +377,7 @@ const ProgressiveFinishGame: React.FC = () => {
             ) : inputMode === "board" ? (
               <DartInputErrorBoundary>
                 <DartInput
-                  onScore={(score, dartsUsed) =>
-                    handleScore(score, dartsUsed)
-                  }
+                  onScore={(score, dartsUsed) => handleScore(score, dartsUsed)}
                   gameContext={{
                     currentPlayerIndex: currentGame.currentPlayerIndex,
                     players: currentGame.players.map((player) => ({
@@ -405,9 +393,7 @@ const ProgressiveFinishGame: React.FC = () => {
               </DartInputErrorBoundary>
             ) : (
               <VoiceInput
-                handleScore={(score, darts) =>
-                  handleScore(score, darts)
-                }
+                handleScore={(score, darts) => handleScore(score, darts)}
               />
             )}
           </Box>
