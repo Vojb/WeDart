@@ -3,7 +3,6 @@ import {
   Box,
   Paper,
   Typography,
-  Button,
   IconButton,
   Dialog,
   DialogTitle,
@@ -15,9 +14,6 @@ import {
   ListItemText,
   alpha,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   LinearProgress,
 } from "@mui/material";
 import {
@@ -25,8 +21,6 @@ import {
   EmojiEvents,
   ExitToApp,
   CheckCircle,
-  SportsScore,
-  ExpandMore,
   NavigateNext,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -49,8 +43,8 @@ const CricketGame: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGame, setIsValidGame] = useState(true);
   const [lastClickTime, setLastClickTime] = useState<number>(Date.now());
-  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoAdvanceTimerRef = useRef<number | null>(null);
+  const progressIntervalRef = useRef<number | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const progressStartTimeRef = useRef<number>(Date.now());
 
