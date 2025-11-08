@@ -679,7 +679,6 @@ const CricketGame: React.FC = () => {
           }}
         >
           {cricketNumbers.map((number) => {
-            const currentPlayerTarget = getCurrentPlayerTarget(number);
             const canClick = canClickNumber(number);
             const playerCount = currentGame.players.length;
             const firstHalfCount = Math.ceil(playerCount / 2);
