@@ -121,18 +121,6 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
           >
             {player.name}
           </Typography>
-          <Typography
-            variant="h4"
-            sx={{
-              fontSize: { xs: "1.5rem", sm: "2rem" },
-              fontWeight: 700,
-              color: theme.palette.primary.main,
-              lineHeight: 1,
-              transition: "all 0.3s ease",
-            }}
-          >
-            {player.totalScore}
-          </Typography>
         </Box>
 
         {/* Spacer - Right */}

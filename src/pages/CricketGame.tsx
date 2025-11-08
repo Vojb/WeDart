@@ -1065,137 +1065,156 @@ const CricketGame: React.FC = () => {
                   );
                 })()}
                 </Box>
-
-                {/* Points row below number */}
-                {currentGame?.gameType !== "no-score" && (
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: (() => {
-                        const playerCount = currentGame.players.length;
-                        if (playerCount === 1) return `1fr 60px`;
-                        if (playerCount === 2) {
-                          const firstHalf = Math.ceil(playerCount / 2);
-                          const secondHalf = playerCount - firstHalf;
-                          return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
-                        }
-                        return `repeat(${playerCount}, 1fr) 60px`;
-                      })(),
-                      gap: 0.5,
-                      px: 0.5,
-                      pb: 0.5,
-                    }}
-                  >
-                    {(() => {
-                      const playerCount = currentGame.players.length;
-
-                      // For 1-2 players, split in half with number in middle
-                      if (playerCount <= 2) {
-                        const firstHalfCount = Math.ceil(playerCount / 2);
-                        return (
-                          <>
-                            {/* First half of players - points */}
-                            {currentGame.players.slice(0, firstHalfCount).map((player) => {
-                              const target = player.targets.find((t) => t.number === number);
-                              return (
-                                <Box
-                                  key={`points-${player.id}-${number}`}
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  {target && target.points > 0 && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontWeight: "bold",
-                                        color: "secondary.main",
-                                        fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                      }}
-                                    >
-                                      +{target.points}
-                                    </Typography>
-                                  )}
-                                </Box>
-                              );
-                            })}
-
-                            {/* Empty space for number column */}
-                            <Box />
-
-                            {/* Second half of players - points */}
-                            {currentGame.players.slice(firstHalfCount).map((player) => {
-                              const target = player.targets.find((t) => t.number === number);
-                              return (
-                                <Box
-                                  key={`points-${player.id}-${number}`}
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  {target && target.points > 0 && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontWeight: "bold",
-                                        color: "secondary.main",
-                                        fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                      }}
-                                    >
-                                      +{target.points}
-                                    </Typography>
-                                  )}
-                                </Box>
-                              );
-                            })}
-                          </>
-                        );
-                      }
-
-                      // For 3+ players, all players first, then empty space for number
-                      return (
-                        <>
-                          {currentGame.players.map((player) => {
-                            const target = player.targets.find((t) => t.number === number);
-                            return (
-                              <Box
-                                key={`points-${player.id}-${number}`}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                {target && target.points > 0 && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      fontWeight: "bold",
-                                      color: "secondary.main",
-                                      fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                    }}
-                                  >
-                                    +{target.points}
-                                  </Typography>
-                                )}
-                              </Box>
-                            );
-                          })}
-
-                          {/* Empty space for number column */}
-                          <Box />
-                        </>
-                      );
-                    })()}
-                  </Box>
-                )}
               </Box>
             );
           })}
+
+          {/* Total Score Row - below all numbers */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: (() => {
+                const playerCount = currentGame.players.length;
+                if (playerCount === 1) return `1fr 60px`;
+                if (playerCount === 2) {
+                  const firstHalf = Math.ceil(playerCount / 2);
+                  const secondHalf = playerCount - firstHalf;
+                  return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
+                }
+                return `repeat(${playerCount}, 1fr) 60px`;
+              })(),
+              gap: 0.5,
+              p: 0.5,
+              borderTop: "2px solid",
+              borderColor: "divider",
+              backgroundColor: alpha(theme.palette.primary.main, 0.05),
+            }}
+          >
+            {(() => {
+              const playerCount = currentGame.players.length;
+
+              // For 1-2 players, split in half with label in middle
+              if (playerCount <= 2) {
+                const firstHalfCount = Math.ceil(playerCount / 2);
+                return (
+                  <>
+                    {/* First half of players - total score */}
+                    {currentGame.players.slice(0, firstHalfCount).map((player) => (
+                      <Box
+                        key={`score-${player.id}`}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            color: theme.palette.primary.main,
+                            fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                          }}
+                        >
+                          {player.totalScore}
+                        </Typography>
+                      </Box>
+                    ))}
+
+                    {/* Score label */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: "bold",
+                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                          color: theme.palette.text.secondary,
+                        }}
+                      >
+                        Score
+                      </Typography>
+                    </Box>
+
+                    {/* Second half of players - total score */}
+                    {currentGame.players.slice(firstHalfCount).map((player) => (
+                      <Box
+                        key={`score-${player.id}`}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            color: theme.palette.primary.main,
+                            fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                          }}
+                        >
+                          {player.totalScore}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </>
+                );
+              }
+
+              // For 3+ players, all players first, then label
+              return (
+                <>
+                  {currentGame.players.map((player) => (
+                    <Box
+                      key={`score-${player.id}`}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 700,
+                          color: theme.palette.primary.main,
+                          fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                        }}
+                      >
+                        {player.totalScore}
+                      </Typography>
+                    </Box>
+                  ))}
+
+                  {/* Score label */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: "bold",
+                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        color: theme.palette.text.secondary,
+                      }}
+                    >
+                      Score
+                    </Typography>
+                  </Box>
+                </>
+              );
+            })()}
+          </Box>
         </Box>
 
         {/* Bottom Action Bar - Next Button */}
