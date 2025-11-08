@@ -97,9 +97,7 @@ export const updateCachedPlayers = (
   cachedPlayers = [...players];
 };
 
-// Add this at the top level, outside any function
-let lastHitTimestamp = 0;
-const DEBOUNCE_DELAY = 300; // milliseconds
+// Removed debounce delay to allow rapid clicking
 
 // Create the Cricket store with persistence
 export const useCricketStore = create<CricketStoreState>()(
@@ -177,14 +175,6 @@ export const useCricketStore = create<CricketStoreState>()(
 
       recordHit: (targetNumber, multiplier) => {
         try {
-          // Add debounce to prevent duplicate hit registrations
-          const now = Date.now();
-          if (now - lastHitTimestamp < DEBOUNCE_DELAY) {
-            console.log("Prevented duplicate hit registration");
-            return; // Ignore rapid repeated calls
-          }
-          lastHitTimestamp = now;
-
           set((state) => {
             // Guard clauses
             if (!state.currentGame) return state;

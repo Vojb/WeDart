@@ -27,7 +27,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useCricketStore } from "../store/useCricketStore";
 import VibrationButton from "../components/VibrationButton";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 const CricketGame: React.FC = () => {
   const navigate = useNavigate();
@@ -119,13 +119,33 @@ const CricketGame: React.FC = () => {
     };
   }, [lastClickTime, currentGame, finishTurn]);
 
+  const shape: React.CSSProperties = {
+    strokeWidth: 10,
+    strokeLinecap: "round",
+    fill: "transparent",
+  }
+
+  const draw: Variants = {
+    hidden: { pathLength: 0, opacity: 0 },
+    visible: (i: number) => {
+      const delay = i * 0.5
+      return {
+        pathLength: 1,
+        opacity: 1,
+        transition: {
+          pathLength: { delay, type: "spring", duration: 1.5, bounce: 0 },
+          opacity: { delay, duration: 0.01 },
+        },
+      }
+    },
+  }
   // Reset progress when player changes (new turn starts)
   useEffect(() => {
     if (!currentGame || currentGame.isGameFinished) return;
-    
+
     // Only reset if current round is empty (new turn just started)
     const isNewTurn = currentGame.currentRound && currentGame.currentRound.darts.length === 0;
-    
+
     if (isNewTurn) {
       // Clear timer and progress when a new turn starts
       if (autoAdvanceTimerRef.current) {
@@ -319,7 +339,7 @@ const CricketGame: React.FC = () => {
           margin: "0 auto",
         }}
       >
-        <svg
+        <motion.svg
           viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
           style={{
             position: "absolute",
@@ -363,20 +383,21 @@ const CricketGame: React.FC = () => {
 
           {/* Third hit - Circle with cross - add ring but keep cross visible */}
           {hits >= 3 && (
-            <motion.circle
-              key={`circle-${hits}`}
-              cx={center}
-              cy={center}
-              r={circleRadius}
-              fill="none"
-              stroke={primaryColor}
-              strokeWidth={strokeWidth}
-              initial={hits === 3 ? { pathLength: 0 } : { pathLength: 1 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.4, delay: hits === 3 ? 0.3 : 0 }}
-            />
+            <motion.svg>
+              <motion.circle
+                className="circle-path"
+                cx="50"
+                cy="50"
+                r="80"
+                stroke={"red"}
+                variants={draw}
+                custom={1}
+                style={shape}
+              />
+            </motion.svg>
           )}
-        </svg>
+        </motion.svg>
+
       </Box>
     );
   };
@@ -402,7 +423,7 @@ const CricketGame: React.FC = () => {
           margin: "0 auto",
         }}
       >
-        <svg
+        <motion.svg
           viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
           style={{
             position: "absolute",
@@ -412,17 +433,18 @@ const CricketGame: React.FC = () => {
         >
           {/* Circle ring */}
           <motion.circle
-            cx={center}
-            cy={center}
-            r={circleRadius}
-            fill="none"
-            stroke={primaryColor}
-            strokeWidth={strokeWidth}
-            initial={false}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.4 }}
-          />
-          
+                className="circle-path"
+                cx={center}
+                cy={center}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                fill="none"
+                r={circleRadius}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3 }}
+              />
+
           {/* Cross lines */}
           <motion.line
             x1={center - lineLength / 2}
@@ -448,7 +470,7 @@ const CricketGame: React.FC = () => {
             animate={{ pathLength: 1 }}
             transition={{ duration: 0.3 }}
           />
-        </svg>
+        </motion.svg>
       </Box>
     );
   };
@@ -487,10 +509,10 @@ const CricketGame: React.FC = () => {
     if (currentGame.isGameFinished) return false;
     const target = getCurrentPlayerTarget(number);
     if (!target) return false;
-    
+
     // Can click if target is not closed, or if any opponent hasn't closed it
     if (!target.closed) return true;
-    
+
     return currentGame.players.some((p) => {
       if (p.id === currentPlayer.id) return false;
       const otherTarget = p.targets.find((t) => t.number === number);
@@ -514,7 +536,7 @@ const CricketGame: React.FC = () => {
         open={dialogOpen}
         maxWidth="sm"
         fullWidth
-        onClose={() => {}} // Prevent closing by clicking outside
+        onClose={() => { }} // Prevent closing by clicking outside
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
           <EmojiEvents color="primary" sx={{ mr: 1 }} />
@@ -643,8 +665,8 @@ const CricketGame: React.FC = () => {
             borderColor: "divider",
           }}
         >
-        
-          
+
+
           {/* Player Headers */}
           <Box
             sx={{
@@ -680,7 +702,7 @@ const CricketGame: React.FC = () => {
                       }
                       const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
                       const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-                      
+
                       return (
                         <Box
                           key={player.id}
@@ -700,14 +722,14 @@ const CricketGame: React.FC = () => {
                         </Box>
                       );
                     })}
-                    
+
                     {/* Number label column header */}
                     <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Typography variant="body2" fontWeight="bold">
                         Number
                       </Typography>
                     </Box>
-                    
+
                     {/* Second half of players */}
                     {currentGame.players.slice(firstHalf).map((player) => {
                       const isCurrentPlayer = player.id === currentPlayer?.id;
@@ -718,7 +740,7 @@ const CricketGame: React.FC = () => {
                       }
                       const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
                       const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-                      
+
                       return (
                         <Box
                           key={player.id}
@@ -741,7 +763,7 @@ const CricketGame: React.FC = () => {
                   </>
                 );
               }
-              
+
               // For 3+ players, all players first, then number
               return (
                 <>
@@ -754,7 +776,7 @@ const CricketGame: React.FC = () => {
                     }
                     const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
                     const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-                    
+
                     return (
                       <Box
                         key={player.id}
@@ -774,7 +796,7 @@ const CricketGame: React.FC = () => {
                       </Box>
                     );
                   })}
-                  
+
                   {/* Number label column header - positioned last */}
                   <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Typography variant="body2" fontWeight="bold">
@@ -831,7 +853,7 @@ const CricketGame: React.FC = () => {
               >
                 {(() => {
                   const playerCount = currentGame.players.length;
-                  
+
                   // For 1-2 players, split in half with number in middle
                   if (playerCount <= 2) {
                     const firstHalfCount = Math.ceil(playerCount / 2);
@@ -859,10 +881,10 @@ const CricketGame: React.FC = () => {
                                 transition: "all 0.2s ease",
                                 "&:hover": isClickable
                                   ? {
-                                      backgroundColor: (theme) =>
-                                        alpha(theme.palette.primary.main, 0.15),
-                                      transform: "scale(1.02)",
-                                    }
+                                    backgroundColor: (theme) =>
+                                      alpha(theme.palette.primary.main, 0.15),
+                                    transform: "scale(1.02)",
+                                  }
                                   : {},
                               }}
                               onClick={() => isClickable && handleHit(number)}
@@ -890,10 +912,10 @@ const CricketGame: React.FC = () => {
                             transition: "all 0.2s ease",
                             "&:hover": canClick
                               ? {
-                                  backgroundColor: (theme) =>
-                                    alpha(theme.palette.primary.main, 0.15),
-                                  transform: "scale(1.05)",
-                                }
+                                backgroundColor: (theme) =>
+                                  alpha(theme.palette.primary.main, 0.15),
+                                transform: "scale(1.05)",
+                              }
                               : {},
                           }}
                           onClick={() => canClick && handleHit(number)}
@@ -932,10 +954,10 @@ const CricketGame: React.FC = () => {
                                 transition: "all 0.2s ease",
                                 "&:hover": isClickable
                                   ? {
-                                      backgroundColor: (theme) =>
-                                        alpha(theme.palette.primary.main, 0.15),
-                                      transform: "scale(1.02)",
-                                    }
+                                    backgroundColor: (theme) =>
+                                      alpha(theme.palette.primary.main, 0.15),
+                                    transform: "scale(1.02)",
+                                  }
                                   : {},
                               }}
                               onClick={() => isClickable && handleHit(number)}
@@ -947,18 +969,7 @@ const CricketGame: React.FC = () => {
                                   ) : (
                                     renderMarks(target.hits)
                                   )}
-                                  {currentGame?.gameType !== "no-score" && target.points > 0 && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontWeight: "bold",
-                                        color: "secondary.main",
-                                        fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                      }}
-                                    >
-                                      +{target.points}
-                                    </Typography>
-                                  )}
+
                                 </Box>
                               )}
                             </Box>
@@ -967,7 +978,7 @@ const CricketGame: React.FC = () => {
                       </>
                     );
                   }
-                  
+
                   // For 3+ players, all players first, then number
                   return (
                     <>
@@ -992,10 +1003,10 @@ const CricketGame: React.FC = () => {
                               transition: "all 0.2s ease",
                               "&:hover": isClickable
                                 ? {
-                                    backgroundColor: (theme) =>
-                                      alpha(theme.palette.primary.main, 0.15),
-                                    transform: "scale(1.02)",
-                                  }
+                                  backgroundColor: (theme) =>
+                                    alpha(theme.palette.primary.main, 0.15),
+                                  transform: "scale(1.02)",
+                                }
                                 : {},
                             }}
                             onClick={() => isClickable && handleHit(number)}
@@ -1035,10 +1046,10 @@ const CricketGame: React.FC = () => {
                           transition: "all 0.2s ease",
                           "&:hover": canClick
                             ? {
-                                backgroundColor: (theme) =>
-                                  alpha(theme.palette.primary.main, 0.15),
-                                transform: "scale(1.05)",
-                              }
+                              backgroundColor: (theme) =>
+                                alpha(theme.palette.primary.main, 0.15),
+                              transform: "scale(1.05)",
+                            }
                             : {},
                         }}
                         onClick={() => canClick && handleHit(number)}
@@ -1068,17 +1079,84 @@ const CricketGame: React.FC = () => {
             p: 2,
             borderRadius: 0,
             borderTop: 1,
-            borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" , flexDirection: "row" ,gap: 2,
+            borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: "row", gap: 2,
           }}
         >
-        <Box sx={{ flex: 1 }}>
-             <IconButton onClick={handleUndo} color="secondary" size="small">
+          <Box sx={{ flex: 1 }}>
+            <IconButton onClick={handleUndo} color="secondary" size="small">
               <Undo />
             </IconButton>
-        </Box>
+          </Box>
+
+          {/* Round Summary */}
+          <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+            {currentGame.currentRound && currentGame.currentRound.darts.length > 0 ? (
+              (() => {
+                // Group darts by target number and count occurrences
+                const groupedDarts = currentGame.currentRound.darts.reduce((acc, dart) => {
+                  const key = String(dart.targetNumber);
+                  if (!acc[key]) {
+                    acc[key] = { count: 0, totalPoints: 0 };
+                  }
+                  acc[key].count += dart.multiplier;
+                  acc[key].totalPoints += dart.points;
+                  return acc;
+                }, {} as Record<string, { count: number; totalPoints: number }>);
+
+                return Object.entries(groupedDarts).map(([targetNumber, data]) => (
+                  <Box
+                    key={targetNumber}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      }}
+                    >
+                      {data.count > 1 ? `${data.count}x${targetNumber}` : targetNumber}
+                    </Typography>
+                    {data.totalPoints > 0 && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "secondary.main",
+                          fontWeight: 600,
+                          fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                        }}
+                      >
+                        (+{data.totalPoints})
+                      </Typography>
+                    )}
+                  </Box>
+                ));
+              })()
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  fontStyle: "italic",
+                }}
+              >
+                No darts thrown yet
+              </Typography>
+            )}
+          </Box>
 
           <Box >
-       
+
             <VibrationButton
 
               variant="contained"
@@ -1098,20 +1176,20 @@ const CricketGame: React.FC = () => {
                 overflow: "hidden",
                 "&::before": !currentGame.isGameFinished && progress > 0
                   ? {
-                      content: '""',
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      height: "100%",
-                      width: `${progress}%`,
-                      backgroundColor: (theme) =>
-                        alpha(theme.palette.common.white, 0.3),
-                      transition: "width 0.05s linear",
-                    }
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    height: "100%",
+                    width: `${progress}%`,
+                    backgroundColor: (theme) =>
+                      alpha(theme.palette.common.white, 0.3),
+                    transition: "width 0.05s linear",
+                  }
                   : {},
               }}
             >
-              Next 
+              Next
             </VibrationButton>
             {/* Progress bar indicator */}
             {!currentGame.isGameFinished && progress > 0 && (
