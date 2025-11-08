@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Paper,
@@ -18,6 +18,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  LinearProgress,
 } from "@mui/material";
 import {
   Undo,
@@ -26,6 +27,7 @@ import {
   CheckCircle,
   SportsScore,
   ExpandMore,
+  NavigateNext,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCricketStore } from "../store/useCricketStore";
@@ -46,10 +48,98 @@ const CricketGame: React.FC = () => {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGame, setIsValidGame] = useState(true);
-  const [multiplierDialog, setMultiplierDialog] = useState({
-    open: false,
-    multiplier: 1,
-  });
+  const [lastClickTime, setLastClickTime] = useState<number>(Date.now());
+  const autoAdvanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const progressStartTimeRef = useRef<number>(Date.now());
+
+  // Cricket numbers in order
+  const cricketNumbers = [20, 19, 18, 17, 16, 15, "Bull"];
+
+  // Auto-advance timer: 5 seconds after last click (only starts after first click)
+  useEffect(() => {
+    if (!currentGame || currentGame.isGameFinished) {
+      // Clear timer if game is finished
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      setProgress(0);
+      return;
+    }
+
+    // Only start timer if the current player has made at least one click
+    // Check if currentRound has any darts
+    const hasMadeClicks = currentGame.currentRound && currentGame.currentRound.darts.length > 0;
+
+    if (!hasMadeClicks) {
+      // Clear timer and progress if player hasn't clicked yet
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      setProgress(0);
+      return;
+    }
+
+    // Clear existing timer and interval
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
+    // Reset progress
+    setProgress(0);
+    progressStartTimeRef.current = Date.now();
+
+    // Set new timer
+    autoAdvanceTimerRef.current = setTimeout(() => {
+      finishTurn();
+    }, 5000);
+
+    // Update progress every 50ms for smooth animation
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - progressStartTimeRef.current;
+      const newProgress = Math.min((elapsed / 5000) * 100, 100);
+      setProgress(newProgress);
+    }, 50);
+
+    // Cleanup
+    return () => {
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [lastClickTime, currentGame, finishTurn]);
+
+  // Reset progress when player changes (new turn starts)
+  useEffect(() => {
+    if (!currentGame || currentGame.isGameFinished) return;
+    
+    // Only reset if current round is empty (new turn just started)
+    const isNewTurn = currentGame.currentRound && currentGame.currentRound.darts.length === 0;
+    
+    if (isNewTurn) {
+      // Clear timer and progress when a new turn starts
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      setProgress(0);
+    }
+  }, [currentGame?.currentPlayerIndex, currentGame?.currentRound?.darts.length, currentGame?.isGameFinished]);
 
   // If no game is in progress, redirect to setup
   useEffect(() => {
@@ -147,19 +237,32 @@ const CricketGame: React.FC = () => {
   // Safely access currentPlayer now that we've validated in the effect
   const currentPlayer = currentGame?.players?.[currentGame.currentPlayerIndex];
 
-  const handleHit = (number: number | string, multiplier: number) => {
-    if (!currentGame) return;
-    recordHit(number, multiplier);
+  const handleHit = (number: number | string) => {
+    if (!currentGame || currentGame.isGameFinished) return;
+    // Always use multiplier 1 (single hit per click)
+    recordHit(number, 1);
+    // Update last click time to reset auto-advance timer
+    setLastClickTime(Date.now());
   };
 
   const handleUndo = () => {
     if (!currentGame) return;
     undoLastHit();
+    setLastClickTime(Date.now());
   };
 
   const handleFinishTurn = () => {
     if (!currentGame) return;
+    // Clear auto-advance timer and progress interval
+    if (autoAdvanceTimerRef.current) {
+      clearTimeout(autoAdvanceTimerRef.current);
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    setProgress(0);
     finishTurn();
+    setLastClickTime(Date.now());
   };
 
   const handleLeaveGame = () => {
@@ -208,8 +311,8 @@ const CricketGame: React.FC = () => {
           justifyContent: "center",
           alignItems: "center",
           position: "relative",
-          width: 24,
-          height: 24,
+          width: { xs: 16, sm: 20, md: 24 },
+          height: { xs: 16, sm: 20, md: 24 },
           margin: "0 auto",
         }}
       >
@@ -219,7 +322,7 @@ const CricketGame: React.FC = () => {
             sx={{
               position: "absolute",
               width: "2px",
-              height: "20px",
+              height: { xs: "14px", sm: "16px", md: "20px" },
               bgcolor: "primary.main",
               transform: "rotate(45deg)",
             }}
@@ -232,7 +335,7 @@ const CricketGame: React.FC = () => {
             sx={{
               position: "absolute",
               width: "2px",
-              height: "20px",
+              height: { xs: "14px", sm: "16px", md: "20px" },
               bgcolor: "primary.main",
               transform: "rotate(-45deg)",
             }}
@@ -244,8 +347,8 @@ const CricketGame: React.FC = () => {
           <Box
             sx={{
               position: "absolute",
-              width: "20px",
-              height: "20px",
+              width: { xs: "14px", sm: "16px", md: "20px" },
+              height: { xs: "14px", sm: "16px", md: "20px" },
               border: "2px solid",
               borderColor: "primary.main",
               borderRadius: "50%",
@@ -279,6 +382,27 @@ const CricketGame: React.FC = () => {
       </Box>
     );
   }
+
+  // Get current player's target for a number
+  const getCurrentPlayerTarget = (number: number | string) => {
+    return currentPlayer?.targets?.find((t) => t.number === number);
+  };
+
+  // Check if a number can be clicked (not closed or opponent hasn't closed it)
+  const canClickNumber = (number: number | string) => {
+    if (currentGame.isGameFinished) return false;
+    const target = getCurrentPlayerTarget(number);
+    if (!target) return false;
+    
+    // Can click if target is not closed, or if any opponent hasn't closed it
+    if (!target.closed) return true;
+    
+    return currentGame.players.some((p) => {
+      if (p.id === currentPlayer.id) return false;
+      const otherTarget = p.targets.find((t) => t.number === number);
+      return otherTarget && !otherTarget.closed;
+    });
+  };
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -398,7 +522,8 @@ const CricketGame: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      <Paper
+      {/* Main Game Interface */}
+      <Box
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -406,837 +531,417 @@ const CricketGame: React.FC = () => {
           overflow: "hidden",
         }}
       >
-        {/* Players Section */}
-
-        {/* Game Board */}
-        <Box
+        {/* Top Bar - Header with Player Names and Scores */}
+        <Paper
           sx={{
-            flex: 1,
-            overflow: "auto",
             p: 1,
+            borderRadius: 0,
+            borderBottom: 1,
+            borderColor: "divider",
           }}
         >
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
-              mb: 2,
               alignItems: "center",
+              mb: 0.5,
             }}
           >
-            <Box>
-              <Typography variant="subtitle1">
-                {currentPlayer?.name}'s Turn
-              </Typography>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  mt: 0.5,
-                  minHeight: 40,
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  Darts remaining: {3 - (currentPlayer?.currentDartIndex || 0)}
-                </Typography>
-                {currentPlayer && currentPlayer.currentDartIndex > 0 && (
-                  <Button
-                    size="small"
-                    onClick={handleFinishTurn}
-                    startIcon={<SportsScore />}
-                    sx={{ ml: 2 }}
-                  >
-                    Finish Turn
-                  </Button>
-                )}
-              </Box>
-            </Box>
-            <IconButton size="small" onClick={handleUndo}>
+            <Typography variant="h6" component="div" sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}>
+              {currentPlayer?.name}'s Turn
+            </Typography>
+            <IconButton onClick={handleUndo} color="primary" size="small">
               <Undo />
             </IconButton>
           </Box>
-
-          {/* Cricket Scoreboard */}
-          <Box sx={{ mb: 2, overflow: "auto" }}>
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              {/* Header row with player names */}
-              <Box
-                sx={{
-                  display: "flex",
-                  borderBottom: 1,
-                  borderColor: "divider",
-                }}
-              >
-                {/* Determine player count and layout */}
-                {(() => {
-                  // Check if player count is valid
-                  if (!currentGame?.players?.length) return null;
-
-                  const playerCount = currentGame.players.length;
-                  const isEven = playerCount % 2 === 0;
-                  const halfCount = Math.floor(playerCount / 2);
-
-                  // Create array of elements to render
-                  const headerElements = [];
-
-                  // For even player count, first half of players come first
-                  if (isEven) {
-                    // First half of players
-                    currentGame.players
-                      .slice(0, halfCount)
-                      .forEach((player, idx) => {
-                        headerElements.push(
-                          <Box
-                            key={`first-half-${player.id}`}
-                            sx={{
-                              flex: 1,
-                              minWidth: 100,
-                              p: 1,
-                              fontWeight: "bold",
-                              textAlign: "center",
-                              borderRight: 1,
-                              borderColor: "divider",
-                              bgcolor:
-                                idx === currentGame.currentPlayerIndex
-                                  ? (theme) =>
-                                      alpha(theme.palette.primary.main, 0.1)
-                                  : "transparent",
-                              borderBottom:
-                                idx === currentGame.currentPlayerIndex
-                                  ? (theme) =>
-                                      `2px solid ${theme.palette.primary.main}`
-                                  : "none",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: "bold" }}
-                            >
-                              {player?.name}
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              color="primary.main"
-                              sx={{ fontWeight: "bold" }}
-                            >
-                              {player.totalScore}
-                            </Typography>
-                          </Box>
-                        );
-                      });
-
-                    // Target column in the middle
-                    headerElements.push(
-                      <Box
-                        key="targets-header"
-                        sx={{
-                          width: 80,
-                          p: 1,
-                          fontWeight: "bold",
-                          textAlign: "center",
-                          borderRight: 1,
-                          borderColor: "divider",
-                        }}
-                      >
-                        Target
-                      </Box>
-                    );
-
-                    // Second half of players
-                    currentGame.players
-                      .slice(halfCount)
-                      .forEach((player, idx) => {
-                        const actualIdx = idx + halfCount;
-                        headerElements.push(
-                          <Box
-                            key={`second-half-${player.id}`}
-                            sx={{
-                              flex: 1,
-                              minWidth: 100,
-                              p: 1,
-                              fontWeight: "bold",
-                              textAlign: "center",
-                              borderRight: actualIdx < playerCount - 1 ? 1 : 0,
-                              borderColor: "divider",
-                              bgcolor:
-                                actualIdx === currentGame.currentPlayerIndex
-                                  ? (theme) =>
-                                      alpha(theme.palette.primary.main, 0.1)
-                                  : "transparent",
-                              borderBottom:
-                                actualIdx === currentGame.currentPlayerIndex
-                                  ? (theme) =>
-                                      `2px solid ${theme.palette.primary.main}`
-                                  : "none",
-                              display: "flex",
-                              flexDirection: "column",
-                            }}
-                          >
-                            <Typography
-                              variant="body2"
-                              sx={{ fontWeight: "bold" }}
-                            >
-                              {player?.name}
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              color="primary.main"
-                              sx={{ fontWeight: "bold" }}
-                            >
-                              {player.totalScore}
-                            </Typography>
-                          </Box>
-                        );
-                      });
-                  } else {
-                    // For odd player count, targets on the left
-                    // Target column first
-                    headerElements.push(
-                      <Box
-                        key="targets-header"
-                        sx={{
-                          width: 80,
-                          p: 1,
-                          fontWeight: "bold",
-                          textAlign: "center",
-                          borderRight: 1,
-                          borderColor: "divider",
-                        }}
-                      >
-                        Target
-                      </Box>
-                    );
-
-                    // All players
-                    currentGame.players.forEach((player, idx) => {
-                      headerElements.push(
-                        <Box
-                          key={`player-${player.id}`}
-                          sx={{
-                            flex: 1,
-                            minWidth: 100,
-                            p: 1,
-                            fontWeight: "bold",
-                            textAlign: "center",
-                            borderRight: idx < playerCount - 1 ? 1 : 0,
-                            borderColor: "divider",
-                            bgcolor:
-                              idx === currentGame.currentPlayerIndex
-                                ? (theme) =>
-                                    alpha(theme.palette.primary.main, 0.1)
-                                : "transparent",
-                            borderBottom:
-                              idx === currentGame.currentPlayerIndex
-                                ? (theme) =>
-                                    `2px solid ${theme.palette.primary.main}`
-                                : "none",
-                            display: "flex",
-                            flexDirection: "column",
-                          }}
-                        >
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: "bold" }}
-                          >
-                            {player?.name}
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            color="primary.main"
-                            sx={{ fontWeight: "bold" }}
-                          >
-                            {player.totalScore}
-                          </Typography>
-                        </Box>
-                      );
-                    });
-                  }
-
-                  return headerElements;
-                })()}
-              </Box>
-
-              {/* Rows for each number */}
-              {[20, 19, 18, 17, 16, 15, "Bull"].map((number) => (
-                <Box
-                  key={number}
+          
+          {/* Player Headers */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: (() => {
+                const playerCount = currentGame.players.length;
+                if (playerCount === 1) return `1fr 60px`;
+                const firstHalf = Math.ceil(playerCount / 2);
+                const secondHalf = playerCount - firstHalf;
+                return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
+              })(),
+              gap: 0.5,
+            }}
+          >
+            {/* First half of players */}
+            {currentGame.players.slice(0, Math.ceil(currentGame.players.length / 2)).map((player) => {
+              const isCurrentPlayer = player.id === currentPlayer?.id;
+              const closedCount = player.targets.filter((t) => t.closed).length;
+              
+              return (
+                <Paper
+                  key={player.id}
+                  elevation={isCurrentPlayer ? 4 : 1}
                   sx={{
-                    display: "flex",
-                    borderBottom: number !== "Bull" ? 1 : 0,
-                    borderColor: "divider",
+                    p: 0.5,
+                    backgroundColor: isCurrentPlayer
+                      ? (theme) => alpha(theme.palette.primary.main, 0.1)
+                      : "transparent",
+                    border: isCurrentPlayer
+                      ? (theme) => `2px solid ${theme.palette.primary.main}`
+                      : "1px solid",
+                    borderColor: isCurrentPlayer
+                      ? "primary.main"
+                      : "divider",
+                    textAlign: "center",
                   }}
                 >
-                  {/* Determine layout based on player count */}
-                  {(() => {
-                    // Check if player count is valid
-                    if (!currentGame?.players?.length) return null;
-
-                    const playerCount = currentGame.players.length;
-                    const isEven = playerCount % 2 === 0;
-                    const halfCount = Math.floor(playerCount / 2);
-
-                    // Create array of elements to render
-                    const rowElements = [];
-
-                    // For even player count, first half of players come first
-                    if (isEven) {
-                      // First half of players
-                      currentGame.players
-                        .slice(0, halfCount)
-                        .forEach((player, playerIndex) => {
-                          const target = player?.targets?.find(
-                            (t) => t.number === number
-                          );
-                          if (!target) return null;
-
-                          rowElements.push(
-                            <Box
-                              key={`first-half-${player.id}-${number}`}
-                              sx={{
-                                flex: 1,
-                                minWidth: 100,
-                                p: 1,
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                borderRight: 1,
-                                borderColor: "divider",
-                                position: "relative",
-                                bgcolor:
-                                  playerIndex === currentGame.currentPlayerIndex
-                                    ? (theme) =>
-                                        alpha(theme.palette.primary.main, 0.05)
-                                    : "transparent",
-                                cursor:
-                                  playerIndex ===
-                                    currentGame.currentPlayerIndex &&
-                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
-                                  (!target.closed ||
-                                    currentGame.players.some((p) => {
-                                      const otherPlayerTarget = p.targets.find(
-                                        (t) => t.number === number
-                                      );
-                                      return (
-                                        p.id !== player.id &&
-                                        otherPlayerTarget &&
-                                        !otherPlayerTarget.closed
-                                      );
-                                    }))
-                                    ? "pointer"
-                                    : "default",
-                                "&:hover": {
-                                  bgcolor:
-                                    playerIndex ===
-                                      currentGame.currentPlayerIndex &&
-                                    (currentPlayer?.currentDartIndex || 0) <
-                                      3 &&
-                                    (!target.closed ||
-                                      currentGame.players.some((p) => {
-                                        const otherPlayerTarget =
-                                          p.targets.find(
-                                            (t) => t.number === number
-                                          );
-                                        return (
-                                          p.id !== player.id &&
-                                          otherPlayerTarget &&
-                                          !otherPlayerTarget.closed
-                                        );
-                                      }))
-                                      ? (theme) =>
-                                          alpha(
-                                            theme.palette.primary.main,
-                                            0.15
-                                          )
-                                      : undefined,
-                                },
-                              }}
-                              onClick={() => {
-                                if (
-                                  playerIndex ===
-                                    currentGame.currentPlayerIndex &&
-                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
-                                  (!target.closed ||
-                                    currentGame.players.some((p) => {
-                                      const otherPlayerTarget = p.targets.find(
-                                        (t) => t.number === number
-                                      );
-                                      return (
-                                        p.id !== player.id &&
-                                        otherPlayerTarget &&
-                                        !otherPlayerTarget.closed
-                                      );
-                                    }))
-                                ) {
-                                  handleHit(
-                                    number,
-                                    multiplierDialog.multiplier
-                                  );
-                                }
-                              }}
-                            >
-                              {target.closed ? (
-                                <CheckCircle color="success" />
-                              ) : (
-                                renderMarks(target.hits)
-                              )}
-
-                              {currentGame?.gameType !== "no-score" &&
-                                target.points > 0 && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      position: "absolute",
-                                      top: 2,
-                                      right: 4,
-                                      fontWeight: "bold",
-                                    }}
-                                  >
-                                    {target.points}
-                                  </Typography>
-                                )}
-                            </Box>
-                          );
-                        });
-
-                      // Number label in the middle
-                      rowElements.push(
-                        <Box
-                          key={`target-${number}`}
-                          sx={{
-                            width: 80,
-                            p: 1,
-                            fontWeight: "bold",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            borderRight: 1,
-                            borderColor: "divider",
-                          }}
-                        >
-                          {number}
-                        </Box>
-                      );
-
-                      // Second half of players
-                      currentGame.players
-                        .slice(halfCount)
-                        .forEach((player, idx) => {
-                          const playerIndex = idx + halfCount;
-                          const target = player?.targets?.find(
-                            (t) => t.number === number
-                          );
-                          if (!target) return null;
-
-                          rowElements.push(
-                            <Box
-                              key={`second-half-${player.id}-${number}`}
-                              sx={{
-                                flex: 1,
-                                minWidth: 100,
-                                p: 1,
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                borderRight:
-                                  playerIndex < playerCount - 1 ? 1 : 0,
-                                borderColor: "divider",
-                                position: "relative",
-                                bgcolor:
-                                  playerIndex === currentGame.currentPlayerIndex
-                                    ? (theme) =>
-                                        alpha(theme.palette.primary.main, 0.05)
-                                    : "transparent",
-                                cursor:
-                                  playerIndex ===
-                                    currentGame.currentPlayerIndex &&
-                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
-                                  (!target.closed ||
-                                    currentGame.players.some((p) => {
-                                      const otherPlayerTarget = p.targets.find(
-                                        (t) => t.number === number
-                                      );
-                                      return (
-                                        p.id !== player.id &&
-                                        otherPlayerTarget &&
-                                        !otherPlayerTarget.closed
-                                      );
-                                    }))
-                                    ? "pointer"
-                                    : "default",
-                                "&:hover": {
-                                  bgcolor:
-                                    playerIndex ===
-                                      currentGame.currentPlayerIndex &&
-                                    (currentPlayer?.currentDartIndex || 0) <
-                                      3 &&
-                                    (!target.closed ||
-                                      currentGame.players.some((p) => {
-                                        const otherPlayerTarget =
-                                          p.targets.find(
-                                            (t) => t.number === number
-                                          );
-                                        return (
-                                          p.id !== player.id &&
-                                          otherPlayerTarget &&
-                                          !otherPlayerTarget.closed
-                                        );
-                                      }))
-                                      ? (theme) =>
-                                          alpha(
-                                            theme.palette.primary.main,
-                                            0.15
-                                          )
-                                      : undefined,
-                                },
-                              }}
-                              onClick={() => {
-                                if (
-                                  playerIndex ===
-                                    currentGame.currentPlayerIndex &&
-                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
-                                  (!target.closed ||
-                                    currentGame.players.some((p) => {
-                                      const otherPlayerTarget = p.targets.find(
-                                        (t) => t.number === number
-                                      );
-                                      return (
-                                        p.id !== player.id &&
-                                        otherPlayerTarget &&
-                                        !otherPlayerTarget.closed
-                                      );
-                                    }))
-                                ) {
-                                  handleHit(
-                                    number,
-                                    multiplierDialog.multiplier
-                                  );
-                                }
-                              }}
-                            >
-                              {target.closed ? (
-                                <CheckCircle color="success" />
-                              ) : (
-                                renderMarks(target.hits)
-                              )}
-
-                              {currentGame?.gameType !== "no-score" &&
-                                target.points > 0 && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      position: "absolute",
-                                      top: 2,
-                                      right: 4,
-                                      fontWeight: "bold",
-                                    }}
-                                  >
-                                    {target.points}
-                                  </Typography>
-                                )}
-                            </Box>
-                          );
-                        });
-                    } else {
-                      // For odd count, targets on the left
-                      // Number label first
-                      rowElements.push(
-                        <Box
-                          key={`target-${number}`}
-                          sx={{
-                            width: 80,
-                            p: 1,
-                            fontWeight: "bold",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            borderRight: 1,
-                            borderColor: "divider",
-                          }}
-                        >
-                          {number}
-                        </Box>
-                      );
-
-                      // All players
-                      currentGame.players.forEach((player, playerIndex) => {
-                        const target = player?.targets?.find(
-                          (t) => t.number === number
-                        );
-                        if (!target) return null;
-
-                        rowElements.push(
-                          <Box
-                            key={`player-${player.id}-${number}`}
-                            sx={{
-                              flex: 1,
-                              minWidth: 100,
-                              p: 1,
-                              display: "flex",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              borderRight:
-                                playerIndex < playerCount - 1 ? 1 : 0,
-                              borderColor: "divider",
-                              position: "relative",
-                              bgcolor:
-                                playerIndex === currentGame.currentPlayerIndex
-                                  ? (theme) =>
-                                      alpha(theme.palette.primary.main, 0.05)
-                                  : "transparent",
-                              cursor:
-                                playerIndex ===
-                                  currentGame.currentPlayerIndex &&
-                                (currentPlayer?.currentDartIndex || 0) < 3 &&
-                                (!target.closed ||
-                                  currentGame.players.some((p) => {
-                                    const otherPlayerTarget = p.targets.find(
-                                      (t) => t.number === number
-                                    );
-                                    return (
-                                      p.id !== player.id &&
-                                      otherPlayerTarget &&
-                                      !otherPlayerTarget.closed
-                                    );
-                                  }))
-                                  ? "pointer"
-                                  : "default",
-                              "&:hover": {
-                                bgcolor:
-                                  playerIndex ===
-                                    currentGame.currentPlayerIndex &&
-                                  (currentPlayer?.currentDartIndex || 0) < 3 &&
-                                  (!target.closed ||
-                                    currentGame.players.some((p) => {
-                                      const otherPlayerTarget = p.targets.find(
-                                        (t) => t.number === number
-                                      );
-                                      return (
-                                        p.id !== player.id &&
-                                        otherPlayerTarget &&
-                                        !otherPlayerTarget.closed
-                                      );
-                                    }))
-                                    ? (theme) =>
-                                        alpha(theme.palette.primary.main, 0.15)
-                                    : undefined,
-                              },
-                            }}
-                            onClick={() => {
-                              if (
-                                playerIndex ===
-                                  currentGame.currentPlayerIndex &&
-                                (currentPlayer?.currentDartIndex || 0) < 3 &&
-                                (!target.closed ||
-                                  currentGame.players.some((p) => {
-                                    const otherPlayerTarget = p.targets.find(
-                                      (t) => t.number === number
-                                    );
-                                    return (
-                                      p.id !== player.id &&
-                                      otherPlayerTarget &&
-                                      !otherPlayerTarget.closed
-                                    );
-                                  }))
-                              ) {
-                                handleHit(number, multiplierDialog.multiplier);
-                              }
-                            }}
-                          >
-                            {target.closed ? (
-                              <CheckCircle color="success" />
-                            ) : (
-                              renderMarks(target.hits)
-                            )}
-
-                            {currentGame?.gameType !== "no-score" &&
-                              target.points > 0 && (
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    position: "absolute",
-                                    top: 2,
-                                    right: 4,
-                                    fontWeight: "bold",
-                                  }}
-                                >
-                                  {target.points}
-                                </Typography>
-                              )}
-                          </Box>
-                        );
-                      });
-                    }
-
-                    return rowElements;
-                  })()}
-                </Box>
-              ))}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: isCurrentPlayer ? "bold" : "normal",
+                      mb: 0.25,
+                      fontSize: { xs: "0.7rem", sm: "0.875rem" },
+                    }}
+                  >
+                    {player.name}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="primary.main"
+                    sx={{ fontWeight: "bold", fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                  >
+                    {player.totalScore}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
+                    {closedCount}/7
+                  </Typography>
+                </Paper>
+              );
+            })}
+            
+            {/* Number label column header - positioned between players */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Typography variant="body2" fontWeight="bold">
+                Number
+              </Typography>
             </Box>
-          </Box>
-          {/* Dart Input */}
-          <Box sx={{ mb: 2 }}>
-            {/* New Cricket Board Input UI - We'll replace this with just the multiplier buttons */}
-            <Paper variant="outlined" sx={{ p: 1, mb: 2 }}>
-              {/* Instructions for gameplay */}
-              <Box sx={{ mb: 2, textAlign: "center" }}>
-                <Typography
-                  variant="body2"
-                  fontSize={14}
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
+            
+            {/* Second half of players */}
+            {currentGame.players.slice(Math.ceil(currentGame.players.length / 2)).map((player) => {
+              const isCurrentPlayer = player.id === currentPlayer?.id;
+              const closedCount = player.targets.filter((t) => t.closed).length;
+              
+              return (
+                <Paper
+                  key={player.id}
+                  elevation={isCurrentPlayer ? 4 : 1}
+                  sx={{
+                    p: 0.5,
+                    backgroundColor: isCurrentPlayer
+                      ? (theme) => alpha(theme.palette.primary.main, 0.1)
+                      : "transparent",
+                    border: isCurrentPlayer
+                      ? (theme) => `2px solid ${theme.palette.primary.main}`
+                      : "1px solid",
+                    borderColor: isCurrentPlayer
+                      ? "primary.main"
+                      : "divider",
+                    textAlign: "center",
+                  }}
                 >
-                  Select a multiplier first, then click on your column
-                </Typography>
-              </Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: isCurrentPlayer ? "bold" : "normal",
+                      mb: 0.25,
+                      fontSize: { xs: "0.7rem", sm: "0.875rem" },
+                    }}
+                  >
+                    {player.name}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    color="primary.main"
+                    sx={{ fontWeight: "bold", fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                  >
+                    {player.totalScore}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
+                    {closedCount}/7
+                  </Typography>
+                </Paper>
+              );
+            })}
+          </Box>
+        </Paper>
 
-              {/* Multiplier Buttons and Miss Button */}
-              <Box
+        {/* Full-Screen Number Grid with Player Columns */}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            p: 0.5,
+            gap: 0.5,
+          }}
+        >
+          {cricketNumbers.map((number) => {
+            const currentPlayerTarget = getCurrentPlayerTarget(number);
+            const canClick = canClickNumber(number);
+            const playerCount = currentGame.players.length;
+            const firstHalfCount = Math.ceil(playerCount / 2);
+
+            return (
+              <Paper
+                key={number}
+                elevation={1}
                 sx={{
-                  mt: 1,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 1,
+                  flex: 1,
+                  display: "grid",
+                  gridTemplateColumns: (() => {
+                    const playerCount = currentGame.players.length;
+                    if (playerCount === 1) return `1fr 60px`;
+                    const firstHalf = Math.ceil(playerCount / 2);
+                    const secondHalf = playerCount - firstHalf;
+                    return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
+                  })(),
+                  gap: 0.5,
+                  p: 0.5,
+                  minHeight: 0,
                 }}
               >
-                <VibrationButton
-                  variant="contained"
-                  color="error"
-                  disabled={currentPlayer?.currentDartIndex >= 3}
-                  onClick={() => handleHit(0, 0)}
-                  vibrationPattern={[50, 100, 50]}
-                  sx={{ flex: 0.5, height: "54px" }}
-                >
-                  Miss
-                </VibrationButton>
-                <VibrationButton
-                  variant="contained"
-                  color={
-                    multiplierDialog.multiplier === 1 ? "primary" : "inherit"
-                  }
-                  disabled={currentPlayer?.currentDartIndex >= 3}
-                  onClick={() =>
-                    setMultiplierDialog({ open: true, multiplier: 1 })
-                  }
-                  vibrationPattern={50}
-                  sx={{ flex: 1, height: "54px" }}
-                >
-                  Single
-                </VibrationButton>
+                {/* First half of players */}
+                {currentGame.players.slice(0, firstHalfCount).map((player) => {
+                  const target = player.targets.find((t) => t.number === number);
+                  const isCurrentPlayer = player.id === currentPlayer?.id;
+                  const isClosed = target?.closed || false;
+                  const isClickable = isCurrentPlayer && canClick;
 
-                <VibrationButton
-                  variant="contained"
-                  color={
-                    multiplierDialog.multiplier === 2 ? "secondary" : "inherit"
-                  }
-                  disabled={currentPlayer?.currentDartIndex >= 3}
-                  onClick={() =>
-                    setMultiplierDialog({ open: true, multiplier: 2 })
-                  }
-                  vibrationPattern={75}
-                  sx={{ flex: 1, height: "54px" }}
-                >
-                  Double (2x)
-                </VibrationButton>
+                  return (
+                    <Paper
+                      key={`${player.id}-${number}`}
+                      elevation={isClickable ? 4 : 1}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        cursor: isClickable ? "pointer" : "default",
+                        transition: "all 0.2s ease",
+                        backgroundColor: isClosed
+                          ? (theme) => alpha(theme.palette.success.main, 0.1)
+                          : isClickable
+                          ? (theme) => alpha(theme.palette.primary.main, 0.05)
+                          : "transparent",
+                        border: isClickable
+                          ? (theme) => `2px solid ${theme.palette.primary.main}`
+                          : isCurrentPlayer
+                          ? (theme) => `1px solid ${theme.palette.primary.main}`
+                          : "1px solid",
+                        borderColor: isClickable
+                          ? "primary.main"
+                          : isCurrentPlayer
+                          ? "primary.main"
+                          : "divider",
+                        "&:hover": isClickable
+                          ? {
+                              backgroundColor: (theme) =>
+                                alpha(theme.palette.primary.main, 0.15),
+                              transform: "scale(1.02)",
+                            }
+                          : {},
+                        "&:active": isClickable
+                          ? {
+                              transform: "scale(0.98)",
+                            }
+                          : {},
+                      }}
+                      onClick={() => isClickable && handleHit(number)}
+                    >
+                      {target && (
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
+                          {isClosed ? (
+                            <CheckCircle color="success" sx={{ fontSize: { xs: 20, sm: 24, md: 32 } }} />
+                          ) : (
+                            renderMarks(target.hits)
+                          )}
+                          {currentGame?.gameType !== "no-score" && target.points > 0 && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: "bold",
+                                color: "primary.main",
+                                fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                              }}
+                            >
+                              +{target.points}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    </Paper>
+                  );
+                })}
 
-                <VibrationButton
-                  variant="contained"
-                  color={
-                    multiplierDialog.multiplier === 3 ? "success" : "inherit"
-                  }
-                  disabled={currentPlayer?.currentDartIndex >= 3}
-                  onClick={() =>
-                    setMultiplierDialog({ open: true, multiplier: 3 })
-                  }
-                  vibrationPattern={100}
-                  sx={{ flex: 1, height: "54px" }}
+                {/* Number Label - positioned between players */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
-                  Triple (3x)
-                </VibrationButton>
-              </Box>
-            </Paper>
-
-            {/* Quick Hit Stats */}
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Current player: <strong>{currentPlayer?.name}</strong>
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Darts remaining:{" "}
-                <strong>{3 - (currentPlayer?.currentDartIndex || 0)}</strong>
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Round History as Accordion */}
-          {currentGame?.rounds && currentGame.rounds.length > 0 && (
-            <Box sx={{ mt: 4 }}>
-              <Accordion defaultExpanded={false}>
-                <AccordionSummary
-                  expandIcon={<ExpandMore />}
-                  aria-controls="round-history-content"
-                  id="round-history-header"
-                >
-                  <Typography variant="subtitle1">
-                    Round History ({currentGame.rounds.length} rounds)
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Paper
-                    variant="outlined"
-                    sx={{ maxHeight: "250px", overflow: "auto" }}
+                  <Typography
+                    variant="h5"
+                    component="div"
+                    sx={{
+                      fontWeight: "bold",
+                      fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2rem" },
+                    }}
                   >
-                    <List dense>
-                      {currentGame.rounds.map((round, roundIndex) => {
-                        const player = currentGame.players.find(
-                          (p) => p.id === round.playerId
-                        );
+                    {number}
+                  </Typography>
+                </Box>
 
-                        return (
-                          <ListItem
-                            key={roundIndex}
-                            divider={roundIndex < currentGame.rounds.length - 1}
-                          >
-                            <ListItemText
-                              primary={`Round ${roundIndex + 1}: ${
-                                player?.name || "Unknown Player"
-                              }`}
-                              secondary={
-                                <Box>
-                                  <Typography
-                                    variant="caption"
-                                    component="span"
-                                  >
-                                    Darts:{" "}
-                                    {round.darts.map((dart, i) => (
-                                      <span key={i}>
-                                        {dart.targetNumber || "Miss"}
-                                        {dart.multiplier > 1
-                                          ? `×${dart.multiplier}`
-                                          : ""}
-                                        {i < round.darts.length - 1 ? ", " : ""}
-                                      </span>
-                                    ))}
-                                    {round.totalPoints > 0 &&
-                                      ` | Points: ${round.totalPoints}`}
-                                  </Typography>
-                                </Box>
-                              }
-                            />
-                          </ListItem>
-                        );
-                      })}
-                    </List>
-                  </Paper>
-                </AccordionDetails>
-              </Accordion>
-            </Box>
-          )}
+                {/* Second half of players */}
+                {currentGame.players.slice(firstHalfCount).map((player) => {
+                  const target = player.targets.find((t) => t.number === number);
+                  const isCurrentPlayer = player.id === currentPlayer?.id;
+                  const isClosed = target?.closed || false;
+                  const isClickable = isCurrentPlayer && canClick;
+
+                  return (
+                    <Paper
+                      key={`${player.id}-${number}`}
+                      elevation={isClickable ? 4 : 1}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        cursor: isClickable ? "pointer" : "default",
+                        transition: "all 0.2s ease",
+                        backgroundColor: isClosed
+                          ? (theme) => alpha(theme.palette.success.main, 0.1)
+                          : isClickable
+                          ? (theme) => alpha(theme.palette.primary.main, 0.05)
+                          : "transparent",
+                        border: isClickable
+                          ? (theme) => `2px solid ${theme.palette.primary.main}`
+                          : isCurrentPlayer
+                          ? (theme) => `1px solid ${theme.palette.primary.main}`
+                          : "1px solid",
+                        borderColor: isClickable
+                          ? "primary.main"
+                          : isCurrentPlayer
+                          ? "primary.main"
+                          : "divider",
+                        "&:hover": isClickable
+                          ? {
+                              backgroundColor: (theme) =>
+                                alpha(theme.palette.primary.main, 0.15),
+                              transform: "scale(1.02)",
+                            }
+                          : {},
+                        "&:active": isClickable
+                          ? {
+                              transform: "scale(0.98)",
+                            }
+                          : {},
+                      }}
+                      onClick={() => isClickable && handleHit(number)}
+                    >
+                      {target && (
+                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
+                          {isClosed ? (
+                            <CheckCircle color="success" sx={{ fontSize: { xs: 20, sm: 24, md: 32 } }} />
+                          ) : (
+                            renderMarks(target.hits)
+                          )}
+                          {currentGame?.gameType !== "no-score" && target.points > 0 && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: "bold",
+                                color: "primary.main",
+                                fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                              }}
+                            >
+                              +{target.points}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    </Paper>
+                  );
+                })}
+              </Paper>
+            );
+          })}
         </Box>
-      </Paper>
+
+        {/* Bottom Action Bar - Next Button */}
+        <Paper
+          sx={{
+            p: 2,
+            borderRadius: 0,
+            borderTop: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Box sx={{ position: "relative" }}>
+            <VibrationButton
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+              onClick={handleFinishTurn}
+              disabled={currentGame.isGameFinished}
+              vibrationPattern={100}
+              startIcon={<NavigateNext />}
+              sx={{
+                py: 1.5,
+                fontSize: "1.2rem",
+                fontWeight: "bold",
+                position: "relative",
+                overflow: "hidden",
+                "&::before": !currentGame.isGameFinished && progress > 0
+                  ? {
+                      content: '""',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      height: "100%",
+                      width: `${progress}%`,
+                      backgroundColor: (theme) =>
+                        alpha(theme.palette.common.white, 0.3),
+                      transition: "width 0.05s linear",
+                    }
+                  : {},
+              }}
+            >
+              Next Player
+            </VibrationButton>
+            {/* Progress bar indicator */}
+            {!currentGame.isGameFinished && progress > 0 && (
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 4,
+                  backgroundColor: "transparent",
+                  "& .MuiLinearProgress-bar": {
+                    backgroundColor: (theme) => theme.palette.common.white,
+                  },
+                }}
+              />
+            )}
+          </Box>
+        </Paper>
+      </Box>
     </Box>
   );
 };

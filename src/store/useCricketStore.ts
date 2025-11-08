@@ -200,12 +200,6 @@ export const useCricketStore = create<CricketStoreState>()(
               ? { ...newGame.currentRound }
               : { playerId: currentPlayer.id, darts: [], totalPoints: 0 };
 
-            // Check if we've already used 3 darts
-            if (currentPlayer.currentDartIndex >= 3) {
-              console.log("Player has already used 3 darts");
-              return state;
-            }
-
             // Track the dart
             const newDart: CricketDart = {
               targetNumber,
@@ -213,7 +207,7 @@ export const useCricketStore = create<CricketStoreState>()(
               points: 0, // Will be updated with actual points
             };
 
-            // Add darts thrown count
+            // Add darts thrown count (for statistics only, no limit)
             currentPlayer.dartsThrown += 1;
             currentPlayer.currentDartIndex += 1;
 
@@ -392,29 +386,12 @@ export const useCricketStore = create<CricketStoreState>()(
               });
             }
 
-            // If game is finished or player has used 3 darts, end the turn
-            if (isGameFinished || currentPlayer.currentDartIndex >= 3) {
+            // If game is finished, end the turn
+            if (isGameFinished) {
               // Save the current round
               newGame.rounds.push({ ...currentRound });
-
-              if (!isGameFinished) {
-                // Move to the next player
-                const nextPlayerIndex = (playerIndex + 1) % players.length;
-                newGame.currentPlayerIndex = nextPlayerIndex;
-
-                // Reset current player's dart index
-                players[playerIndex].currentDartIndex = 0;
-
-                // Create a new round for the next player
-                newGame.currentRound = {
-                  playerId: players[nextPlayerIndex].id,
-                  darts: [],
-                  totalPoints: 0,
-                };
-              } else {
-                // If game is finished, keep the last round
-                newGame.currentRound = currentRound;
-              }
+              // If game is finished, keep the last round
+              newGame.currentRound = currentRound;
             } else {
               // If turn continues, update the current round
               newGame.currentRound = currentRound;
@@ -585,7 +562,7 @@ export const useCricketStore = create<CricketStoreState>()(
           const nextPlayerIndex = (playerIndex + 1) % players.length;
           newGame.currentPlayerIndex = nextPlayerIndex;
 
-          // Reset current player's dart index
+          // Reset current player's dart index (for statistics)
           if (playerIndex >= 0 && playerIndex < players.length) {
             players[playerIndex].currentDartIndex = 0;
           }
