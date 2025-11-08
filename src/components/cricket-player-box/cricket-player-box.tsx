@@ -100,6 +100,7 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
         {/* Main Section - Center */}
         <Box
           sx={{
+            p: { xs:1, sm: 2 },
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
