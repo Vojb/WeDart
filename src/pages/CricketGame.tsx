@@ -26,6 +26,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCricketStore } from "../store/useCricketStore";
 import VibrationButton from "../components/VibrationButton";
+import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
 import { motion } from "framer-motion";
 
 const CricketGame: React.FC = () => {
@@ -642,21 +643,7 @@ const CricketGame: React.FC = () => {
             borderColor: "divider",
           }}
         >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 0.5,
-            }}
-          >
-            <Typography variant="h6" component="div" sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }}>
-              {currentPlayer?.name}'s Turn
-            </Typography>
-            <IconButton onClick={handleUndo} color="primary" size="small">
-              <Undo />
-            </IconButton>
-          </Box>
+        
           
           {/* Player Headers */}
           <Box
@@ -675,7 +662,6 @@ const CricketGame: React.FC = () => {
             {/* First half of players */}
             {currentGame.players.slice(0, Math.ceil(currentGame.players.length / 2)).map((player) => {
               const isCurrentPlayer = player.id === currentPlayer?.id;
-              const closedCount = player.targets.filter((t) => t.closed).length;
               // Calculate average marks per round for this player
               const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
               // Include current round if it belongs to this player
@@ -687,60 +673,22 @@ const CricketGame: React.FC = () => {
               const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
               
               return (
-                <Paper
+                <Box
                   key={player.id}
-                  elevation={isCurrentPlayer ? 4 : 1}
                   sx={{
-                    p: 0.5,
                     backgroundColor: isCurrentPlayer
-                      ? (theme) => alpha(theme.palette.primary.main, 0.1)
+                      ? alpha(theme.palette.primary.main, 0.06)
                       : "transparent",
-                    border: isCurrentPlayer
-                      ? (theme) => `2px solid ${theme.palette.primary.main}`
-                      : "1px solid",
-                    borderColor: isCurrentPlayer
-                      ? "primary.main"
-                      : "divider",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 2fr 1fr",
-                    alignItems: "center",
-                    gap: 0.5,
+                    borderRadius: 1,
+                    transition: "background-color 0.3s ease",
                   }}
                 >
-                  {/* Left column - Marks and stats */}
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.25 }}>
-                    <Typography variant="caption" color="secondary.main" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
-                      {avgMarksPerRound.toFixed(1)} avg
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
-                      {closedCount}/7
-                    </Typography>
-                  </Box>
-
-                  {/* Center - Name and Points */}
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: isCurrentPlayer ? "bold" : "normal",
-                        fontSize: { xs: "0.7rem", sm: "0.875rem" },
-                        textAlign: "center",
-                      }}
-                    >
-                      {player.name}
-                    </Typography>
-                    <Typography
-                      variant="h4"
-                      color="primary.main"
-                      sx={{ fontWeight: "bold", fontSize: { xs: "1.5rem", sm: "2rem" } }}
-                    >
-                      {player.totalScore}
-                    </Typography>
-                  </Box>
-
-                  {/* Right column - Empty spacer */}
-                  <Box />
-                </Paper>
+                  <CricketPlayerBox
+                    player={player}
+                    isCurrentPlayer={isCurrentPlayer}
+                    avgMarksPerRound={avgMarksPerRound}
+                  />
+                </Box>
               );
             })}
             
@@ -754,7 +702,6 @@ const CricketGame: React.FC = () => {
             {/* Second half of players */}
             {currentGame.players.slice(Math.ceil(currentGame.players.length / 2)).map((player) => {
               const isCurrentPlayer = player.id === currentPlayer?.id;
-              const closedCount = player.targets.filter((t) => t.closed).length;
               // Calculate average marks per round for this player
               const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
               // Include current round if it belongs to this player
@@ -766,60 +713,22 @@ const CricketGame: React.FC = () => {
               const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
               
               return (
-                <Paper
+                <Box
                   key={player.id}
-                  elevation={isCurrentPlayer ? 4 : 1}
                   sx={{
-                    p: 0.5,
                     backgroundColor: isCurrentPlayer
-                      ? (theme) => alpha(theme.palette.primary.main, 0.1)
+                      ? alpha(theme.palette.primary.main, 0.06)
                       : "transparent",
-                    border: isCurrentPlayer
-                      ? (theme) => `2px solid ${theme.palette.primary.main}`
-                      : "1px solid",
-                    borderColor: isCurrentPlayer
-                      ? "primary.main"
-                      : "divider",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 2fr 1fr",
-                    alignItems: "center",
-                    gap: 0.5,
+                    borderRadius: 1,
+                    transition: "background-color 0.3s ease",
                   }}
                 >
-                  {/* Left column - Marks and stats */}
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.25 }}>
-                    <Typography variant="caption" color="secondary.main" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
-                      {avgMarksPerRound.toFixed(1)} avg
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
-                      {closedCount}/7
-                    </Typography>
-                  </Box>
-
-                  {/* Center - Name and Points */}
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: isCurrentPlayer ? "bold" : "normal",
-                        fontSize: { xs: "0.7rem", sm: "0.875rem" },
-                        textAlign: "center",
-                      }}
-                    >
-                      {player.name}
-                    </Typography>
-                    <Typography
-                      variant="h4"
-                      color="primary.main"
-                      sx={{ fontWeight: "bold", fontSize: { xs: "1.5rem", sm: "2rem" } }}
-                    >
-                      {player.totalScore}
-                    </Typography>
-                  </Box>
-
-                  {/* Right column - Empty spacer */}
-                  <Box />
-                </Paper>
+                  <CricketPlayerBox
+                    player={player}
+                    isCurrentPlayer={isCurrentPlayer}
+                    avgMarksPerRound={avgMarksPerRound}
+                  />
+                </Box>
               );
             })}
           </Box>
@@ -881,6 +790,9 @@ const CricketGame: React.FC = () => {
                         justifyContent: "center",
                         alignItems: "center",
                         cursor: isClickable ? "pointer" : "default",
+                        backgroundColor: isCurrentPlayer
+                          ? alpha(theme.palette.primary.main, 0.06)
+                          : "transparent",
                         transition: "all 0.2s ease",
                         "&:hover": isClickable
                           ? {
@@ -899,18 +811,7 @@ const CricketGame: React.FC = () => {
                           ) : (
                             renderMarks(target.hits)
                           )}
-                          {currentGame?.gameType !== "no-score" && target.points > 0 && (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                fontWeight: "bold",
-                                color: "secondary.main",
-                                fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                              }}
-                            >
-                              +{target.points}
-                            </Typography>
-                          )}
+                          
                         </Box>
                       )}
                     </Box>
@@ -953,6 +854,9 @@ const CricketGame: React.FC = () => {
                         justifyContent: "center",
                         alignItems: "center",
                         cursor: isClickable ? "pointer" : "default",
+                        backgroundColor: isCurrentPlayer
+                          ? alpha(theme.palette.primary.main, 0.06)
+                          : "transparent",
                         transition: "all 0.2s ease",
                         "&:hover": isClickable
                           ? {
@@ -999,11 +903,19 @@ const CricketGame: React.FC = () => {
             p: 2,
             borderRadius: 0,
             borderTop: 1,
-            borderColor: "divider",
+            borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" , flexDirection: "row" ,gap: 2,
           }}
         >
-          <Box sx={{ position: "relative" }}>
+        <Box sx={{ flex: 1 }}>
+             <IconButton onClick={handleUndo} color="secondary" size="small">
+              <Undo />
+            </IconButton>
+        </Box>
+
+          <Box >
+       
             <VibrationButton
+
               variant="contained"
               color="primary"
               fullWidth
@@ -1013,6 +925,7 @@ const CricketGame: React.FC = () => {
               vibrationPattern={100}
               startIcon={<NavigateNext />}
               sx={{
+                flex: 1,
                 py: 1.5,
                 fontSize: "1.2rem",
                 fontWeight: "bold",
@@ -1033,7 +946,7 @@ const CricketGame: React.FC = () => {
                   : {},
               }}
             >
-              Next Player
+              Next 
             </VibrationButton>
             {/* Progress bar indicator */}
             {!currentGame.isGameFinished && progress > 0 && (
