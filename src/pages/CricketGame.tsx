@@ -1226,14 +1226,11 @@ const CricketGame: React.FC = () => {
             borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: "row", gap: 2,
           }}
         >
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1, flexDirection: "row", flexWrap:"wrap", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
             <IconButton onClick={handleUndo} color="secondary" size="small">
               <Undo />
             </IconButton>
-          </Box>
-
-          {/* Round Summary */}
-          <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+            <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
             {currentGame.currentRound && currentGame.currentRound.darts.length > 0 ? (
               (() => {
                 // Group darts by target number and count occurrences
@@ -1298,6 +1295,10 @@ const CricketGame: React.FC = () => {
               </Typography>
             )}
           </Box>
+          </Box>
+
+          {/* Round Summary */}
+         
 
           <Box >
 
