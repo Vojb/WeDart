@@ -15,21 +15,23 @@ import {
   alpha,
   CircularProgress,
   LinearProgress,
+  useTheme,
 } from "@mui/material";
 import {
   Undo,
   EmojiEvents,
   ExitToApp,
-  CheckCircle,
   NavigateNext,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCricketStore } from "../store/useCricketStore";
 import VibrationButton from "../components/VibrationButton";
+import { motion } from "framer-motion";
 
 const CricketGame: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const {
     currentGame,
     recordHit,
@@ -293,11 +295,17 @@ const CricketGame: React.FC = () => {
     navigate("/cricket");
   };
 
-  // Function to render marks (0-3) for a player's target
+  // Function to render marks (0-3) for a player's target with animation
   const renderMarks = (hits: number) => {
     if (hits === 0) return null;
 
-    // Container to hold the marks
+    const viewBoxSize = 48;
+    const center = viewBoxSize / 2;
+    const lineLength = 36;
+    const circleRadius = 18;
+    const strokeWidth = 4;
+    const primaryColor = theme.palette.primary.main;
+
     return (
       <Box
         sx={{
@@ -305,50 +313,141 @@ const CricketGame: React.FC = () => {
           justifyContent: "center",
           alignItems: "center",
           position: "relative",
-          width: { xs: 16, sm: 20, md: 24 },
-          height: { xs: 16, sm: 20, md: 24 },
+          width: { xs: 32, sm: 40, md: 48 },
+          height: { xs: 32, sm: 40, md: 48 },
           margin: "0 auto",
         }}
       >
-        {/* First hit - Slash (/) */}
-        {hits >= 1 && (
-          <Box
-            sx={{
-              position: "absolute",
-              width: "2px",
-              height: { xs: "14px", sm: "16px", md: "20px" },
-              bgcolor: "primary.main",
-              transform: "rotate(45deg)",
-            }}
-          />
-        )}
+        <svg
+          viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+          style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          {/* First hit - Slash (/) */}
+          {hits >= 1 && (
+            <motion.line
+              key={`slash-${hits}`}
+              x1={center - lineLength / 2}
+              y1={center - lineLength / 2}
+              x2={center + lineLength / 2}
+              y2={center + lineLength / 2}
+              stroke={primaryColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              initial={hits === 1 ? { pathLength: 0 } : { pathLength: 1 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.3, delay: 0 }}
+            />
+          )}
 
-        {/* Second hit - Cross (X) - adds backslash (\) */}
-        {hits >= 2 && (
-          <Box
-            sx={{
-              position: "absolute",
-              width: "2px",
-              height: { xs: "14px", sm: "16px", md: "20px" },
-              bgcolor: "primary.main",
-              transform: "rotate(-45deg)",
-            }}
-          />
-        )}
+          {/* Second hit - Cross (X) - adds backslash (\) */}
+          {hits >= 2 && (
+            <motion.line
+              key={`backslash-${hits}`}
+              x1={center + lineLength / 2}
+              y1={center - lineLength / 2}
+              x2={center - lineLength / 2}
+              y2={center + lineLength / 2}
+              stroke={primaryColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              initial={hits === 2 ? { pathLength: 0 } : { pathLength: 1 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.3, delay: hits === 2 ? 0.1 : 0 }}
+            />
+          )}
 
-        {/* Third hit - Circle with cross */}
-        {hits >= 3 && (
-          <Box
-            sx={{
-              position: "absolute",
-              width: { xs: "14px", sm: "16px", md: "20px" },
-              height: { xs: "14px", sm: "16px", md: "20px" },
-              border: "2px solid",
-              borderColor: "primary.main",
-              borderRadius: "50%",
-            }}
+          {/* Third hit - Circle with cross - add ring but keep cross visible */}
+          {hits >= 3 && (
+            <motion.circle
+              key={`circle-${hits}`}
+              cx={center}
+              cy={center}
+              r={circleRadius}
+              fill="none"
+              stroke={primaryColor}
+              strokeWidth={strokeWidth}
+              initial={hits === 3 ? { pathLength: 0 } : { pathLength: 1 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.4, delay: hits === 3 ? 0.3 : 0 }}
+            />
+          )}
+        </svg>
+      </Box>
+    );
+  };
+
+  // Function to render closed mark (ring with cross)
+  const renderClosedMark = () => {
+    const viewBoxSize = 48;
+    const center = viewBoxSize / 2;
+    const lineLength = 36;
+    const circleRadius = 18;
+    const strokeWidth = 4;
+    const primaryColor = theme.palette.primary.main;
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          position: "relative",
+          width: { xs: 32, sm: 40, md: 48 },
+          height: { xs: 32, sm: 40, md: 48 },
+          margin: "0 auto",
+        }}
+      >
+        <svg
+          viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+          style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          {/* Circle ring */}
+          <motion.circle
+            cx={center}
+            cy={center}
+            r={circleRadius}
+            fill="none"
+            stroke={primaryColor}
+            strokeWidth={strokeWidth}
+            initial={false}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.4 }}
           />
-        )}
+          
+          {/* Cross lines */}
+          <motion.line
+            x1={center - lineLength / 2}
+            y1={center - lineLength / 2}
+            x2={center + lineLength / 2}
+            y2={center + lineLength / 2}
+            stroke={primaryColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            initial={false}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.3 }}
+          />
+          <motion.line
+            x1={center + lineLength / 2}
+            y1={center - lineLength / 2}
+            x2={center - lineLength / 2}
+            y2={center + lineLength / 2}
+            stroke={primaryColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            initial={false}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.3 }}
+          />
+        </svg>
       </Box>
     );
   };
@@ -395,6 +494,15 @@ const CricketGame: React.FC = () => {
       if (p.id === currentPlayer.id) return false;
       const otherTarget = p.targets.find((t) => t.number === number);
       return otherTarget && !otherTarget.closed;
+    });
+  };
+
+  // Check if all players have closed a number
+  const isNumberClosedByAll = (number: number | string) => {
+    if (!currentGame) return false;
+    return currentGame.players.every((player) => {
+      const target = player.targets.find((t) => t.number === number);
+      return target?.closed || false;
     });
   };
 
@@ -568,6 +676,15 @@ const CricketGame: React.FC = () => {
             {currentGame.players.slice(0, Math.ceil(currentGame.players.length / 2)).map((player) => {
               const isCurrentPlayer = player.id === currentPlayer?.id;
               const closedCount = player.targets.filter((t) => t.closed).length;
+              // Calculate average marks per round for this player
+              const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
+              // Include current round if it belongs to this player
+              const allRounds = [...playerRounds];
+              if (currentGame.currentRound && currentGame.currentRound.playerId === player.id) {
+                allRounds.push(currentGame.currentRound);
+              }
+              const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
+              const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
               
               return (
                 <Paper
@@ -584,29 +701,45 @@ const CricketGame: React.FC = () => {
                     borderColor: isCurrentPlayer
                       ? "primary.main"
                       : "divider",
-                    textAlign: "center",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 2fr 1fr",
+                    alignItems: "center",
+                    gap: 0.5,
                   }}
                 >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: isCurrentPlayer ? "bold" : "normal",
-                      mb: 0.25,
-                      fontSize: { xs: "0.7rem", sm: "0.875rem" },
-                    }}
-                  >
-                    {player.name}
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="primary.main"
-                    sx={{ fontWeight: "bold", fontSize: { xs: "1rem", sm: "1.25rem" } }}
-                  >
-                    {player.totalScore}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
-                    {closedCount}/7
-                  </Typography>
+                  {/* Left column - Marks and stats */}
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.25 }}>
+                    <Typography variant="caption" color="secondary.main" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
+                      {avgMarksPerRound.toFixed(1)} avg
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
+                      {closedCount}/7
+                    </Typography>
+                  </Box>
+
+                  {/* Center - Name and Points */}
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: isCurrentPlayer ? "bold" : "normal",
+                        fontSize: { xs: "0.7rem", sm: "0.875rem" },
+                        textAlign: "center",
+                      }}
+                    >
+                      {player.name}
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      color="primary.main"
+                      sx={{ fontWeight: "bold", fontSize: { xs: "1.5rem", sm: "2rem" } }}
+                    >
+                      {player.totalScore}
+                    </Typography>
+                  </Box>
+
+                  {/* Right column - Empty spacer */}
+                  <Box />
                 </Paper>
               );
             })}
@@ -622,6 +755,15 @@ const CricketGame: React.FC = () => {
             {currentGame.players.slice(Math.ceil(currentGame.players.length / 2)).map((player) => {
               const isCurrentPlayer = player.id === currentPlayer?.id;
               const closedCount = player.targets.filter((t) => t.closed).length;
+              // Calculate average marks per round for this player
+              const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
+              // Include current round if it belongs to this player
+              const allRounds = [...playerRounds];
+              if (currentGame.currentRound && currentGame.currentRound.playerId === player.id) {
+                allRounds.push(currentGame.currentRound);
+              }
+              const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
+              const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
               
               return (
                 <Paper
@@ -638,29 +780,45 @@ const CricketGame: React.FC = () => {
                     borderColor: isCurrentPlayer
                       ? "primary.main"
                       : "divider",
-                    textAlign: "center",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 2fr 1fr",
+                    alignItems: "center",
+                    gap: 0.5,
                   }}
                 >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: isCurrentPlayer ? "bold" : "normal",
-                      mb: 0.25,
-                      fontSize: { xs: "0.7rem", sm: "0.875rem" },
-                    }}
-                  >
-                    {player.name}
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    color="primary.main"
-                    sx={{ fontWeight: "bold", fontSize: { xs: "1rem", sm: "1.25rem" } }}
-                  >
-                    {player.totalScore}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
-                    {closedCount}/7
-                  </Typography>
+                  {/* Left column - Marks and stats */}
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.25 }}>
+                    <Typography variant="caption" color="secondary.main" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
+                      {avgMarksPerRound.toFixed(1)} avg
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: "0.6rem", sm: "0.75rem" } }}>
+                      {closedCount}/7
+                    </Typography>
+                  </Box>
+
+                  {/* Center - Name and Points */}
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: isCurrentPlayer ? "bold" : "normal",
+                        fontSize: { xs: "0.7rem", sm: "0.875rem" },
+                        textAlign: "center",
+                      }}
+                    >
+                      {player.name}
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      color="primary.main"
+                      sx={{ fontWeight: "bold", fontSize: { xs: "1.5rem", sm: "2rem" } }}
+                    >
+                      {player.totalScore}
+                    </Typography>
+                  </Box>
+
+                  {/* Right column - Empty spacer */}
+                  <Box />
                 </Paper>
               );
             })}
@@ -682,11 +840,11 @@ const CricketGame: React.FC = () => {
             const canClick = canClickNumber(number);
             const playerCount = currentGame.players.length;
             const firstHalfCount = Math.ceil(playerCount / 2);
+            const allClosed = isNumberClosedByAll(number);
 
             return (
-              <Paper
+              <Box
                 key={number}
-                elevation={1}
                 sx={{
                   flex: 1,
                   display: "grid",
@@ -700,6 +858,11 @@ const CricketGame: React.FC = () => {
                   gap: 0.5,
                   p: 0.5,
                   minHeight: 0,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                  filter: allClosed ? "blur(4px)" : "none",
+                  opacity: allClosed ? 0.5 : 1,
+                  transition: "filter 0.3s ease, opacity 0.3s ease",
                 }}
               >
                 {/* First half of players */}
@@ -710,9 +873,8 @@ const CricketGame: React.FC = () => {
                   const isClickable = isCurrentPlayer && canClick;
 
                   return (
-                    <Paper
+                    <Box
                       key={`${player.id}-${number}`}
-                      elevation={isClickable ? 4 : 1}
                       sx={{
                         display: "flex",
                         flexDirection: "column",
@@ -720,31 +882,11 @@ const CricketGame: React.FC = () => {
                         alignItems: "center",
                         cursor: isClickable ? "pointer" : "default",
                         transition: "all 0.2s ease",
-                        backgroundColor: isClosed
-                          ? (theme) => alpha(theme.palette.success.main, 0.1)
-                          : isClickable
-                          ? (theme) => alpha(theme.palette.primary.main, 0.05)
-                          : "transparent",
-                        border: isClickable
-                          ? (theme) => `2px solid ${theme.palette.primary.main}`
-                          : isCurrentPlayer
-                          ? (theme) => `1px solid ${theme.palette.primary.main}`
-                          : "1px solid",
-                        borderColor: isClickable
-                          ? "primary.main"
-                          : isCurrentPlayer
-                          ? "primary.main"
-                          : "divider",
                         "&:hover": isClickable
                           ? {
                               backgroundColor: (theme) =>
                                 alpha(theme.palette.primary.main, 0.15),
                               transform: "scale(1.02)",
-                            }
-                          : {},
-                        "&:active": isClickable
-                          ? {
-                              transform: "scale(0.98)",
                             }
                           : {},
                       }}
@@ -753,7 +895,7 @@ const CricketGame: React.FC = () => {
                       {target && (
                         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
                           {isClosed ? (
-                            <CheckCircle color="success" sx={{ fontSize: { xs: 20, sm: 24, md: 32 } }} />
+                            renderClosedMark()
                           ) : (
                             renderMarks(target.hits)
                           )}
@@ -762,7 +904,7 @@ const CricketGame: React.FC = () => {
                               variant="caption"
                               sx={{
                                 fontWeight: "bold",
-                                color: "primary.main",
+                                color: "secondary.main",
                                 fontSize: { xs: "0.65rem", sm: "0.75rem" },
                               }}
                             >
@@ -771,7 +913,7 @@ const CricketGame: React.FC = () => {
                           )}
                         </Box>
                       )}
-                    </Paper>
+                    </Box>
                   );
                 })}
 
@@ -803,9 +945,8 @@ const CricketGame: React.FC = () => {
                   const isClickable = isCurrentPlayer && canClick;
 
                   return (
-                    <Paper
+                    <Box
                       key={`${player.id}-${number}`}
-                      elevation={isClickable ? 4 : 1}
                       sx={{
                         display: "flex",
                         flexDirection: "column",
@@ -813,31 +954,11 @@ const CricketGame: React.FC = () => {
                         alignItems: "center",
                         cursor: isClickable ? "pointer" : "default",
                         transition: "all 0.2s ease",
-                        backgroundColor: isClosed
-                          ? (theme) => alpha(theme.palette.success.main, 0.1)
-                          : isClickable
-                          ? (theme) => alpha(theme.palette.primary.main, 0.05)
-                          : "transparent",
-                        border: isClickable
-                          ? (theme) => `2px solid ${theme.palette.primary.main}`
-                          : isCurrentPlayer
-                          ? (theme) => `1px solid ${theme.palette.primary.main}`
-                          : "1px solid",
-                        borderColor: isClickable
-                          ? "primary.main"
-                          : isCurrentPlayer
-                          ? "primary.main"
-                          : "divider",
                         "&:hover": isClickable
                           ? {
                               backgroundColor: (theme) =>
                                 alpha(theme.palette.primary.main, 0.15),
                               transform: "scale(1.02)",
-                            }
-                          : {},
-                        "&:active": isClickable
-                          ? {
-                              transform: "scale(0.98)",
                             }
                           : {},
                       }}
@@ -846,7 +967,7 @@ const CricketGame: React.FC = () => {
                       {target && (
                         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
                           {isClosed ? (
-                            <CheckCircle color="success" sx={{ fontSize: { xs: 20, sm: 24, md: 32 } }} />
+                            renderClosedMark()
                           ) : (
                             renderMarks(target.hits)
                           )}
@@ -855,7 +976,7 @@ const CricketGame: React.FC = () => {
                               variant="caption"
                               sx={{
                                 fontWeight: "bold",
-                                color: "primary.main",
+                                color: "secondary.main",
                                 fontSize: { xs: "0.65rem", sm: "0.75rem" },
                               }}
                             >
@@ -864,10 +985,10 @@ const CricketGame: React.FC = () => {
                           )}
                         </Box>
                       )}
-                    </Paper>
+                    </Box>
                   );
                 })}
-              </Paper>
+              </Box>
             );
           })}
         </Box>
