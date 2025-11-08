@@ -323,7 +323,6 @@ const CricketGame: React.FC = () => {
     const viewBoxSize = 48;
     const center = viewBoxSize / 2;
     const lineLength = 36;
-    const circleRadius = 18;
     const strokeWidth = 4;
     const primaryColor = theme.palette.primary.main;
 
@@ -829,20 +828,8 @@ const CricketGame: React.FC = () => {
                 key={number}
                 sx={{
                   flex: 1,
-                  display: "grid",
-                  gridTemplateColumns: (() => {
-                    const playerCount = currentGame.players.length;
-                    if (playerCount === 1) return `1fr 60px`;
-                    if (playerCount === 2) {
-                      const firstHalf = Math.ceil(playerCount / 2);
-                      const secondHalf = playerCount - firstHalf;
-                      return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
-                    }
-                    // For 3+ players, number goes last
-                    return `repeat(${playerCount}, 1fr) 60px`;
-                  })(),
-                  gap: 0.5,
-                  p: 0.5,
+                  display: "flex",
+                  flexDirection: "column",
                   minHeight: 0,
                   borderTop: "1px solid",
                   borderColor: "divider",
@@ -851,6 +838,27 @@ const CricketGame: React.FC = () => {
                   transition: "filter 0.3s ease, opacity 0.3s ease",
                 }}
               >
+                {/* Main row with players and number */}
+                <Box
+                  sx={{
+                    flex: 1,
+                    display: "grid",
+                    gridTemplateColumns: (() => {
+                      const playerCount = currentGame.players.length;
+                      if (playerCount === 1) return `1fr 60px`;
+                      if (playerCount === 2) {
+                        const firstHalf = Math.ceil(playerCount / 2);
+                        const secondHalf = playerCount - firstHalf;
+                        return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
+                      }
+                      // For 3+ players, number goes last
+                      return `repeat(${playerCount}, 1fr) 60px`;
+                    })(),
+                    gap: 0.5,
+                    p: 0.5,
+                    minHeight: 0,
+                  }}
+                >
                 {(() => {
                   const playerCount = currentGame.players.length;
 
@@ -1018,18 +1026,6 @@ const CricketGame: React.FC = () => {
                                 ) : (
                                   renderMarks(target.hits)
                                 )}
-                                {currentGame?.gameType !== "no-score" && target.points > 0 && (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{
-                                      fontWeight: "bold",
-                                      color: "secondary.main",
-                                      fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                                    }}
-                                  >
-                                    +{target.points}
-                                  </Typography>
-                                )}
                               </Box>
                             )}
                           </Box>
@@ -1068,6 +1064,135 @@ const CricketGame: React.FC = () => {
                     </>
                   );
                 })()}
+                </Box>
+
+                {/* Points row below number */}
+                {currentGame?.gameType !== "no-score" && (
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: (() => {
+                        const playerCount = currentGame.players.length;
+                        if (playerCount === 1) return `1fr 60px`;
+                        if (playerCount === 2) {
+                          const firstHalf = Math.ceil(playerCount / 2);
+                          const secondHalf = playerCount - firstHalf;
+                          return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
+                        }
+                        return `repeat(${playerCount}, 1fr) 60px`;
+                      })(),
+                      gap: 0.5,
+                      px: 0.5,
+                      pb: 0.5,
+                    }}
+                  >
+                    {(() => {
+                      const playerCount = currentGame.players.length;
+
+                      // For 1-2 players, split in half with number in middle
+                      if (playerCount <= 2) {
+                        const firstHalfCount = Math.ceil(playerCount / 2);
+                        return (
+                          <>
+                            {/* First half of players - points */}
+                            {currentGame.players.slice(0, firstHalfCount).map((player) => {
+                              const target = player.targets.find((t) => t.number === number);
+                              return (
+                                <Box
+                                  key={`points-${player.id}-${number}`}
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  {target && target.points > 0 && (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        fontWeight: "bold",
+                                        color: "secondary.main",
+                                        fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                      }}
+                                    >
+                                      +{target.points}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              );
+                            })}
+
+                            {/* Empty space for number column */}
+                            <Box />
+
+                            {/* Second half of players - points */}
+                            {currentGame.players.slice(firstHalfCount).map((player) => {
+                              const target = player.targets.find((t) => t.number === number);
+                              return (
+                                <Box
+                                  key={`points-${player.id}-${number}`}
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  {target && target.points > 0 && (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        fontWeight: "bold",
+                                        color: "secondary.main",
+                                        fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                      }}
+                                    >
+                                      +{target.points}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                          </>
+                        );
+                      }
+
+                      // For 3+ players, all players first, then empty space for number
+                      return (
+                        <>
+                          {currentGame.players.map((player) => {
+                            const target = player.targets.find((t) => t.number === number);
+                            return (
+                              <Box
+                                key={`points-${player.id}-${number}`}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {target && target.points > 0 && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontWeight: "bold",
+                                      color: "secondary.main",
+                                      fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                                    }}
+                                  >
+                                    +{target.points}
+                                  </Typography>
+                                )}
+                              </Box>
+                            );
+                          })}
+
+                          {/* Empty space for number column */}
+                          <Box />
+                        </>
+                      );
+                    })()}
+                  </Box>
+                )}
               </Box>
             );
           })}
