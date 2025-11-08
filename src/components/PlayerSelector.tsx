@@ -89,7 +89,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
 
   return (
     <>
-      <Grid container spacing={1}>
+      <Grid container spacing={2}>
         {players.length === 0 ? (
           <Grid item xs={12}>
             <Typography color="text.secondary" align="center" sx={{ py: 2 }}>
@@ -103,7 +103,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
           const selectionIndex = selectedPlayerIds.indexOf(player.id);
 
           return (
-            <Grid item xs={3} sm={4} md={4} key={player.id}>
+            <Grid item xs={6} sm={4} md={3} lg={2} key={player.id}>
               <Card
                 sx={{
                   border: isSelected ? 2 : 0,
@@ -112,10 +112,11 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
                     ? (theme) => alpha(theme.palette.primary.main, 0.1)
                     : "background.paper",
                   position: "relative",
+                  height: "100%",
                 }}
               >
                 <CardActionArea onClick={() => togglePlayer(player.id)}>
-                  <CardContent>
+                  <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
                     <Box
                       sx={{
                         display: "flex",
@@ -130,31 +131,34 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
                           color="secondary"
                           sx={{
                             "& .MuiBadge-badge": {
-                              fontSize: "1rem",
-                              height: "24px",
-                              width: "24px",
-                              borderRadius: "12px",
+                              fontSize: "0.875rem",
+                              height: "22px",
+                              width: "22px",
+                              borderRadius: "11px",
                             },
                           }}
                         >
                           <PersonIcon
                             color="primary"
-                            sx={{ fontSize: 24, mb: 1 }}
+                            sx={{ fontSize: 28, mb: 0.5 }}
                           />
                         </Badge>
                       ) : (
                         <PersonIcon
                           color="action"
-                          sx={{ fontSize: 24, mb: 1 }}
+                          sx={{ fontSize: 28, mb: 0.5 }}
                         />
                       )}
                       <Typography
-                        variant="body1"
+                        variant="body2"
                         sx={{
                           fontWeight: isSelected ? "bold" : "normal",
-                          mt: 1,
+                          mt: 0.5,
+                          fontSize: "0.875rem",
+                          lineHeight: 1.2,
                         }}
                         align="center"
+                        noWrap
                       >
                         {player.name}
                         {isSelected && (
@@ -163,7 +167,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
                             color="primary"
                             sx={{
                               ml: 0.5,
-                              fontSize: "0.8em",
+                              fontSize: "0.75em",
                               fontWeight: "normal",
                             }}
                           >
@@ -176,6 +180,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
                           variant="caption"
                           color="text.secondary"
                           align="center"
+                          sx={{ fontSize: "0.7rem", mt: 0.25 }}
                         >
                           Avg: {player.average.toFixed(1)} • Games:{" "}
                           {player.games}
@@ -192,7 +197,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
 
         {/* Create New Player Card */}
         {selectedPlayerIds.length < maxPlayers && (
-          <Grid item xs={3} sm={4} md={4}>
+          <Grid item xs={6} sm={4} md={3} lg={2}>
             <Card
               sx={{
                 border: 2,
@@ -200,6 +205,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
                 borderStyle: "dashed",
                 bgcolor: "background.paper",
                 opacity: 0.7,
+                height: "100%",
                 "&:hover": {
                   opacity: 1,
                   bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
@@ -207,7 +213,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
               }}
             >
               <CardActionArea onClick={handleOpenCreateDialog}>
-                <CardContent>
+                <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
                   <Box
                     sx={{
                       display: "flex",
@@ -218,14 +224,16 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
                   >
                     <AddIcon
                       color="primary"
-                      sx={{ fontSize: 24, mb: 1 }}
+                      sx={{ fontSize: 28, mb: 0.5 }}
                     />
                     <Typography
-                      variant="body1"
+                      variant="body2"
                       sx={{
-                        mt: 1,
+                        mt: 0.5,
                         color: "primary.main",
                         fontWeight: "medium",
+                        fontSize: "0.875rem",
+                        lineHeight: 1.2,
                       }}
                       align="center"
                     >
@@ -239,7 +247,7 @@ const PlayerSelector: React.FC<PlayerSelectorProps> = ({
         )}
 
         <Grid item xs={12}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
             {selectedPlayerIds.length} of {maxPlayers} players selected
             {minPlayers > 0 && ` (minimum ${minPlayers})`}
           </Typography>
