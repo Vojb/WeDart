@@ -91,9 +91,6 @@ const CountUp: React.FC<CountUpProps> = ({
       // Only animate if value actually changed
       if (previousToRef.current !== to && startWhen) {
         if (typeof onStart === 'function') onStart();
-
-        // Get current value from motionValue (which should be the previous 'to')
-        const currentValue = motionValue.get();
         
         const timeoutId = setTimeout(() => {
           motionValue.set(to);
