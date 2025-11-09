@@ -318,14 +318,14 @@ const CricketGame: React.FC = () => {
   };
 
   // Function to render marks (0-3) for a player's target with animation
-  const renderMarks = (hits: number) => {
+  const renderMarks = (hits: number, color?: string) => {
     if (hits === 0) return null;
 
     const viewBoxSize = 48;
     const center = viewBoxSize / 2;
     const lineLength = 36;
     const strokeWidth = 4;
-    const primaryColor = theme.palette.primary.main;
+    const primaryColor = color || theme.palette.primary.main;
 
     return (
       <Box
@@ -403,13 +403,13 @@ const CricketGame: React.FC = () => {
   };
 
   // Function to render closed mark (ring with cross)
-  const renderClosedMark = () => {
+  const renderClosedMark = (color?: string) => {
     const viewBoxSize = 48;
     const center = viewBoxSize / 2;
     const lineLength = 36;
     const circleRadius = 18;
     const strokeWidth = 4;
-    const primaryColor = theme.palette.primary.main;
+    const primaryColor = color || theme.palette.primary.main;
 
     return (
       <Box
@@ -431,20 +431,6 @@ const CricketGame: React.FC = () => {
             height: "100%",
           }}
         >
-          {/* Circle ring */}
-          <motion.circle
-                className="circle-path"
-                cx={center}
-                cy={center}
-                stroke={primaryColor}
-                strokeWidth={strokeWidth}
-                fill="none"
-                r={circleRadius}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.3 }}
-              />
-
           {/* Cross lines */}
           <motion.line
             x1={center - lineLength / 2}
@@ -470,6 +456,20 @@ const CricketGame: React.FC = () => {
             animate={{ pathLength: 1 }}
             transition={{ duration: 0.3 }}
           />
+
+          {/* Circle ring */}
+          <motion.circle
+                className="circle-path"
+                cx={center}
+                cy={center}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                fill="none"
+                r={circleRadius}
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3 }}
+              />
         </motion.svg>
       </Box>
     );
@@ -694,6 +694,10 @@ const CricketGame: React.FC = () => {
                   <>
                     {/* First half of players */}
                     {currentGame.players.slice(0, firstHalf).map((player) => {
+                      const playerIndex = currentGame.players.indexOf(player);
+                      const playerColor = playerIndex % 2 === 0 
+                        ? theme.palette.primary.main 
+                        : theme.palette.secondary.main;
                       const isCurrentPlayer = player.id === currentPlayer?.id;
                       const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
                       const allRounds = [...playerRounds];
@@ -708,7 +712,7 @@ const CricketGame: React.FC = () => {
                           key={player.id}
                           sx={{
                             backgroundColor: isCurrentPlayer
-                              ? alpha(theme.palette.primary.main, 0.06)
+                              ? alpha(playerColor, 0.06)
                               : "transparent",
                             borderRadius: 1,
                             transition: "background-color 0.3s ease",
@@ -718,6 +722,7 @@ const CricketGame: React.FC = () => {
                             player={player}
                             isCurrentPlayer={isCurrentPlayer}
                             avgMarksPerRound={avgMarksPerRound}
+                            playerIndex={playerIndex}
                           />
                         </Box>
                       );
@@ -732,6 +737,10 @@ const CricketGame: React.FC = () => {
 
                     {/* Second half of players */}
                     {currentGame.players.slice(firstHalf).map((player) => {
+                      const playerIndex = currentGame.players.indexOf(player);
+                      const playerColor = playerIndex % 2 === 0 
+                        ? theme.palette.primary.main 
+                        : theme.palette.secondary.main;
                       const isCurrentPlayer = player.id === currentPlayer?.id;
                       const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
                       const allRounds = [...playerRounds];
@@ -746,7 +755,7 @@ const CricketGame: React.FC = () => {
                           key={player.id}
                           sx={{
                             backgroundColor: isCurrentPlayer
-                              ? alpha(theme.palette.primary.main, 0.06)
+                              ? alpha(playerColor, 0.06)
                               : "transparent",
                             borderRadius: 1,
                             transition: "background-color 0.3s ease",
@@ -756,6 +765,7 @@ const CricketGame: React.FC = () => {
                             player={player}
                             isCurrentPlayer={isCurrentPlayer}
                             avgMarksPerRound={avgMarksPerRound}
+                            playerIndex={playerIndex}
                           />
                         </Box>
                       );
@@ -767,7 +777,10 @@ const CricketGame: React.FC = () => {
               // For 3+ players, all players first, then number
               return (
                 <>
-                  {currentGame.players.map((player) => {
+                  {currentGame.players.map((player, playerIndex) => {
+                    const playerColor = playerIndex % 2 === 0 
+                      ? theme.palette.primary.main 
+                      : theme.palette.secondary.main;
                     const isCurrentPlayer = player.id === currentPlayer?.id;
                     const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
                     const allRounds = [...playerRounds];
@@ -782,7 +795,7 @@ const CricketGame: React.FC = () => {
                         key={player.id}
                         sx={{
                           backgroundColor: isCurrentPlayer
-                            ? alpha(theme.palette.primary.main, 0.06)
+                            ? alpha(playerColor, 0.06)
                             : "transparent",
                           borderRadius: 1,
                           transition: "background-color 0.3s ease",
@@ -792,6 +805,7 @@ const CricketGame: React.FC = () => {
                           player={player}
                           isCurrentPlayer={isCurrentPlayer}
                           avgMarksPerRound={avgMarksPerRound}
+                          playerIndex={playerIndex}
                         />
                       </Box>
                     );
@@ -870,6 +884,10 @@ const CricketGame: React.FC = () => {
                       <>
                         {/* First half of players */}
                         {currentGame.players.slice(0, firstHalfCount).map((player) => {
+                          const playerIndex = currentGame.players.indexOf(player);
+                          const playerColor = playerIndex % 2 === 0 
+                            ? theme.palette.primary.main 
+                            : theme.palette.secondary.main;
                           const target = player.targets.find((t) => t.number === number);
                           const isCurrentPlayer = player.id === currentPlayer?.id;
                           const isClosed = target?.closed || false;
@@ -885,13 +903,12 @@ const CricketGame: React.FC = () => {
                                 alignItems: "center",
                                 cursor: isClickable ? "pointer" : "default",
                                 backgroundColor: isCurrentPlayer
-                                  ? alpha(theme.palette.primary.main, 0.06)
+                                  ? alpha(playerColor, 0.06)
                                   : "transparent",
                                 transition: "all 0.2s ease",
                                 "&:hover": isClickable
                                   ? {
-                                    backgroundColor: (theme) =>
-                                      alpha(theme.palette.primary.main, 0.15),
+                                    backgroundColor: alpha(playerColor, 0.15),
                                     transform: "scale(1.02)",
                                   }
                                   : {},
@@ -901,9 +918,9 @@ const CricketGame: React.FC = () => {
                               {target && (
                                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
                                   {isClosed ? (
-                                    renderClosedMark()
+                                    renderClosedMark(playerColor)
                                   ) : (
-                                    renderMarks(target.hits)
+                                    renderMarks(target.hits, playerColor)
                                   )}
                                 </Box>
                               )}
@@ -943,6 +960,10 @@ const CricketGame: React.FC = () => {
 
                         {/* Second half of players */}
                         {currentGame.players.slice(firstHalfCount).map((player) => {
+                          const playerIndex = currentGame.players.indexOf(player);
+                          const playerColor = playerIndex % 2 === 0 
+                            ? theme.palette.primary.main 
+                            : theme.palette.secondary.main;
                           const target = player.targets.find((t) => t.number === number);
                           const isCurrentPlayer = player.id === currentPlayer?.id;
                           const isClosed = target?.closed || false;
@@ -958,13 +979,12 @@ const CricketGame: React.FC = () => {
                                 alignItems: "center",
                                 cursor: isClickable ? "pointer" : "default",
                                 backgroundColor: isCurrentPlayer
-                                  ? alpha(theme.palette.primary.main, 0.06)
+                                  ? alpha(playerColor, 0.06)
                                   : "transparent",
                                 transition: "all 0.2s ease",
                                 "&:hover": isClickable
                                   ? {
-                                    backgroundColor: (theme) =>
-                                      alpha(theme.palette.primary.main, 0.15),
+                                    backgroundColor: alpha(playerColor, 0.15),
                                     transform: "scale(1.02)",
                                   }
                                   : {},
@@ -974,9 +994,9 @@ const CricketGame: React.FC = () => {
                               {target && (
                                 <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
                                   {isClosed ? (
-                                    renderClosedMark()
+                                    renderClosedMark(playerColor)
                                   ) : (
-                                    renderMarks(target.hits)
+                                    renderMarks(target.hits, playerColor)
                                   )}
 
                                 </Box>
@@ -991,7 +1011,10 @@ const CricketGame: React.FC = () => {
                   // For 3+ players, all players first, then number
                   return (
                     <>
-                      {currentGame.players.map((player) => {
+                      {currentGame.players.map((player, playerIndex) => {
+                        const playerColor = playerIndex % 2 === 0 
+                          ? theme.palette.primary.main 
+                          : theme.palette.secondary.main;
                         const target = player.targets.find((t) => t.number === number);
                         const isCurrentPlayer = player.id === currentPlayer?.id;
                         const isClosed = target?.closed || false;
@@ -1007,13 +1030,12 @@ const CricketGame: React.FC = () => {
                               alignItems: "center",
                               cursor: isClickable ? "pointer" : "default",
                               backgroundColor: isCurrentPlayer
-                                ? alpha(theme.palette.primary.main, 0.06)
+                                ? alpha(playerColor, 0.06)
                                 : "transparent",
                               transition: "all 0.2s ease",
                               "&:hover": isClickable
                                 ? {
-                                  backgroundColor: (theme) =>
-                                    alpha(theme.palette.primary.main, 0.15),
+                                  backgroundColor: alpha(playerColor, 0.15),
                                   transform: "scale(1.02)",
                                 }
                                 : {},
@@ -1023,9 +1045,9 @@ const CricketGame: React.FC = () => {
                             {target && (
                               <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
                                 {isClosed ? (
-                                  renderClosedMark()
+                                  renderClosedMark(playerColor)
                                 ) : (
-                                  renderMarks(target.hits)
+                                  renderMarks(target.hits, playerColor)
                                 )}
                               </Box>
                             )}
@@ -1100,34 +1122,40 @@ const CricketGame: React.FC = () => {
                 return (
                   <>
                     {/* First half of players - total score */}
-                    {currentGame.players.slice(0, firstHalfCount).map((player) => (
-                      <Box
-                        key={`score-${player.id}`}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Typography
-                          variant="h6"
-                          component="div"
+                    {currentGame.players.slice(0, firstHalfCount).map((player) => {
+                      const playerIndex = currentGame.players.indexOf(player);
+                      const playerColor = playerIndex % 2 === 0 
+                        ? theme.palette.primary.main 
+                        : theme.palette.secondary.main;
+                      return (
+                        <Box
+                          key={`score-${player.id}`}
                           sx={{
-                            fontWeight: 700,
-                            color: theme.palette.primary.main,
-                            fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
                         >
-                          <CountUp
-                            to={player.totalScore}
-                            duration={0.5}
-                            delay={0}
-                            animateOnChange={true}
-                            startWhen={true}
-                          />
-                        </Typography>
-                      </Box>
-                    ))}
+                          <Typography
+                            variant="h6"
+                            component="div"
+                            sx={{
+                              fontWeight: 700,
+                              color: playerColor,
+                              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                            }}
+                          >
+                            <CountUp
+                              to={player.totalScore}
+                              duration={0.5}
+                              delay={0}
+                              animateOnChange={true}
+                              startWhen={true}
+                            />
+                          </Typography>
+                        </Box>
+                      );
+                    })}
 
                     {/* Score label */}
                     <Box
@@ -1150,7 +1178,52 @@ const CricketGame: React.FC = () => {
                     </Box>
 
                     {/* Second half of players - total score */}
-                    {currentGame.players.slice(firstHalfCount).map((player) => (
+                    {currentGame.players.slice(firstHalfCount).map((player) => {
+                      const playerIndex = currentGame.players.indexOf(player);
+                      const playerColor = playerIndex % 2 === 0 
+                        ? theme.palette.primary.main 
+                        : theme.palette.secondary.main;
+                      return (
+                        <Box
+                          key={`score-${player.id}`}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Typography
+                            variant="h6"
+                            component="div"
+                            sx={{
+                              fontWeight: 700,
+                              color: playerColor,
+                              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                            }}
+                          >
+                            <CountUp
+                              to={player.totalScore}
+                              duration={0.5}
+                              delay={0}
+                              animateOnChange={true}
+                              startWhen={true}
+                            />
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </>
+                );
+              }
+
+              // For 3+ players, all players first, then label
+              return (
+                <>
+                  {currentGame.players.map((player, playerIndex) => {
+                    const playerColor = playerIndex % 2 === 0 
+                      ? theme.palette.primary.main 
+                      : theme.palette.secondary.main;
+                    return (
                       <Box
                         key={`score-${player.id}`}
                         sx={{
@@ -1164,7 +1237,7 @@ const CricketGame: React.FC = () => {
                           component="div"
                           sx={{
                             fontWeight: 700,
-                            color: theme.palette.primary.main,
+                            color: playerColor,
                             fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
                           }}
                         >
@@ -1177,42 +1250,8 @@ const CricketGame: React.FC = () => {
                           />
                         </Typography>
                       </Box>
-                    ))}
-                  </>
-                );
-              }
-
-              // For 3+ players, all players first, then label
-              return (
-                <>
-                  {currentGame.players.map((player) => (
-                    <Box
-                      key={`score-${player.id}`}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Typography
-                        variant="h6"
-                        component="div"
-                        sx={{
-                          fontWeight: 700,
-                          color: theme.palette.primary.main,
-                          fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
-                        }}
-                      >
-                        <CountUp
-                          to={player.totalScore}
-                          duration={0.5}
-                          delay={0}
-                          animateOnChange={true}
-                          startWhen={true}
-                        />
-                      </Typography>
-                    </Box>
-                  ))}
+                    );
+                  })}
 
                   {/* Score label */}
                   <Box
@@ -1249,7 +1288,7 @@ const CricketGame: React.FC = () => {
           }}
         >
           <Box sx={{ flex: 1, flexDirection: "row", flexWrap:"wrap", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
-            <IconButton onClick={handleUndo} color="secondary" size="small">
+            <IconButton onClick={handleUndo} color="info" size="small">
               <Undo />
             </IconButton>
             <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
@@ -1327,7 +1366,7 @@ const CricketGame: React.FC = () => {
             <VibrationButton
 
               variant="contained"
-              color="primary"
+              color={currentPlayer && currentGame.currentPlayerIndex % 2 === 0 ? "primary" : "secondary"}
               fullWidth
               size="large"
               onClick={handleFinishTurn}

@@ -6,14 +6,19 @@ interface CricketPlayerBoxProps {
   player: CricketPlayer;
   isCurrentPlayer: boolean;
   avgMarksPerRound: number;
+  playerIndex: number;
 }
 
 const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
   player,
   isCurrentPlayer,
   avgMarksPerRound,
+  playerIndex,
 }) => {
   const theme = useTheme();
+  const playerColor = playerIndex % 2 === 0 
+    ? theme.palette.primary.main 
+    : theme.palette.secondary.main;
 
   return (
     <Paper
@@ -34,18 +39,18 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
           width: "4px",
           height: "100%",
           backgroundColor: isCurrentPlayer
-            ? theme.palette.primary.main
+            ? playerColor
             : "transparent",
           transition: "background-color 0.3s ease",
         },
         ...(isCurrentPlayer && {
-          borderColor: theme.palette.primary.main,
+          borderColor: playerColor,
           borderWidth: 2,
           background: `linear-gradient(135deg, ${alpha(
-            theme.palette.primary.main,
+            playerColor,
             0.08
-          )} 0%, ${alpha(theme.palette.primary.main, 0.04)} 100%)`,
-          boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+          )} 0%, ${alpha(playerColor, 0.04)} 100%)`,
+          boxShadow: `0 4px 12px ${alpha(playerColor, 0.15)}`,
         }),
         "&:hover": {
           transform: "translateY(-2px)",
