@@ -61,41 +61,8 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
           gap: { xs: 0.5, sm: 0.75 },
         }}
       >
-        {/* Stats Section - Left */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 0.5,
-            alignItems: "flex-start",
-          }}
-        >
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.125 }}>
-            <Typography
-              sx={{
-                fontSize: { xs: "0.6rem", sm: "0.65rem" },
-                fontWeight: 500,
-                color: theme.palette.text.secondary,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                lineHeight: 1.2,
-              }}
-            >
-              Avg
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                fontWeight: 600,
-                color: theme.palette.text.primary,
-                lineHeight: 1.2,
-              }}
-            >
-              {avgMarksPerRound.toFixed(1)}
-            </Typography>
-          </Box>
-         
-        </Box>
+        {/* Spacer - Left */}
+        <Box />
 
         {/* Main Section - Center */}
         <Box
@@ -104,7 +71,7 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 0.5,
+            gap: 0.25,
             textAlign: "center",
           }}
         >
@@ -113,13 +80,22 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
             sx={{
               fontSize: { xs: "1rem", sm: "1.25rem" },
               fontWeight: isCurrentPlayer ? 600 : 500,
-      
               textAlign: "center",
               lineHeight: 1.3,
               transition: "all 0.3s ease",
             }}
           >
-            {player.name}
+            {player.name.toLocaleUpperCase()}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: { xs: "0.65rem", sm: "0.75rem" },
+              fontWeight: 500,
+              color: alpha(theme.palette.text.secondary, 0.7),
+              lineHeight: 1.2,
+            }}
+          >
+            Avg: {avgMarksPerRound.toFixed(1)}
           </Typography>
         </Box>
 

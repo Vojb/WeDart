@@ -15,8 +15,6 @@ import {
   People as PlayersIcon,
   Settings as SettingsIcon,
   SportsBar as CricketIcon,
-  Scale as HalfItIcon,
-  TrendingUp as ProgressiveFinishIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -54,32 +52,6 @@ const Home: React.FC = () => {
         <CricketIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
       ),
       path: "/cricket",
-    },
-    {
-      title: "Play Cricket Half",
-      description: "Cricket combined with Half-It rules",
-      icon: (
-        <CricketIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-      ),
-      path: "/cricket-half",
-    },
-    {
-      title: "Play Half It",
-      description: "Start a new Half It dart game",
-      icon: (
-        <HalfItIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-      ),
-      path: "/halfit",
-    },
-    {
-      title: "40 up",
-      description: "Work together to reach higher levels",
-      icon: (
-        <ProgressiveFinishIcon
-          sx={{ fontSize: 40, color: theme.palette.primary.main }}
-        />
-      ),
-      path: "/progressive-finish",
     },
     {
       title: "Game History",

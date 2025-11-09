@@ -29,7 +29,6 @@ import {
   SportsCricket,
   FunctionsOutlined,
   KeyboardArrowRight,
-  Scoreboard,
   SportsScore,
   GpsFixed,
 } from "@mui/icons-material";
@@ -39,7 +38,6 @@ import {
   CompletedGame,
   isX01Game,
   isCricketGame,
-  isSplitGame,
   GameType,
 } from "../store/useHistoryStore";
 import { alpha } from "@mui/material/styles";
@@ -99,8 +97,6 @@ const History: React.FC = () => {
         return <SportsScore fontSize="small" />;
       case "cricket":
         return <GpsFixed fontSize="small" />;
-      case "split":
-        return <Scoreboard fontSize="small" />;
       default:
         return <SportsCricket fontSize="small" />;
     }
@@ -341,117 +337,6 @@ const History: React.FC = () => {
     );
   };
 
-  const renderSplitGameDetails = (game: CompletedGame) => {
-    if (!isSplitGame(game)) return null;
-
-    return (
-      <>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Game Information
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6} sm={4}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Scoreboard fontSize="small" color="primary" />
-                <Typography variant="body2">Game: Split (Half It)</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <AccessTime fontSize="small" color="primary" />
-                <Typography variant="body2">
-                  Duration: {formatDuration(game.duration)}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <FunctionsOutlined fontSize="small" color="primary" />
-                <Typography variant="body2">
-                  Total Rounds: {game.totalRounds}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-
-        <Typography variant="subtitle1" gutterBottom>
-          Player Performance
-        </Typography>
-        <Grid container spacing={2}>
-          {game.players.map((player) => (
-            <Grid item xs={12} sm={6} md={4} key={player.id}>
-              <Card
-                variant="outlined"
-                sx={{
-                  bgcolor:
-                    player.id === game.winnerId
-                      ? (theme) => alpha(theme.palette.success.main, 0.1)
-                      : "background.paper",
-                  borderColor:
-                    player.id === game.winnerId ? "success.main" : "divider",
-                }}
-              >
-                <CardHeader
-                  avatar={
-                    <Avatar
-                      sx={{
-                        bgcolor:
-                          player.id === game.winnerId
-                            ? "success.main"
-                            : "primary.main",
-                      }}
-                    >
-                      {player.name.charAt(0)}
-                    </Avatar>
-                  }
-                  title={player.name}
-                  subheader={
-                    player.id === game.winnerId
-                      ? "Winner"
-                      : `Score: ${player.totalScore}`
-                  }
-                />
-                <CardContent>
-                  <Typography variant="body2" gutterBottom>
-                    Darts thrown: {player.dartsThrown}
-                  </Typography>
-                  <Typography variant="body2" gutterBottom>
-                    Total Score: {player.totalScore}
-                  </Typography>
-
-                  <Box sx={{ mt: 1, maxHeight: 150, overflow: "auto" }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Round Scores:
-                    </Typography>
-                    {player.roundScores.map((round, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          mt: 0.5,
-                        }}
-                      >
-                        <Typography variant="body2">
-                          Round {round.round} ({round.target}):
-                        </Typography>
-                        <Typography variant="body2" fontWeight="medium">
-                          {round.score}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </>
-    );
-  };
-
   const gameDetailsDialog = () => {
     const game = getSelectedGame();
     if (!game) return null;
@@ -476,8 +361,6 @@ const History: React.FC = () => {
               <Typography variant="h6">
                 {game.gameType === "cricket"
                   ? "Cricket"
-                  : game.gameType === "split"
-                  ? "Split (Half It)"
                   : `${game.gameType} Game`}{" "}
                 Details
               </Typography>
@@ -490,7 +373,6 @@ const History: React.FC = () => {
         <DialogContent>
           {isX01Game(game) && renderX01GameDetails(game)}
           {isCricketGame(game) && renderCricketGameDetails(game)}
-          {isSplitGame(game) && renderSplitGameDetails(game)}
         </DialogContent>
         <DialogActions>
           <VibrationButton
@@ -543,7 +425,6 @@ const History: React.FC = () => {
               <Tab label="501" value="501" />
               <Tab label="701" value="701" />
               <Tab label="Cricket" value="cricket" />
-              <Tab label="Split (Half It)" value="split" />
             </Tabs>
           </Box>
         )}
@@ -611,8 +492,6 @@ const History: React.FC = () => {
                         <Typography variant="body1">
                           {game.gameType === "cricket"
                             ? "Cricket Game"
-                            : game.gameType === "split"
-                            ? "Split (Half It) Game"
                             : `${game.gameType} Game`}
                         </Typography>
                         <Chip

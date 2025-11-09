@@ -45,7 +45,6 @@ const Navbar: React.FC = () => {
     { text: "Home", icon: <Home />, path: "/" },
     { text: "X01", icon: <SportsEsports />, path: "/x01" },
     { text: "Cricket", icon: <SportsEsports />, path: "/cricket" },
-    { text: "Half It", icon: <SportsEsports />, path: "/halfit" },
     { text: "Players", icon: <People />, path: "/players" },
     { text: "History", icon: <History />, path: "/history" },
     {

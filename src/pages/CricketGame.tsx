@@ -27,6 +27,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useCricketStore } from "../store/useCricketStore";
 import VibrationButton from "../components/VibrationButton";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
+import CountUp from "../components/count-up/count-up";
 import { motion, Variants } from "framer-motion";
 
 const CricketGame: React.FC = () => {
@@ -1110,13 +1111,20 @@ const CricketGame: React.FC = () => {
                       >
                         <Typography
                           variant="h6"
+                          component="div"
                           sx={{
                             fontWeight: 700,
                             color: theme.palette.primary.main,
                             fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
                           }}
                         >
-                          {player.totalScore}
+                          <CountUp
+                            to={player.totalScore}
+                            duration={0.5}
+                            delay={0}
+                            animateOnChange={true}
+                            startWhen={true}
+                          />
                         </Typography>
                       </Box>
                     ))}
@@ -1153,13 +1161,20 @@ const CricketGame: React.FC = () => {
                       >
                         <Typography
                           variant="h6"
+                          component="div"
                           sx={{
                             fontWeight: 700,
                             color: theme.palette.primary.main,
                             fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
                           }}
                         >
-                          {player.totalScore}
+                          <CountUp
+                            to={player.totalScore}
+                            duration={0.5}
+                            delay={0}
+                            animateOnChange={true}
+                            startWhen={true}
+                          />
                         </Typography>
                       </Box>
                     ))}
@@ -1181,13 +1196,20 @@ const CricketGame: React.FC = () => {
                     >
                       <Typography
                         variant="h6"
+                        component="div"
                         sx={{
                           fontWeight: 700,
                           color: theme.palette.primary.main,
                           fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
                         }}
                       >
-                        {player.totalScore}
+                        <CountUp
+                          to={player.totalScore}
+                          duration={0.5}
+                          delay={0}
+                          animateOnChange={true}
+                          startWhen={true}
+                        />
                       </Typography>
                     </Box>
                   ))}
