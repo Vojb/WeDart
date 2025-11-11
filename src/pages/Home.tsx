@@ -15,6 +15,7 @@ import {
   People as PlayersIcon,
   Settings as SettingsIcon,
   SportsBar as CricketIcon,
+  CallSplit as HalveItIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -52,6 +53,14 @@ const Home: React.FC = () => {
         <CricketIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
       ),
       path: "/cricket",
+    },
+    {
+      title: "Halve It",
+      description: "Start a new Halve It dart game",
+      icon: (
+        <HalveItIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+      ),
+      path: "/halveit",
     },
     {
       title: "Game History",
