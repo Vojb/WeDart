@@ -88,7 +88,7 @@ const ROUNDS_41: Array<{ type: RoundType; target?: number | string }> = [
 
 export const useHalveItStore = create<HalveItStoreState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       currentGame: null,
       
       startGame: (mode, playerIds) => {
@@ -96,20 +96,22 @@ export const useHalveItStore = create<HalveItStoreState>()(
         
         // CRITICAL: Maintain player order based on playerIds array order, not cachedPlayers order
         // This ensures players are displayed in the order they were selected, not sorted by score
-        const halveItPlayers: HalveItPlayer[] = playerIds.map((playerId, index) => {
-          const player = cachedPlayers.find((p) => p.id === playerId);
-          if (!player) {
-            console.error(`Player with ID ${playerId} not found`);
-            return null;
-          }
-          return {
-            id: player.id,
-            name: player.name,
-            totalScore: 0,
-            rounds: [],
-            orderIndex: index, // Preserve original order
-          };
-        }).filter((p): p is HalveItPlayer => p !== null);
+        const halveItPlayers: HalveItPlayer[] = playerIds
+          .map((playerId, index) => {
+            const player = cachedPlayers.find((p) => p.id === playerId);
+            if (!player) {
+              console.error(`Player with ID ${playerId} not found`);
+              return null;
+            }
+            return {
+              id: player.id,
+              name: player.name,
+              totalScore: 0,
+              rounds: [] as HalveItRound[],
+              orderIndex: index, // Preserve original order
+            };
+          })
+          .filter((p): p is HalveItPlayer => p !== null);
 
         if (halveItPlayers.length === 0) {
           console.error("No players found for the selected IDs");
@@ -136,7 +138,7 @@ export const useHalveItStore = create<HalveItStoreState>()(
         });
       },
 
-      recordRoundScore: (playerId, roundIndex, data) => {
+      recordRoundScore: (_playerId, _roundIndex, data) => {
         set((state) => {
           if (!state.currentGame) return state;
 
@@ -320,7 +322,10 @@ export const useHalveItStore = create<HalveItStoreState>()(
           if (!state.currentGame || !state.currentGame.lastScore) return state;
 
           const newGame = { ...state.currentGame };
-          const { playerId, roundIndex } = newGame.lastScore;
+          const lastScore = newGame.lastScore;
+          if (!lastScore) return state;
+          
+          const { playerId, roundIndex } = lastScore;
           
           // Find the player
           const playerIndex = newGame.players.findIndex((p) => p.id === playerId);
@@ -470,7 +475,7 @@ export const useHalveItStore = create<HalveItStoreState>()(
     {
       name: "wedart-halveit-storage",
       version: 1,
-      partialize: (state) => ({
+      partialize: (_state) => ({
         // Only persist settings if needed
       }),
     }
