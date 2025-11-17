@@ -12,12 +12,14 @@ interface TargetScoreInputProps {
     newScore: number;
     isHalved: boolean;
   } | null;
+  disabled?: boolean;
 }
 
 const TargetScoreInput: React.FC<TargetScoreInputProps> = ({
   targetScore,
   onSubmit,
   previewData,
+  disabled = false,
 }) => {
   const [currentInput, setCurrentInput] = useState<string>("");
 
@@ -95,6 +97,7 @@ const TargetScoreInput: React.FC<TargetScoreInputProps> = ({
               variant="contained"
               color="primary"
               onClick={() => handleNumericInput(num.toString())}
+              disabled={disabled}
               vibrationPattern={30}
               sx={{ height: "100%" }}
             >
@@ -106,21 +109,9 @@ const TargetScoreInput: React.FC<TargetScoreInputProps> = ({
           <VibrationButton
             fullWidth
             variant="contained"
-            color="primary"
-            onClick={() => handleNumericInput("0")}
-            vibrationPattern={30}
-            sx={{ height: "100%" }}
-          >
-            0
-          </VibrationButton>
-        </Grid>
-        <Grid item xs={4}>
-          <VibrationButton
-            fullWidth
-            variant="contained"
             color="error"
             onClick={handleBackspace}
-            disabled={!currentInput}
+            disabled={!currentInput || disabled}
             vibrationPattern={[20, 30]}
             sx={{ height: "100%" }}
           >
@@ -133,11 +124,24 @@ const TargetScoreInput: React.FC<TargetScoreInputProps> = ({
             variant="contained"
             color="success"
             onClick={handleSubmit}
-            disabled={!isValid || !currentInput}
+            disabled={!isValid || !currentInput || disabled}
             vibrationPattern={100}
             sx={{ height: "100%" }}
           >
             <CheckCircle />
+          </VibrationButton>
+        </Grid>
+        <Grid item xs={4}>
+          <VibrationButton
+            fullWidth
+            variant="contained"
+            color="error"
+            onClick={() => handleNumericInput("0")}
+            disabled={disabled}
+            vibrationPattern={30}
+            sx={{ height: "100%" }}
+          >
+            0
           </VibrationButton>
         </Grid>
       </Grid>

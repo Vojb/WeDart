@@ -12,6 +12,7 @@ interface HitCounterInputProps {
     newScore: number;
     isHalved: boolean;
   } | null;
+  disabled?: boolean;
 }
 
 const HitCounterInput: React.FC<HitCounterInputProps> = ({
@@ -19,6 +20,7 @@ const HitCounterInput: React.FC<HitCounterInputProps> = ({
   onSubmit,
   maxHits = 9,
   previewData,
+  disabled = false,
 }) => {
   const handleNumberClick = (num: number) => {
     if (num <= maxHits) {
@@ -57,14 +59,14 @@ const HitCounterInput: React.FC<HitCounterInputProps> = ({
       </Paper>
 
       <Grid container spacing={1} sx={{ flex: 1 }}>
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((num) => (
           <Grid item xs={4} key={num}>
             <VibrationButton
               fullWidth
               variant="contained"
-              color="primary"
+              color={num === 0 ? "error" : "primary"}
               onClick={() => handleNumberClick(num)}
-              disabled={num > maxHits}
+              disabled={num > maxHits || disabled}
               vibrationPattern={100}
               sx={{ height: "100%" }}
             >

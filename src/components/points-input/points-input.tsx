@@ -12,9 +12,10 @@ interface PointsInputProps {
     newScore: number;
     isHalved: boolean;
   } | null;
+  disabled?: boolean;
 }
 
-const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewData }) => {
+const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewData, disabled = false }) => {
   const [currentInput, setCurrentInput] = useState<string>("");
   const [hits, setHits] = useState<Array<number | string>>([]);
 
@@ -153,7 +154,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
                   variant="contained"
                   color="primary"
                   onClick={() => handleNumberClick(num)}
-                  disabled={!canAddMore}
+                  disabled={!canAddMore || disabled}
                   vibrationPattern={100}
                   sx={{ height: "100%" }}
                 >
@@ -169,6 +170,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
                 variant="outlined"
                 color="error"
                 onClick={() => onSubmit(0)}
+                disabled={disabled}
                 vibrationPattern={100}
                 sx={{ height: "100%" }}
               >
@@ -183,6 +185,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
                 variant="outlined"
                 color="error"
                 onClick={handleClearHits}
+                disabled={disabled}
                 vibrationPattern={[20, 30]}
                 sx={{ height: "100%" }}
               >
@@ -205,6 +208,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
                   onSubmit(totalPoints);
                   setHits([]);
                 }}
+                disabled={disabled}
                 vibrationPattern={100}
                 sx={{ height: "100%" }}
               >
@@ -259,6 +263,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
               variant="contained"
               color="primary"
               onClick={() => handleNumericInput(num.toString())}
+              disabled={disabled}
               vibrationPattern={30}
               sx={{ height: "100%" }}
             >
@@ -270,21 +275,9 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
           <VibrationButton
             fullWidth
             variant="contained"
-            color="primary"
-            onClick={() => handleNumericInput("0")}
-            vibrationPattern={30}
-            sx={{ height: "100%" }}
-          >
-            0
-          </VibrationButton>
-        </Grid>
-        <Grid item xs={4}>
-          <VibrationButton
-            fullWidth
-            variant="contained"
             color="error"
             onClick={handleBackspace}
-            disabled={!currentInput}
+            disabled={!currentInput || disabled}
             vibrationPattern={[20, 30]}
             sx={{ height: "100%" }}
           >
@@ -297,11 +290,24 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
             variant="contained"
             color="success"
             onClick={handleSubmit}
-            disabled={!isValid || !currentInput}
+            disabled={!isValid || !currentInput || disabled}
             vibrationPattern={100}
             sx={{ height: "100%" }}
           >
             <CheckCircle />
+          </VibrationButton>
+        </Grid>
+        <Grid item xs={4}>
+          <VibrationButton
+            fullWidth
+            variant="contained"
+            color="error"
+            onClick={() => handleNumericInput("0")}
+            disabled={disabled}
+            vibrationPattern={30}
+            sx={{ height: "100%" }}
+          >
+            0
           </VibrationButton>
         </Grid>
       </Grid>

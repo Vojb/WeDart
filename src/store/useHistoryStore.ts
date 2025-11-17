@@ -6,7 +6,8 @@ export type GameType =
   | "301"
   | "501"
   | "701"
-  | "cricket";
+  | "cricket"
+  | "halveit";
 
 // Define the base completed game interface with common properties
 export interface BaseCompletedGame {
@@ -69,10 +70,37 @@ export interface CricketCompletedGamePlayer extends BaseCompletedGamePlayer {
   }[];
 }
 
+// HalveIt specific game properties
+export interface HalveItCompletedGame extends BaseCompletedGame {
+  gameType: "halveit";
+  mode: "default" | "41";
+  players: HalveItCompletedGamePlayer[];
+}
+
+// HalveIt player stats
+export interface HalveItCompletedGamePlayer extends BaseCompletedGamePlayer {
+  finalScore: number; // Total score at the end of the game
+  rounds: HalveItCompletedRound[]; // Round-by-round performance
+}
+
+// HalveIt round data for completed games
+export interface HalveItCompletedRound {
+  roundNumber: number;
+  roundType: "scoring" | "number" | "double" | "treble" | "bull" | "target-score";
+  target?: number | string;
+  score: number; // Score after this round
+  pointsGained: number; // Points gained (or lost) in this round
+  isHalved: boolean; // Whether the score was halved this round
+  hits?: number; // For number/bull rounds
+  points?: number; // For scoring/double/treble rounds
+  totalScore?: number; // For target-score rounds
+}
+
 // Union type for all game types
 export type CompletedGame =
   | X01CompletedGame
-  | CricketCompletedGame;
+  | CricketCompletedGame
+  | HalveItCompletedGame;
 
 // Type guard functions to check game types
 export function isX01Game(game: CompletedGame): game is X01CompletedGame {
@@ -87,6 +115,12 @@ export function isCricketGame(
   game: CompletedGame
 ): game is CricketCompletedGame {
   return game.gameType === "cricket";
+}
+
+export function isHalveItGame(
+  game: CompletedGame
+): game is HalveItCompletedGame {
+  return game.gameType === "halveit";
 }
 
 interface HistoryState {

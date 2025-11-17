@@ -21,9 +21,12 @@ import {
   Undo,
   EmojiEvents,
   ExitToApp,
+  Cancel,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useHalveItStore } from "../store/useHalveItStore";
+import { useHistoryStore } from "../store/useHistoryStore";
+import { v4 as uuidv4 } from "uuid";
 import VibrationButton from "../components/VibrationButton";
 import HitCounterInput from "../components/hit-counter-input/hit-counter-input";
 import PointsInput from "../components/points-input/points-input";
@@ -40,6 +43,7 @@ const HalveItGame: React.FC = () => {
     undoLastScore,
     endGame,
   } = useHalveItStore();
+  const { addCompletedGame } = useHistoryStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -60,6 +64,8 @@ const HalveItGame: React.FC = () => {
     roundIndex: number;
     data: { hits?: number; points?: number; totalScore?: number };
   } | null>(null);
+  const gameStartTimeRef = useRef<number>(Date.now());
+  const gameSavedToHistoryRef = useRef<boolean>(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,11 +76,122 @@ const HalveItGame: React.FC = () => {
         return;
       } else if (currentGame.isGameFinished && !dialogOpen) {
         setDialogOpen(true);
+        // Save game to history when it finishes
+        if (!gameSavedToHistoryRef.current) {
+          saveGameToHistory();
+          gameSavedToHistoryRef.current = true;
+        }
       }
     }, 100);
 
     return () => clearTimeout(timer);
   }, [currentGame, navigate, dialogOpen]);
+
+  // Reset game start time and saved flag when a new game starts
+  useEffect(() => {
+    if (currentGame && !currentGame.isGameFinished) {
+      gameStartTimeRef.current = Date.now();
+      gameSavedToHistoryRef.current = false;
+    }
+  }, [currentGame]);
+
+  // Save the completed game to history
+  const saveGameToHistory = () => {
+    if (!currentGame || !currentGame.isGameFinished) return;
+
+    // Find the winner (player with highest score)
+    const winner = currentGame.players.reduce((prev, current) =>
+      prev.totalScore > current.totalScore ? prev : current
+    );
+
+    // Calculate game duration in seconds
+    const gameDuration = Math.floor(
+      (Date.now() - gameStartTimeRef.current) / 1000
+    );
+
+    // Helper function to calculate points gained in a round
+    const calculateRoundData = (
+      playerId: number,
+      roundIndex: number
+    ): { score: number; pointsGained: number; isHalved: boolean; hits?: number; points?: number; totalScore?: number } => {
+      const round = currentGame.rounds[roundIndex];
+      if (!round) {
+        return { score: 0, pointsGained: 0, isHalved: false };
+      }
+
+      const playerScore = round.playerScores[playerId];
+      if (!playerScore) {
+        return { score: 0, pointsGained: 0, isHalved: false };
+      }
+
+      // Calculate score before this round
+      let scoreBeforeRound = 0;
+      for (let i = 0; i < roundIndex; i++) {
+        const prevRound = currentGame.rounds[i];
+        const prevScore = prevRound.playerScores[playerId];
+        if (prevScore) {
+          scoreBeforeRound = prevScore.score;
+        }
+      }
+
+      const scoreAfterRound = playerScore.score;
+      const pointsGained = scoreAfterRound - scoreBeforeRound;
+      const isHalved = pointsGained < 0 || (round.roundType === "number" || round.roundType === "bull" ? playerScore.hits === 0 : round.roundType === "target-score" ? playerScore.totalScore !== 41 : playerScore.points === 0);
+
+      return {
+        score: scoreAfterRound,
+        pointsGained,
+        isHalved,
+        hits: playerScore.hits,
+        points: playerScore.points,
+        totalScore: playerScore.totalScore,
+      };
+    };
+
+    // Create the HalveItCompletedGame object
+    const completedGame = {
+      id: uuidv4(),
+      gameType: "halveit" as const,
+      timestamp: Date.now(),
+      mode: currentGame.mode,
+      duration: gameDuration,
+      winnerId: winner ? winner.id : null,
+      players: currentGame.players.map((player) => {
+        // Build round-by-round data for this player
+        const rounds = currentGame.rounds
+          .map((round, roundIndex) => {
+            const roundData = calculateRoundData(player.id, roundIndex);
+            return {
+              roundNumber: round.roundNumber,
+              roundType: round.roundType,
+              target: round.target,
+              score: roundData.score,
+              pointsGained: roundData.pointsGained,
+              isHalved: roundData.isHalved,
+              hits: roundData.hits,
+              points: roundData.points,
+              totalScore: roundData.totalScore,
+            };
+          })
+          .filter((round) => {
+            // Only include rounds where the player has a score
+            const roundIndex = round.roundNumber - 1;
+            return currentGame.rounds[roundIndex]?.playerScores[player.id] !== undefined;
+          });
+
+        return {
+          id: player.id,
+          name: player.name,
+          dartsThrown: 0, // HalveIt doesn't track darts thrown
+          finalScore: player.totalScore,
+          rounds,
+        };
+      }),
+    };
+
+    // Add the completed game to history
+    addCompletedGame(completedGame);
+  };
 
   useEffect(() => {
     const handleBackButton = (e: PopStateEvent) => {
@@ -221,7 +338,7 @@ const HalveItGame: React.FC = () => {
       if (hits === 0) {
         isHalved = true;
         roundScore = Math.floor(currentTotalScore / 2);
-        pointsGained = roundScore - currentTotalScore;
+        pointsGained = Math.abs(roundScore - currentTotalScore);
       } else {
         const targetValue =
           typeof currentRound.target === "number"
@@ -237,7 +354,7 @@ const HalveItGame: React.FC = () => {
       if (points === 0) {
         isHalved = true;
         roundScore = Math.floor(currentTotalScore / 2);
-        pointsGained = roundScore - currentTotalScore;
+        pointsGained = Math.abs(roundScore - currentTotalScore);
       } else {
         pointsGained = points;
         roundScore = currentTotalScore + pointsGained;
@@ -250,7 +367,7 @@ const HalveItGame: React.FC = () => {
       } else {
         isHalved = true;
         roundScore = Math.floor(currentTotalScore / 2);
-        pointsGained = roundScore - currentTotalScore;
+        pointsGained = Math.abs(roundScore - currentTotalScore);
       }
     }
 
@@ -355,6 +472,26 @@ const HalveItGame: React.FC = () => {
     }, 5000);
   };
 
+  const handleCancelCountdown = () => {
+    // Clear countdown and pending score
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setCountdown(null);
+    setProgress(0);
+    pendingScoreRef.current = null;
+    setPreviewData(null);
+  };
+
   const handleUndo = () => {
     if (!currentGame) return;
     
@@ -411,6 +548,8 @@ const HalveItGame: React.FC = () => {
     prev.totalScore > current.totalScore ? prev : current
   );
 
+  const isCountdownActive = countdown !== null && countdown > 0;
+
   const renderInput = () => {
     if (currentRound.roundType === "number" || currentRound.roundType === "bull") {
       return (
@@ -418,6 +557,7 @@ const HalveItGame: React.FC = () => {
           target={currentRound.target || ""}
           onSubmit={(hits) => handleScore({ hits })}
           previewData={previewData}
+          disabled={isCountdownActive}
         />
       );
     } else if (currentRound.roundType === "target-score") {
@@ -426,6 +566,7 @@ const HalveItGame: React.FC = () => {
           targetScore={typeof currentRound.target === "number" ? currentRound.target : 41}
           onSubmit={(totalScore) => handleScore({ totalScore })}
           previewData={previewData}
+          disabled={isCountdownActive}
         />
       );
     } else {
@@ -434,6 +575,7 @@ const HalveItGame: React.FC = () => {
           roundType={currentRound.roundType as "scoring" | "double" | "treble"}
           onSubmit={(points) => handleScore({ points })}
           previewData={previewData}
+          disabled={isCountdownActive}
         />
       );
     }
@@ -686,11 +828,22 @@ const HalveItGame: React.FC = () => {
                 onClick={handleUndo} 
                 color="info" 
                 size="small"
-                disabled={!currentGame?.lastScore}
+                disabled={!currentGame?.lastScore || isCountdownActive}
               >
                 <Undo />
               </IconButton>
             </Box>
+
+            <VibrationButton
+              variant="contained"
+              color="error"
+              onClick={handleCancelCountdown}
+              disabled={!isCountdownActive}
+              startIcon={<Cancel />}
+              vibrationPattern={[50, 100, 50]}
+            >
+              Cancel
+            </VibrationButton>
 
             <Box sx={{ flex: 1 }} />
           </Box>

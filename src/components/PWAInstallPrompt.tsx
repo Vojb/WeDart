@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Button, Snackbar, Alert, Typography, Paper } from "@mui/material";
+import { Button, Snackbar, Alert, Typography, Paper, Box } from "@mui/material";
 import GetAppIcon from "@mui/icons-material/GetApp";
 import WifiOffIcon from "@mui/icons-material/WifiOff";
+
+const DISMISSAL_STORAGE_KEY = "pwa-install-dismissed";
+const DISMISSAL_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 /**
  * Component that handles PWA installation prompts and offline status notifications
@@ -12,6 +15,22 @@ const PWAInstallPrompt: React.FC = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showOfflineMessage, setShowOfflineMessage] = useState(false);
   const [showOfflineReadyMessage, setShowOfflineReadyMessage] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  // Check if prompt was recently dismissed
+  useEffect(() => {
+    const dismissedTimestamp = localStorage.getItem(DISMISSAL_STORAGE_KEY);
+    if (dismissedTimestamp) {
+      const dismissedTime = parseInt(dismissedTimestamp, 10);
+      const now = Date.now();
+      if (now - dismissedTime < DISMISSAL_DURATION_MS) {
+        setIsDismissed(true);
+      } else {
+        // Dismissal period expired, remove from storage
+        localStorage.removeItem(DISMISSAL_STORAGE_KEY);
+      }
+    }
+  }, []);
 
   // Listen for the beforeinstallprompt event
   useEffect(() => {
@@ -89,10 +108,17 @@ const PWAInstallPrompt: React.FC = () => {
     }
   };
 
+  const handleNotNowClick = () => {
+    // Store dismissal timestamp
+    localStorage.setItem(DISMISSAL_STORAGE_KEY, Date.now().toString());
+    setIsDismissed(true);
+    setInstallPromptEvent(null);
+  };
+
   return (
     <>
       {/* Install prompt button - only shown if not installed and prompt is available */}
-      {!isInstalled && installPromptEvent && (
+      {!isInstalled && installPromptEvent && !isDismissed && (
         <Paper
           elevation={3}
           sx={{
@@ -109,14 +135,23 @@ const PWAInstallPrompt: React.FC = () => {
           <Typography variant="body1" sx={{ mb: 1 }}>
             Install WeDart to use offline and get the best experience!
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleInstallClick}
-            startIcon={<GetAppIcon />}
-          >
-            Install App
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleInstallClick}
+              startIcon={<GetAppIcon />}
+            >
+              Install App
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleNotNowClick}
+            >
+              Not Now
+            </Button>
+          </Box>
         </Paper>
       )}
 

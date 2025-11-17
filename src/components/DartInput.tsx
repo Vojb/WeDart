@@ -15,7 +15,7 @@ import { alpha } from "@mui/material/styles";
 import { CircularProgress } from "@mui/material";
 import React from "react";
 import VibrationButton from "./VibrationButton";
-import { Close, GpsFixed, DeleteOutline, Send } from "@mui/icons-material";
+import { Close, GpsFixed, DeleteOutline, Send, Cancel } from "@mui/icons-material";
 import { isMobile } from "react-device-detect";
 
 interface DartInputProps {
@@ -246,7 +246,7 @@ const DartIndicators = ({
             size="small"
             variant="outlined"
             onClick={onClearDarts}
-            disabled={isSubmitting || currentDarts.length === 0}
+            disabled={isSubmitting || currentDarts.length === 0 || autoSubmitCountdown !== null}
             sx={{
               height: "48px",
               minWidth: { xs: "48px", sm: "80px" },
@@ -273,7 +273,7 @@ const DartIndicators = ({
             size="small"
             variant="contained"
             onClick={onSubmitDarts}
-            disabled={currentDarts.length === 0 || isSubmitting}
+            disabled={currentDarts.length === 0 || isSubmitting || autoSubmitCountdown !== null}
             sx={{
               height: "48px",
               minWidth: { xs: "48px", sm: "80px" },
@@ -625,6 +625,19 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
     }
   };
 
+  const handleCancelAutoSubmit = () => {
+    // Clear any auto-submit timer
+    if (autoSubmitTimer.current) {
+      window.clearTimeout(autoSubmitTimer.current);
+      autoSubmitTimer.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setAutoSubmitCountdown(null);
+  };
+
   const handleClearDarts = () => {
     setCurrentDarts([]);
     // Clear the last dart notation when resetting
@@ -637,6 +650,10 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
       window.clearTimeout(autoSubmitTimer.current);
       autoSubmitTimer.current = null;
       setAutoSubmitCountdown(null);
+    }
+    if (countdownIntervalRef.current) {
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
   };
 
@@ -726,41 +743,58 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
         }}
       >
         {/* Auto-submit countdown indicator */}
-        {autoSubmitCountdown !== null && (
-          <Box
+        <Box
+          sx={{
+            width: "100%",
+            textAlign: "center",
+            mb: 0.5,
+            position: "relative",
+            zIndex: 5,
+          }}
+        >
+          <Paper
+            elevation={autoSubmitCountdown !== null ? 3 : 1}
             sx={{
-              width: "100%",
-              textAlign: "center",
-              mb: 0.5,
+              py: 1,
+              px: 2,
+              borderRadius: 2,
+              display: "inline-flex",
+              alignItems: "center",
+              flexDirection: "column",
               position: "relative",
-              zIndex: 5,
+              overflow: "hidden",
+              gap: 1,
             }}
           >
-            <Paper
-              elevation={3}
-              sx={{
-                py: 1,
-                px: 2,
-                borderRadius: 2,
-                display: "inline-flex",
-                alignItems: "center",
-                flexDirection: "column",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: "bold",
-                  color: "primary.main",
-                  zIndex: 2,
-                }}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {autoSubmitCountdown !== null && (
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: "bold",
+                    color: "primary.main",
+                    zIndex: 2,
+                  }}
+                >
+                  Auto-submitting in {autoSubmitCountdown}s
+                </Typography>
+              )}
+              <VibrationButton
+                size="small"
+                variant="contained"
+                color="error"
+                onClick={handleCancelAutoSubmit}
+                disabled={autoSubmitCountdown === null}
+                startIcon={<Cancel />}
+                vibrationPattern={[50, 100, 50]}
+                sx={{ minWidth: "auto", px: 1 }}
               >
-                Auto-submitting in {autoSubmitCountdown}s
-              </Typography>
+                Cancel
+              </VibrationButton>
+            </Box>
 
-              {/* Progress bar that animates as countdown decreases */}
+            {/* Progress bar that animates as countdown decreases */}
+            {autoSubmitCountdown !== null && (
               <Box
                 sx={{
                   position: "absolute",
@@ -772,9 +806,9 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
                   transition: "width 1s linear",
                 }}
               />
-            </Paper>
-          </Box>
-        )}
+            )}
+          </Paper>
+        </Box>
 
         {/* Number Grid - Takes all available space */}
         <Box
@@ -797,7 +831,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
                   ? "outlined"
                   : "contained"
               }
-              disabled={currentDarts.length >= 3}
+              disabled={currentDarts.length >= 3 || autoSubmitCountdown !== null}
               onClick={(e) => handleStart(num, e)}
               sx={{
                 height: "100%",
@@ -833,7 +867,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
                   recordDart(0, selectedMultiplier, true);
                 }
               }}
-              disabled={isSubmitting || currentDarts.length >= 3}
+              disabled={isSubmitting || currentDarts.length >= 3 || autoSubmitCountdown !== null}
               startIcon={
                 <Close sx={{ fontSize: { xs: "1rem", sm: "1.25rem" } }} />
               }
@@ -860,7 +894,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
                   recordDart(25, selectedMultiplier, true);
                 }
               }}
-              disabled={isSubmitting || currentDarts.length >= 3}
+              disabled={isSubmitting || currentDarts.length >= 3 || autoSubmitCountdown !== null}
               sx={{
                 height: { xs: "36px", sm: "42px" },
                 fontSize: { xs: "0.75rem", sm: "0.875rem" },
@@ -884,7 +918,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
                   recordDart(25, selectedMultiplier, true);
                 }
               }}
-              disabled={isSubmitting || currentDarts.length >= 3}
+              disabled={isSubmitting || currentDarts.length >= 3 || autoSubmitCountdown !== null}
               sx={{
                 height: { xs: "36px", sm: "42px" },
                 fontSize: { xs: "0.75rem", sm: "0.875rem" },
@@ -1082,7 +1116,11 @@ function FrequentDartButtons({
                       minWidth: 0, // Allow button to shrink below default min-width
                     }}
                     disabled={currentDartsLength >= 3}
-                    onClick={() => handleFavoriteDartClick(notation)}
+                    onClick={() => {
+                      if (currentDartsLength < 3) {
+                        handleFavoriteDartClick(notation);
+                      }
+                    }}
                     // Only use mouse events on non-mobile devices
                     onMouseDown={!isMobile ? undefined : undefined}
                     onMouseUp={!isMobile ? undefined : undefined}

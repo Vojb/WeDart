@@ -38,6 +38,7 @@ import {
   CompletedGame,
   isX01Game,
   isCricketGame,
+  isHalveItGame,
   GameType,
 } from "../store/useHistoryStore";
 import { alpha } from "@mui/material/styles";
@@ -97,6 +98,8 @@ const History: React.FC = () => {
         return <SportsScore fontSize="small" />;
       case "cricket":
         return <GpsFixed fontSize="small" />;
+      case "halveit":
+        return <SportsCricket fontSize="small" />;
       default:
         return <SportsCricket fontSize="small" />;
     }
@@ -337,6 +340,93 @@ const History: React.FC = () => {
     );
   };
 
+  const renderHalveItGameDetails = (game: CompletedGame) => {
+    if (!isHalveItGame(game)) return null;
+
+    return (
+      <>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Game Information
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={6} sm={4}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <SportsCricket fontSize="small" color="primary" />
+                <Typography variant="body2">Game: HalveIt</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} sm={4}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <AccessTime fontSize="small" color="primary" />
+                <Typography variant="body2">
+                  Duration: {formatDuration(game.duration)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} sm={4}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <FunctionsOutlined fontSize="small" color="primary" />
+                <Typography variant="body2">
+                  Mode: {game.mode === "41" ? "41 Mode" : "Default"}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Typography variant="subtitle1" gutterBottom>
+          Player Performance
+        </Typography>
+        <Grid container spacing={2}>
+          {game.players
+            .sort((a, b) => b.finalScore - a.finalScore)
+            .map((player) => (
+              <Grid item xs={12} sm={6} md={4} key={player.id}>
+                <Card
+                  variant="outlined"
+                  sx={{
+                    bgcolor:
+                      player.id === game.winnerId
+                        ? (theme) => alpha(theme.palette.success.main, 0.1)
+                        : "background.paper",
+                    borderColor:
+                      player.id === game.winnerId ? "success.main" : "divider",
+                  }}
+                >
+                  <CardHeader
+                    avatar={
+                      <Avatar
+                        sx={{
+                          bgcolor:
+                            player.id === game.winnerId
+                              ? "success.main"
+                              : "primary.main",
+                        }}
+                      >
+                        {player.name.charAt(0)}
+                      </Avatar>
+                    }
+                    title={player.name}
+                    subheader={
+                      player.id === game.winnerId
+                        ? "Winner"
+                        : `Score: ${player.finalScore}`
+                    }
+                  />
+                  <CardContent>
+                    <Typography variant="body2">
+                      Final Score: {player.finalScore}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+        </Grid>
+      </>
+    );
+  };
+
   const gameDetailsDialog = () => {
     const game = getSelectedGame();
     if (!game) return null;
@@ -361,6 +451,8 @@ const History: React.FC = () => {
               <Typography variant="h6">
                 {game.gameType === "cricket"
                   ? "Cricket"
+                  : game.gameType === "halveit"
+                  ? "HalveIt"
                   : `${game.gameType} Game`}{" "}
                 Details
               </Typography>
@@ -373,6 +465,7 @@ const History: React.FC = () => {
         <DialogContent>
           {isX01Game(game) && renderX01GameDetails(game)}
           {isCricketGame(game) && renderCricketGameDetails(game)}
+          {isHalveItGame(game) && renderHalveItGameDetails(game)}
         </DialogContent>
         <DialogActions>
           <VibrationButton
