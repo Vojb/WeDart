@@ -21,8 +21,6 @@ import {
   Undo,
   EmojiEvents,
   ExitToApp,
-  NavigateNext,
-  Cancel,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useHalveItStore } from "../store/useHalveItStore";
@@ -41,7 +39,6 @@ const HalveItGame: React.FC = () => {
     recordRoundScore,
     undoLastScore,
     endGame,
-    finishTurn,
   } = useHalveItStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -52,11 +49,17 @@ const HalveItGame: React.FC = () => {
     isHalved: boolean;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastScoreTime, setLastScoreTime] = useState<number>(0);
-  const autoAdvanceTimerRef = useRef<number | null>(null);
-  const progressIntervalRef = useRef<number | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  const progressStartTimeRef = useRef<number>(Date.now());
+  const countdownTimerRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
+  const progressIntervalRef = useRef<number | null>(null);
+  const progressStartTimeRef = useRef<number>(0);
+  const pendingScoreRef = useRef<{
+    playerId: number;
+    roundIndex: number;
+    data: { hits?: number; points?: number; totalScore?: number };
+  } | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,81 +93,22 @@ const HalveItGame: React.FC = () => {
     };
   }, [currentGame, location.pathname]);
 
-  // Auto-advance timer: 3 seconds after score is entered
-  useEffect(() => {
-    if (!currentGame || currentGame.isGameFinished) {
-      // Clear timer if game is finished
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      setProgress(0);
-      return;
-    }
+  // No auto-advance timer needed - player advances immediately after score is recorded
 
-    const currentPlayer = currentGame.players[currentGame.currentPlayerIndex];
-    const currentRound = currentGame.rounds[currentGame.currentRoundIndex];
-    
-    if (!currentPlayer || !currentRound) return;
-
-    // Check if current player has scored in current round
-    const hasScore = currentRound.playerScores[currentPlayer.id] !== undefined;
-
-    if (!hasScore || lastScoreTime === 0) {
-      // Clear timer and progress if player hasn't scored yet
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      setProgress(0);
-      return;
-    }
-
-    // Clear existing timer and interval
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current);
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    // Reset progress
-    setProgress(0);
-    progressStartTimeRef.current = Date.now();
-
-    // Set new timer (3 seconds)
-    autoAdvanceTimerRef.current = setTimeout(() => {
-      finishTurn();
-      setLastScoreTime(0); // Reset after advancing
-    }, 3000);
-
-    // Update progress every 50ms for smooth animation
-    progressIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / 3000) * 100, 100);
-      setProgress(newProgress);
-    }, 50);
-
-    // Cleanup
-    return () => {
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-    };
-  }, [lastScoreTime, currentGame, finishTurn]);
-
-  // Reset progress when player changes (new turn starts)
+  // Reset preview when player changes (new turn starts)
   useEffect(() => {
     if (!currentGame || currentGame.isGameFinished) return;
 
-    const currentPlayer = currentGame.players[currentGame.currentPlayerIndex];
+    // Sort players to ensure correct order (same as store)
+    const sortedPlayers = [...currentGame.players].sort((a, b) => {
+      if (a.orderIndex !== b.orderIndex) {
+        return a.orderIndex - b.orderIndex;
+      }
+      return a.id - b.id;
+    });
+
+    // Use the store's currentPlayerIndex directly on the sorted array
+    const currentPlayer = sortedPlayers[currentGame.currentPlayerIndex] || sortedPlayers[0];
     const currentRound = currentGame.rounds[currentGame.currentRoundIndex];
     
     if (!currentPlayer || !currentRound) return;
@@ -173,18 +117,40 @@ const HalveItGame: React.FC = () => {
     const isNewTurn = currentRound.playerScores[currentPlayer.id] === undefined;
 
     if (isNewTurn) {
-      // Clear timer and progress when a new turn starts
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
+      // Clear countdown and pending score when new turn starts
+      if (countdownTimerRef.current) {
+        clearTimeout(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setCountdown(null);
+      setProgress(0);
+      pendingScoreRef.current = null;
+      setPreviewData(null);
+    }
+  }, [currentGame?.currentPlayerIndex, currentGame?.currentRoundIndex, currentGame?.isGameFinished, currentGame?.players]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearTimeout(countdownTimerRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
       }
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
-      setProgress(0);
-      setLastScoreTime(0);
-      setPreviewData(null);
-    }
-  }, [currentGame?.currentPlayerIndex, currentGame?.currentRoundIndex, currentGame?.isGameFinished]);
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -205,7 +171,17 @@ const HalveItGame: React.FC = () => {
     return null;
   }
 
-  const currentPlayer = currentGame.players[currentGame.currentPlayerIndex];
+  // Always sort players by orderIndex to ensure correct order (same as store)
+  const sortedPlayers = [...currentGame.players].sort((a, b) => {
+    if (a.orderIndex !== b.orderIndex) {
+      return a.orderIndex - b.orderIndex;
+    }
+    return a.id - b.id;
+  });
+
+  // Use the store's currentPlayerIndex directly on the sorted array
+  // The store maintains players sorted by orderIndex, so the index should match
+  const currentPlayer = sortedPlayers[currentGame.currentPlayerIndex] || sortedPlayers[0];
   const currentRound = currentGame.rounds[currentGame.currentRoundIndex];
 
   if (!currentPlayer || !currentRound) {
@@ -232,6 +208,9 @@ const HalveItGame: React.FC = () => {
     }
 
     const currentRound = currentGame.rounds[roundIndex];
+    if (!currentRound) {
+      return { currentScore: currentTotalScore, pointsGained: 0, newScore: currentTotalScore, isHalved: false };
+    }
     let roundScore = 0;
     let pointsGained = 0;
     let isHalved = false;
@@ -286,75 +265,118 @@ const HalveItGame: React.FC = () => {
   const handleScore = (data: { hits?: number; points?: number; totalScore?: number }) => {
     if (!currentGame || currentGame.isGameFinished) return;
     
-    // Get current player and round from the store to ensure we have the latest values
-    const gameState = currentGame;
-    const playerIndex = gameState.currentPlayerIndex;
-    const roundIndex = gameState.currentRoundIndex;
-    const player = gameState.players[playerIndex];
-    
-    if (!player) return;
+    // Use the currentPlayer we already determined (from sorted array)
+    // This ensures we're using the correct player even if array order changed
+    if (!currentPlayer) return;
     
     // Calculate preview
     const preview = calculatePoints(
       data,
-      player.id,
-      roundIndex
+      currentPlayer.id,
+      currentGame.currentRoundIndex
     );
     
-    // Show preview and automatically record the score
+    // Show preview immediately
     setPreviewData(preview);
-    recordRoundScore(player.id, roundIndex, data);
     
-    // Set timestamp to trigger auto-advance timer
-    setLastScoreTime(Date.now());
+    // Store pending score data
+    pendingScoreRef.current = {
+      playerId: currentPlayer.id,
+      roundIndex: currentGame.currentRoundIndex,
+      data,
+    };
     
-    // Clear preview after a short delay
-    setTimeout(() => {
-      setPreviewData(null);
-    }, 3000);
-  };
-
-  const handleUndo = () => {
-    if (!currentGame) return;
-    undoLastScore();
-    // Clear auto-advance timer when undoing
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current);
+    // Start countdown (5 seconds)
+    setCountdown(5);
+    setProgress(0);
+    progressStartTimeRef.current = Date.now();
+    
+    // Clear any existing timers
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
     }
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
-    setProgress(0);
-    setLastScoreTime(0);
-    setPreviewData(null);
+    
+    // Update countdown every second
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000) as unknown as number;
+    
+    // Update progress bar every 50ms for smooth animation
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - progressStartTimeRef.current;
+      const newProgress = Math.min((elapsed / 5000) * 100, 100);
+      setProgress(newProgress);
+      
+      if (newProgress >= 100) {
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+      }
+    }, 50) as unknown as number;
+    
+    // Record score after countdown completes (5 seconds)
+    countdownTimerRef.current = setTimeout(() => {
+      if (pendingScoreRef.current) {
+        recordRoundScore(
+          pendingScoreRef.current.playerId,
+          pendingScoreRef.current.roundIndex,
+          pendingScoreRef.current.data
+        );
+        pendingScoreRef.current = null;
+      }
+      setCountdown(null);
+      setProgress(0);
+      setPreviewData(null);
+      
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }, 5000);
   };
 
-  const handleCancelAutoAdvance = () => {
-    // Clear auto-advance timer
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current);
-      autoAdvanceTimerRef.current = null;
+  const handleUndo = () => {
+    if (!currentGame) return;
+    
+    // Clear countdown and pending score
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
+    setCountdown(null);
     setProgress(0);
-    setLastScoreTime(0);
-  };
-
-  const handleFinishTurn = () => {
-    if (!currentGame) return;
-    // Clear auto-advance timer and progress interval
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current);
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-    setProgress(0);
-    setLastScoreTime(0);
-    finishTurn();
+    pendingScoreRef.current = null;
+    
+    undoLastScore();
+    setPreviewData(null);
   };
 
   const handleLeaveGame = () => {
@@ -388,8 +410,6 @@ const HalveItGame: React.FC = () => {
   const winner = currentGame.players.reduce((prev, current) =>
     prev.totalScore > current.totalScore ? prev : current
   );
-
-  const hasScore = currentRound.playerScores[currentPlayer.id] !== undefined;
 
   const renderInput = () => {
     if (currentRound.roundType === "number" || currentRound.roundType === "bull") {
@@ -562,13 +582,12 @@ const HalveItGame: React.FC = () => {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: `repeat(${currentGame.players.length}, 1fr)`,
+              gridTemplateColumns: `repeat(${sortedPlayers.length}, 1fr)`,
               gap: 0.5,
             }}
           >
-            {/* Display players in their original order - never sort or reorder */}
-            {/* Create a copy and sort by orderIndex to ensure correct order */}
-            {[...currentGame.players].sort((a, b) => a.orderIndex - b.orderIndex).map((player) => {
+            {/* Display players sorted by orderIndex to ensure correct order */}
+            {sortedPlayers.map((player) => {
               const isCurrentPlayer = player.id === currentPlayer.id;
               // Use player ID to determine color so it stays consistent for each player
               const playerColor =
@@ -642,81 +661,39 @@ const HalveItGame: React.FC = () => {
             borderTop: 1,
             borderColor: "divider",
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 2,
+            flexDirection: "column",
+            gap: 1,
             position: "relative",
           }}
         >
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton 
-              onClick={handleUndo} 
-              color="info" 
-              size="small"
-              disabled={!currentGame?.lastScore}
-            >
-              <Undo />
-            </IconButton>
-            <IconButton 
-              onClick={handleCancelAutoAdvance} 
-              color="warning" 
-              size="small"
-              disabled={progress === 0 || lastScoreTime === 0}
-            >
-              <Cancel />
-            </IconButton>
-          </Box>
-
-          <Box sx={{ flex: 1 }} />
-
-          <VibrationButton
-            variant="contained"
-            color={
-              currentGame.currentPlayerIndex % 2 === 0 ? "primary" : "secondary"
-            }
-            onClick={handleFinishTurn}
-            disabled={currentGame.isGameFinished || !hasScore}
-            vibrationPattern={100}
-            startIcon={<NavigateNext />}
-            sx={{
-              minWidth: 120,
-              position: "relative",
-              overflow: "hidden",
-              "&::before": !currentGame.isGameFinished && progress > 0
-                ? {
-                    content: '""',
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    height: "100%",
-                    width: `${progress}%`,
-                    backgroundColor: (theme) =>
-                      alpha(theme.palette.common.white, 0.3),
-                    transition: "width 0.05s linear",
-                  }
-                : {},
-            }}
-          >
-            Next
-          </VibrationButton>
-          {/* Progress bar indicator */}
-          {!currentGame.isGameFinished && progress > 0 && (
-            <LinearProgress
-              variant="determinate"
-              value={progress}
-              sx={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 4,
-                backgroundColor: "transparent",
-                "& .MuiLinearProgress-bar": {
-                  backgroundColor: (theme) => theme.palette.common.white,
-                },
-              }}
-            />
+          {/* Progress Bar */}
+          {countdown !== null && countdown > 0 && (
+            <Box sx={{ width: "100%", mb: 1 }}>
+              <LinearProgress 
+                variant="determinate" 
+                value={progress} 
+                sx={{ 
+                  height: 6,
+                  borderRadius: 1,
+                }} 
+              />
+            </Box>
           )}
+          
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <IconButton 
+                onClick={handleUndo} 
+                color="info" 
+                size="small"
+                disabled={!currentGame?.lastScore}
+              >
+                <Undo />
+              </IconButton>
+            </Box>
+
+            <Box sx={{ flex: 1 }} />
+          </Box>
         </Paper>
       </Box>
     </Box>
