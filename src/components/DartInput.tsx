@@ -55,6 +55,7 @@ const DartIndicators = ({
   onClearDarts,
   onSubmitDarts,
   isSubmitting,
+  autoSubmitCountdown,
 }: {
   currentDarts: DartScore[];
   lastDartNotation: string | null;
@@ -73,6 +74,7 @@ const DartIndicators = ({
   onClearDarts: () => void;
   onSubmitDarts: () => void;
   isSubmitting: boolean;
+  autoSubmitCountdown: number | null;
 }) => {
   // Create an array of 3 items to represent the darts
   const dartSlots = [0, 1, 2];
@@ -729,6 +731,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
           onClearDarts={handleClearDarts}
           onSubmitDarts={handleSubmitDarts}
           isSubmitting={isSubmitting}
+          autoSubmitCountdown={autoSubmitCountdown}
         />
       )}
 

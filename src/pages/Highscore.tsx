@@ -17,7 +17,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import React, { useMemo, useState } from "react";
-import { useHistoryStore, isHalveItGame, CompletedGame, HalveItCompletedRound } from "../store/useHistoryStore";
+import { useHistoryStore, isHalveItGame, HalveItCompletedRound } from "../store/useHistoryStore";
 import { EmojiEvents, Close } from "@mui/icons-material";
 import VibrationButton from "../components/VibrationButton";
 
@@ -81,22 +81,6 @@ const Highscore: React.FC = () => {
   const handleCloseDialog = () => {
     setDetailsDialogOpen(false);
     setSelectedEntry(null);
-  };
-
-  const getRoundLabel = (round: HalveItCompletedRound) => {
-    if (round.roundType === "number" || round.roundType === "bull") {
-      return `Round ${round.roundNumber}: ${round.target}`;
-    } else if (round.roundType === "target-score") {
-      return `Round ${round.roundNumber}: Target Score ${round.target}`;
-    } else {
-      const typeLabel =
-        round.roundType === "scoring"
-          ? "Scoring"
-          : round.roundType === "double"
-          ? "Double"
-          : "Treble";
-      return `Round ${round.roundNumber}: ${typeLabel}`;
-    }
   };
 
   const getRoundDetails = (round: HalveItCompletedRound) => {

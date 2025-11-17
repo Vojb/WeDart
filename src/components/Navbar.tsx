@@ -40,7 +40,12 @@ const Navbar: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const location = useLocation();
 
-  const menuItems = [
+  const menuItems: Array<{
+    text: string;
+    icon: React.ReactElement;
+    path: string;
+    disabled?: boolean;
+  }> = [
     { text: "Home", icon: <Home />, path: "/" },
     { text: "X01", icon: <SportsEsports />, path: "/x01" },
     { text: "Cricket", icon: <SportsEsports />, path: "/cricket" },
