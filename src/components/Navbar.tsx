@@ -68,6 +68,7 @@ const Navbar: React.FC = () => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
+        overflowX: "hidden",
       }}
     >
       {/* Drawer Header */}
@@ -102,7 +103,7 @@ const Navbar: React.FC = () => {
       </Box>
 
       {/* Menu Items */}
-      <List sx={{ pt: 2, flex: 1, overflowY: "auto" }}>
+      <List sx={{ pt: 2, flex: 1, overflowY: "auto", overflowX: "hidden" }}>
         {menuItems.map((item) => (
           <ListItem
             key={item.text}
@@ -297,6 +298,7 @@ const Navbar: React.FC = () => {
             width: "100%",
             bgcolor: "background.default",
             transition: "0.3s ease-in-out",
+            overflowX: "hidden",
           },
         }}
         sx={{
