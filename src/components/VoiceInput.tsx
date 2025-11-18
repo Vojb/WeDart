@@ -29,6 +29,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import SendIcon from "@mui/icons-material/Send";
 import SportsScoreIcon from "@mui/icons-material/SportsScore";
 import LanguageIcon from "@mui/icons-material/Language";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 // Add TypeScript declarations for the Web Speech API
 declare global {
@@ -95,6 +96,10 @@ const VoiceInput: React.FC<{
   // Add a ref to track if we should keep listening
   const keepListeningRef = useRef(false);
 
+  // Add state for countdown
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
+
   // Define language options - only Swedish and English as requested
   const languageOptions = [
     { code: "en-US", label: "English (US)" },
@@ -143,6 +148,8 @@ const VoiceInput: React.FC<{
         const number = extractNumberFromTranscript(currentTranscript);
         if (number !== null) {
           setLastRecognizedNumber(number);
+          // Start or reset countdown when a number is recognized
+          setCountdown(5);
         }
 
         // Add to transcript log
@@ -224,6 +231,41 @@ const VoiceInput: React.FC<{
     }
   };
 
+  // Handle countdown timer
+  useEffect(() => {
+    // Clear any existing interval first
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    if (countdown !== null && countdown > 0) {
+      countdownIntervalRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (countdown === 0) {
+      // Auto-submit when countdown reaches 0
+      if (lastRecognizedNumber !== null) {
+        handleScore(lastRecognizedNumber, 3, 0);
+        setTranscript("");
+        setLastRecognizedNumber(null);
+        setCountdown(null);
+      }
+    }
+
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
+  }, [countdown, lastRecognizedNumber, handleScore]);
+
   // Clean up on component unmount
   useEffect(() => {
     return () => {
@@ -234,6 +276,9 @@ const VoiceInput: React.FC<{
         } catch (error) {
           console.error("Error stopping speech recognition on unmount:", error);
         }
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
       }
     };
   }, []);
@@ -251,6 +296,17 @@ const VoiceInput: React.FC<{
   const numberEntriesCount = transcriptLog.filter(
     (entry) => entry.containsNumber
   ).length;
+
+  // Cancel countdown
+  const cancelCountdown = () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setCountdown(null);
+    setLastRecognizedNumber(null);
+    setTranscript("");
+  };
 
   return (
     <Box sx={{ p: 1, height: "100%", display: "flex",  flexDirection: "column", overflow: "hidden" }}>
@@ -408,31 +464,57 @@ const VoiceInput: React.FC<{
             </IconButton>
           </Tooltip>
 
-          <Button
-            variant="contained"
-            size="large"
-            disabled={lastRecognizedNumber === null}
-            onClick={() => {
-              if (lastRecognizedNumber !== null) {
-                handleScore(lastRecognizedNumber, 3, 0);
-                setTranscript("");
-              } else {
-                alert("No number recognized yet. Please speak a number first.");
-              }
-            }}
-            endIcon={<SendIcon />}
-            sx={{
-              px: 4,
-              boxShadow: 2,
-              transition: "all 0.2s ease",
-              "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: 3,
-              },
-            }}
-          >
-            Submit Score
-          </Button>
+          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+            {countdown !== null && (
+              <Tooltip title="Cancel submission">
+                <IconButton
+                  color="error"
+                  onClick={cancelCountdown}
+                  size="large"
+                  sx={{
+                    boxShadow: 1,
+                    p: 2,
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      transform: "scale(1.05)",
+                    },
+                  }}
+                >
+                  <CancelIcon fontSize="large" />
+                </IconButton>
+              </Tooltip>
+            )}
+
+            <Button
+              variant="contained"
+              size="large"
+              disabled={lastRecognizedNumber === null}
+              onClick={() => {
+                if (lastRecognizedNumber !== null) {
+                  handleScore(lastRecognizedNumber, 3, 0);
+                  setTranscript("");
+                  setLastRecognizedNumber(null);
+                  setCountdown(null);
+                } else {
+                  alert("No number recognized yet. Please speak a number first.");
+                }
+              }}
+              endIcon={<SendIcon />}
+              sx={{
+                px: 4,
+                boxShadow: 2,
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  transform: "translateY(-2px)",
+                  boxShadow: 3,
+                },
+              }}
+            >
+              {countdown !== null
+                ? `Submit Score (${countdown}s)`
+                : "Submit Score"}
+            </Button>
+          </Stack>
         </Stack>
 
         {/* Transcript Log Accordion */}
