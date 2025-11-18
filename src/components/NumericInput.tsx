@@ -24,12 +24,22 @@ import VibrationButton from "./VibrationButton";
 
 interface NumericInputProps {
   onScore: (score: number, darts: number, lastDartMultiplier?: number) => void;
+  onQuickSubmit?: (score: number, darts?: number, lastDartMultiplier?: number) => void;
   currentPlayerScore?: number; // Add optional currentPlayerScore prop
+  previewData?: {
+    score: number;
+    currentScore: number;
+    remainingScore: number;
+    isBust: boolean;
+    isCheckout: boolean;
+  } | null;
 }
 
 const NumericInput: React.FC<NumericInputProps> = ({
   onScore,
+  onQuickSubmit,
   currentPlayerScore,
+  previewData,
 }) => {
   const [currentInput, setCurrentInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,8 +115,16 @@ const NumericInput: React.FC<NumericInputProps> = ({
   };
 
   const handleQuickScore = (score: number) => {
-    // Instead of submitting, just set the current input
-    setCurrentInput(score.toString());
+    // Reset input when favorite is pressed
+    setCurrentInput("");
+    
+    // If onQuickSubmit is provided, use it for auto-submit with countdown
+    if (onQuickSubmit) {
+      onQuickSubmit(score, 3, 1);
+    } else {
+      // Otherwise, just set the current input (fallback behavior)
+      setCurrentInput(score.toString());
+    }
   };
 
   const handleDartCountSelection = (dartCount: number) => {
@@ -128,20 +146,28 @@ const NumericInput: React.FC<NumericInputProps> = ({
   // Calculate if the input is valid
   const isValidScore = parseInt(currentInput) <= 180;
   const hasInput = currentInput.length > 0;
-  const displayValue = hasInput ? currentInput : "0";
+  
+  // Use preview data if available, otherwise use current input
+  const displayValue = previewData 
+    ? previewData.score.toString() 
+    : (hasInput ? currentInput : "0");
 
-  // Calculate remaining score if currentPlayerScore is provided
-  const score = parseInt(currentInput) || 0;
-  const remainingScore =
-    currentPlayerScore !== undefined && hasInput
-      ? currentPlayerScore - score
-      : undefined;
+  // Calculate remaining score - use preview data if available, otherwise calculate from input
+  const remainingScore = previewData
+    ? previewData.remainingScore
+    : (currentPlayerScore !== undefined && hasInput
+        ? currentPlayerScore - parseInt(currentInput)
+        : undefined);
 
-  // Determine if this would be a bust (score < 0)
-  const isBust = remainingScore !== undefined && remainingScore < 0;
+  // Determine if this would be a bust - use preview data if available
+  const isBust = previewData
+    ? previewData.isBust
+    : (remainingScore !== undefined && remainingScore < 0);
 
-  // Check if it's a valid checkout
-  const isCheckout = remainingScore !== undefined && remainingScore === 0;
+  // Check if it's a valid checkout - use preview data if available
+  const isCheckout = previewData
+    ? previewData.isCheckout
+    : (remainingScore !== undefined && remainingScore === 0);
 
   return (
     <Box
@@ -214,7 +240,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
           </Typography>
         )}
 
-        {!isBust && !isValidScore && hasInput && (
+        {!isBust && !isValidScore && hasInput && !previewData && (
           <Typography
             variant="caption"
             sx={{
@@ -226,6 +252,28 @@ const NumericInput: React.FC<NumericInputProps> = ({
           >
             Maximum score is 180
           </Typography>
+        )}
+        
+        {/* Preview data display */}
+        {previewData && (
+          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider", width: "100%" }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Current: {previewData.currentScore}
+            </Typography>
+            {previewData.isBust ? (
+              <Typography variant="body1" color="error.main" sx={{ fontWeight: "bold" }}>
+                Bust! Score: 0
+              </Typography>
+            ) : previewData.isCheckout ? (
+              <Typography variant="body1" color="success.main" sx={{ fontWeight: "bold" }}>
+                Checkout! Remaining: 0
+              </Typography>
+            ) : (
+              <Typography variant="body1" color="text.primary" sx={{ fontWeight: "bold" }}>
+                Remaining: {previewData.remainingScore}
+              </Typography>
+            )}
+          </Box>
         )}
       </Paper>
 
@@ -281,7 +329,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
               <VibrationButton
                 fullWidth
                 variant="contained"
-                color="primary"
+                color="info"
                 onClick={() => handleNumericInput(num.toString())}
                 sx={{
                   height: "100%",
@@ -304,7 +352,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
             <VibrationButton
               fullWidth
               variant="contained"
-              color="primary"
+              color="info"
               onClick={() => handleNumericInput("0")}
               sx={{
                 height: "100%",

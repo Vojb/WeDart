@@ -13,6 +13,14 @@ import {
   Chip,
   Button,
   DialogContentText,
+  LinearProgress,
+  Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import {
   Calculate,
@@ -20,6 +28,7 @@ import {
   Undo,
   ArrowBack,
   Mic,
+  Cancel,
 } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
@@ -33,6 +42,7 @@ import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import checkoutGuide from "../utils/checkoutGuide";
 import VoiceInput from "../components/VoiceInput";
+import VibrationButton from "../components/VibrationButton";
 
 type InputMode = "numeric" | "board" | "voice";
 
@@ -49,6 +59,7 @@ const X01Game: React.FC = () => {
     startGame,
     setInputMode: setStoreInputMode,
     setPlayers,
+    lastLegStats,
   } = useX01Store();
   const { addCompletedGame } = useHistoryStore();
   const [inputMode, setInputMode] = useState<InputMode>("numeric");
@@ -70,6 +81,25 @@ const X01Game: React.FC = () => {
   const gameSavedToHistoryRef = useRef<boolean>(false);
   // Add new state for leg won dialog
   const [legWonDialogOpen, setLegWonDialogOpen] = useState(false);
+  // Countdown state for auto-submit
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const countdownTimerRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
+  const progressIntervalRef = useRef<number | null>(null);
+  const progressStartTimeRef = useRef<number>(0);
+  const pendingScoreRef = useRef<{
+    score: number;
+    darts: number;
+    lastDartMultiplier?: number;
+  } | null>(null);
+  const [previewData, setPreviewData] = useState<{
+    score: number;
+    currentScore: number;
+    remainingScore: number;
+    isBust: boolean;
+    isCheckout: boolean;
+  } | null>(null);
 
   // Update cached players in X01Store
   useEffect(() => {
@@ -121,6 +151,13 @@ const X01Game: React.FC = () => {
     }
   }, [currentGame, navigate, dialogOpen]);
 
+  // Show leg stats dialog when a leg is completed
+  useEffect(() => {
+    if (lastLegStats && !currentGame?.isGameFinished) {
+      setLegWonDialogOpen(true);
+    }
+  }, [lastLegStats, currentGame?.isGameFinished]);
+
   // Reset game start time and history flag when a new game starts
   useEffect(() => {
     if (currentGame && !currentGame.isGameFinished) {
@@ -128,6 +165,44 @@ const X01Game: React.FC = () => {
       gameSavedToHistoryRef.current = false;
     }
   }, [currentGame]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearTimeout(countdownTimerRef.current);
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Reset countdown when player changes
+  useEffect(() => {
+    if (!currentGame || currentGame.isGameFinished) return;
+    
+    // Clear countdown when player changes
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setCountdown(null);
+    setProgress(0);
+    pendingScoreRef.current = null;
+    setPreviewData(null);
+  }, [currentGame?.currentPlayerIndex, currentGame?.isGameFinished]);
 
   // Save the completed game to history
   const saveGameToHistory = () => {
@@ -293,12 +368,161 @@ const X01Game: React.FC = () => {
     setLeaveDialogOpen(false);
   };
 
+  // Handle quick submit from favorite numbers (with countdown)
+  const handleQuickSubmit = (
+    score: number,
+    darts: number = 3,
+    lastDartMultiplier?: number
+  ) => {
+    if (!currentGame || currentGame.isGameFinished) return;
+    
+    // Cancel any existing countdown
+    handleCancelCountdown();
+
+    const player = currentGame.players[currentGame.currentPlayerIndex];
+    const remainingAfterScore = player.score - score;
+
+    // Check if this would be a bust
+    const wouldBust = remainingAfterScore < 0;
+    
+    // Check if this is a checkout (reaching exactly 0)
+    const isCheckout = remainingAfterScore === 0;
+
+    // For checkouts with double out, we need to handle it differently
+    // If it's a checkout, we'll use the regular handleScore flow after countdown
+    // but for now, we'll proceed with the countdown
+    let finalMultiplier = lastDartMultiplier;
+    if (
+      inputMode === "numeric" &&
+      isCheckout &&
+      currentGame.isDoubleOut
+    ) {
+      finalMultiplier = 2;
+    }
+
+    // Store pending score data
+    pendingScoreRef.current = {
+      score: wouldBust ? 0 : score,
+      darts: wouldBust ? 3 : (isCheckout ? 3 : darts), // For checkout, default to 3 darts
+      lastDartMultiplier: wouldBust ? 1 : finalMultiplier,
+    };
+
+    // Set preview data
+    setPreviewData({
+      score: wouldBust ? 0 : score,
+      currentScore: player.score,
+      remainingScore: wouldBust ? player.score : remainingAfterScore,
+      isBust: wouldBust,
+      isCheckout: isCheckout && !wouldBust,
+    });
+
+    // Start countdown (5 seconds)
+    setCountdown(5);
+    setProgress(0);
+    progressStartTimeRef.current = Date.now();
+
+    // Clear any existing timers
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
+    // Update countdown every second
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000) as unknown as number;
+
+    // Update progress bar every 50ms for smooth animation
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - progressStartTimeRef.current;
+      const newProgress = Math.min((elapsed / 5000) * 100, 100);
+      setProgress(newProgress);
+
+      if (newProgress >= 100) {
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+      }
+    }, 50) as unknown as number;
+
+    // Record score after countdown completes (5 seconds)
+    countdownTimerRef.current = setTimeout(() => {
+      if (pendingScoreRef.current) {
+        recordScore(
+          pendingScoreRef.current.score,
+          pendingScoreRef.current.darts,
+          pendingScoreRef.current.lastDartMultiplier
+        );
+        pendingScoreRef.current = null;
+      }
+      setCountdown(null);
+      setProgress(0);
+      setPreviewData(null);
+
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
+      // Check if game is finished after score is recorded
+      const updatedGame = useX01Store.getState().currentGame;
+      if (updatedGame && updatedGame.isGameFinished) {
+        saveGameToHistory();
+        setDialogOpen(true);
+      }
+    }, 5000) as unknown as number;
+  };
+
+  const handleCancelCountdown = () => {
+    // Clear countdown and pending score
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setCountdown(null);
+    setProgress(0);
+    pendingScoreRef.current = null;
+    setPreviewData(null);
+  };
+
   // Handle recording scores
   const handleScore = (
     score: number,
     darts: number,
     lastDartMultiplier?: number
   ) => {
+    // Don't allow regular score submission during countdown
+    if (countdown !== null && countdown > 0) {
+      return;
+    }
+    
     if (currentGame && !currentGame.isGameFinished) {
       const player = currentGame.players[currentGame.currentPlayerIndex];
       const remainingAfterScore = player.score - score;
@@ -336,52 +560,24 @@ const X01Game: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 1, height: "100%" }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Top Bar - Game Info and Players */}
       <Paper
-        sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}
+        sx={{
+          p: 1,
+          borderRadius: 0,
+          borderBottom: 1,
+          borderColor: "divider",
+          flexShrink: 0,
+        }}
       >
-        {/* Game Info Section */}
-        <Box sx={{ mb: 2 }}>
-          <Stack spacing={1}>
-            <Typography
-              variant="subtitle2"
-              color="text.secondary"
-              align="center"
-            >
-              {currentGame.gameType} - Leg {currentGame.currentLeg} of{" "}
-              {currentGame.totalLegs}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" align="center">
-              Starting Player:{" "}
-              {currentGame.players[currentGame.currentPlayerIndex].name}
-            </Typography>
-            {/* Legs Won Display */}
-            <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
-              {currentGame.players.map((player) => (
-                <Chip
-                  key={player.id}
-                  label={`${player.name}`}
-                  color={
-                    currentGame.currentPlayerIndex ===
-                    currentGame.players.indexOf(player)
-                      ? "primary"
-                      : "default"
-                  }
-                  size="small"
-                />
-              ))}
-            </Box>
-          </Stack>
-        </Box>
+       
 
         {/* Players Section */}
         <Box
           sx={{
             p: 0.5,
-            borderBottom: 1,
-            borderColor: "divider",
             overflowX: "auto",
-            flexShrink: 0,
           }}
         >
           <Box
@@ -410,55 +606,78 @@ const X01Game: React.FC = () => {
               ))}
           </Box>
         </Box>
+      </Paper>
 
-        {/* Rest of the game UI */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            p: { xs: 0.5, sm: 1 },
-          }}
-        >
-          <Box sx={{ flex: 1, overflow: "auto" }}>
-            {inputMode === "numeric" ? (
-              <NumericInput
-                onScore={handleScore}
-                currentPlayerScore={
-                  currentGame?.players.find(
-                    (p) =>
-                      currentGame.playerPositions[p.id] - 1 ===
-                      currentGame.currentPlayerIndex
-                  )?.score
+      {/* Input Area - Takes remaining space */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          p: { xs: 0.5, sm: 1 },
+        }}
+      >
+        <Box sx={{ flex: 1, overflow: "auto" }}>
+          {inputMode === "numeric" ? (
+            <NumericInput
+              onScore={handleScore}
+              onQuickSubmit={handleQuickSubmit}
+              currentPlayerScore={
+                currentGame?.players.find(
+                  (p) =>
+                    currentGame.playerPositions[p.id] - 1 ===
+                    currentGame.currentPlayerIndex
+                )?.score
+              }
+              previewData={previewData}
+            />
+          ) : inputMode === "board" ? (
+            <DartInputErrorBoundary>
+              <DartInput
+                onScore={(score, dartsUsed, lastDartMultiplier) =>
+                  handleScore(score, dartsUsed, lastDartMultiplier)
                 }
               />
-            ) : inputMode === "board" ? (
-              <DartInputErrorBoundary>
-                <DartInput
-                  onScore={(score, dartsUsed, lastDartMultiplier) =>
-                    handleScore(score, dartsUsed, lastDartMultiplier)
-                  }
-                />
-              </DartInputErrorBoundary>
-            ) : (
-              <VoiceInput
-                handleScore={(score, darts, lastDartMultiplier) =>
-                  handleScore(score, darts, lastDartMultiplier)
-                }
-              />
-            )}
-          </Box>
+            </DartInputErrorBoundary>
+          ) : (
+            <VoiceInput
+              handleScore={(score, darts, lastDartMultiplier) =>
+                handleScore(score, darts, lastDartMultiplier)
+              }
+            />
+          )}
         </Box>
-        <Box
-          sx={{
-            mb: 1,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-            px: 1,
-          }}
-        >
+      </Box>
+
+      {/* Bottom Action Bar */}
+      <Paper
+        sx={{
+          p: 1,
+          borderRadius: 0,
+          borderTop: 1,
+          borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+          flexShrink: 0,
+        }}
+      >
+        {/* Progress Bar */}
+        {countdown !== null && countdown > 0 && (
+          <Box sx={{ width: "100%" }}>
+            <LinearProgress 
+              variant="determinate" 
+              value={progress} 
+              sx={{ 
+                height: 6,
+                borderRadius: 1,
+              }} 
+            />
+          </Box>
+        )}
+
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <IconButton
               size="small"
@@ -491,7 +710,25 @@ const X01Game: React.FC = () => {
             </ToggleButtonGroup>
           </Box>
 
-          <IconButton size="small" onClick={handleUndo} sx={{ ml: 0.5 }}>
+          <VibrationButton
+            variant="contained"
+            color="error"
+            onClick={handleCancelCountdown}
+            disabled={countdown === null || countdown === 0}
+            startIcon={<Cancel />}
+            vibrationPattern={[50, 100, 50]}
+            size="small"
+            sx={{ display: countdown !== null && countdown > 0 ? "flex" : "none" }}
+          >
+            Cancel
+          </VibrationButton>
+
+          <IconButton 
+            size="small" 
+            onClick={handleUndo} 
+            sx={{ ml: 0.5 }}
+            disabled={countdown !== null && countdown > 0}
+          >
             <Undo />
           </IconButton>
         </Box>
@@ -558,28 +795,124 @@ const X01Game: React.FC = () => {
         open={legWonDialogOpen}
         onClose={() => setLegWonDialogOpen(false)}
         aria-labelledby="leg-won-dialog-title"
+        maxWidth="md"
+        fullWidth
       >
-        <DialogTitle id="leg-won-dialog-title">Leg Complete!</DialogTitle>
+        <DialogTitle id="leg-won-dialog-title">
+          Leg {lastLegStats?.legNumber} Complete!
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="h6" color="primary" gutterBottom>
-            Leg Complete!
-          </Typography>
-          <Typography variant="body1" gutterBottom>
-            Current Legs Won:
-          </Typography>
-          {currentGame.players.map((player) => (
-            <Typography key={player.id} variant="body2">
-              {player.name}: {currentGame.legsWon[player.id] || 0} legs
-            </Typography>
-          ))}
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ mt: 2, display: "block" }}
-          >
-            First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
-            match
-          </Typography>
+          {lastLegStats && (
+            <>
+              <Typography variant="h6" color="primary" gutterBottom>
+                {currentGame.players.find((p) => p.id === lastLegStats.winnerId)?.name} won the leg!
+              </Typography>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+                Leg Statistics:
+              </Typography>
+              
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Player</TableCell>
+                      <TableCell align="right">Darts</TableCell>
+                      <TableCell align="right">Avg/Dart</TableCell>
+                      <TableCell align="right">Avg/Round</TableCell>
+                      <TableCell align="right">100+</TableCell>
+                      <TableCell align="right">140+</TableCell>
+                      <TableCell align="right">180</TableCell>
+                      <TableCell align="right">Checkout</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {lastLegStats.players.map((player: {
+                      id: number;
+                      name: string;
+                      dartsThrown: number;
+                      avgPerDart: number;
+                      avgPerRound: number;
+                      rounds100Plus: number;
+                      rounds140Plus: number;
+                      rounds180: number;
+                      checkoutAttempts: number;
+                      checkoutSuccess: number;
+                      scores: Array<{ score: number; darts: number }>;
+                    }) => {
+                      const isWinner = player.id === lastLegStats.winnerId;
+                      return (
+                        <TableRow
+                          key={player.id}
+                          sx={{
+                            backgroundColor: isWinner
+                              ? (theme) => alpha(theme.palette.primary.main, 0.1)
+                              : "transparent",
+                          }}
+                        >
+                          <TableCell
+                            component="th"
+                            scope="row"
+                            sx={{ fontWeight: isWinner ? "bold" : "normal" }}
+                          >
+                            {player.name}
+                            {isWinner && " 🏆"}
+                          </TableCell>
+                          <TableCell align="right">{player.dartsThrown}</TableCell>
+                          <TableCell align="right">
+                            {player.avgPerDart.toFixed(1)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {player.avgPerRound.toFixed(1)}
+                          </TableCell>
+                          <TableCell align="right">{player.rounds100Plus}</TableCell>
+                          <TableCell align="right">{player.rounds140Plus}</TableCell>
+                          <TableCell align="right">{player.rounds180}</TableCell>
+                          <TableCell align="right">
+                            {player.checkoutAttempts > 0
+                              ? `${player.checkoutSuccess}/${player.checkoutAttempts}`
+                              : "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Typography variant="body2" gutterBottom>
+                Current Legs Won:
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                {currentGame.players.map((player) => (
+                  <Chip
+                    key={player.id}
+                    label={`${player.name}: ${currentGame.legsWon[player.id] || 0}`}
+                    color={
+                      currentGame.legsWon[player.id] >
+                      Math.floor(currentGame.totalLegs / 2)
+                        ? "success"
+                        : "default"
+                    }
+                    size="small"
+                  />
+                ))}
+              </Stack>
+              
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block" }}
+              >
+                First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
+                match
+              </Typography>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button

@@ -48,6 +48,24 @@ interface GameState {
 }
 
 
+interface LegStats {
+  legNumber: number;
+  winnerId: number;
+  players: Array<{
+    id: number;
+    name: string;
+    dartsThrown: number;
+    avgPerDart: number;
+    avgPerRound: number;
+    rounds100Plus: number;
+    rounds140Plus: number;
+    rounds180: number;
+    checkoutAttempts: number;
+    checkoutSuccess: number;
+    scores: Array<{ score: number; darts: number }>;
+  }>;
+}
+
 interface X01StoreState {
   // Game settings
   gameSettings: {
@@ -63,6 +81,7 @@ interface X01StoreState {
 
   // Current game state
   currentGame: GameState | null;
+  lastLegStats: LegStats | null;
   startGame: (
     gameType: GameState["gameType"],
     playerIds: number[],
@@ -231,6 +250,7 @@ export const useX01Store = create<X01StoreState>()(
         })),
 
       currentGame: null,
+      lastLegStats: null,
       startGame: (gameType, playerIds, totalLegs, startingPlayerIndex = 0) => {
         // Create a new game with the selected settings
         set((state) => {
@@ -277,7 +297,7 @@ export const useX01Store = create<X01StoreState>()(
             legsWon: playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}),
           };
 
-          return { currentGame: newGame };
+          return { currentGame: newGame, lastLegStats: null };
         });
       },
 
@@ -288,6 +308,34 @@ export const useX01Store = create<X01StoreState>()(
           const currentGame = state.currentGame;
           const updatedLegsWon = { ...currentGame.legsWon };
           updatedLegsWon[winnerId] = (updatedLegsWon[winnerId] || 0) + 1;
+
+          // Capture leg stats before resetting players
+          const legStats: LegStats = {
+            legNumber: currentGame.currentLeg,
+            winnerId: winnerId,
+            players: currentGame.players.map((player) => {
+              const initialScore = player.initialScore;
+              const pointsScored = initialScore - player.score;
+              return {
+                id: player.id,
+                name: player.name,
+                dartsThrown: player.dartsThrown,
+                avgPerDart: player.dartsThrown > 0 ? pointsScored / player.dartsThrown : 0,
+                avgPerRound: player.dartsThrown > 0
+                  ? pointsScored / Math.ceil(player.dartsThrown / 3)
+                  : 0,
+                rounds100Plus: player.rounds100Plus,
+                rounds140Plus: player.rounds140Plus,
+                rounds180: player.rounds180,
+                checkoutAttempts: player.checkoutAttempts,
+                checkoutSuccess: player.checkoutSuccess,
+                scores: player.scores.map((score) => ({
+                  score: score.score,
+                  darts: score.darts,
+                })),
+              };
+            }),
+          };
 
           // Check if the player has won enough legs to win the match
           const isMatchWinner =
@@ -300,6 +348,7 @@ export const useX01Store = create<X01StoreState>()(
                 isGameFinished: true,
                 legsWon: updatedLegsWon,
               },
+              lastLegStats: legStats,
             };
           }
 
@@ -333,6 +382,7 @@ export const useX01Store = create<X01StoreState>()(
               currentLeg: nextLeg,
               legsWon: updatedLegsWon,
             },
+            lastLegStats: legStats,
           };
         });
       },

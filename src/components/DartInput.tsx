@@ -215,14 +215,14 @@ const DartIndicators = ({
                     )}
                   </Box>
                 }
-                color={hasScore ? "primary" : "default"}
+                color={hasScore ? "info" : "default"}
                 variant={isCurrentDart ? "outlined" : "filled"}
                 sx={{
                   flex: 1,
                   height: "48px",
                   padding: "4px 0",
                   border: isCurrentDart ? "2px dashed" : "none",
-                  borderColor: "primary.main",
+                  borderColor: "info.main",
                   animation: isCurrentDart ? "pulse 1.5s infinite" : "none",
                   "@keyframes pulse": {
                     "0%": { opacity: 0.7 },
@@ -402,6 +402,9 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
       { baseNumber, multiplier, value: dartValue },
     ];
     setCurrentDarts(updatedDarts);
+
+    // Reset multiplier to single after recording dart
+    setSelectedMultiplier(1);
 
     // Track dart notations for player stats
     const notation = formatDartNotation({
@@ -829,6 +832,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
             <VibrationButton
               key={num}
               size="small"
+              color="info"
               variant={
                 selectedNumber === num && (isHolding || showMultiplier)
                   ? "outlined"
@@ -892,6 +896,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
             <VibrationButton
               fullWidth
               variant="contained"
+              color="info"
               onClick={() => {
                 if (currentDarts.length < 3) {
                   recordDart(25, selectedMultiplier, true);
@@ -916,6 +921,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
             <VibrationButton
               fullWidth
               variant="contained"
+              color="info"
               onClick={() => {
                 if (currentDarts.length < 3) {
                   recordDart(25, selectedMultiplier, true);
