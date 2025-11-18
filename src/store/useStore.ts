@@ -64,20 +64,20 @@ export const predefinedThemes: ThemeOption[] = [
     id: "default",
     name: "Default",
     colors: {
-      primary: "#1976d2", // MUI default blue
-      secondary: "#9c27b0", // MUI default purple
-      success: "#2e7d32", // MUI default green
-      error: "#d32f2f", // MUI default red
+      primary: "#2196f3", // Bright blue - more vibrant
+      secondary: "#9c27b0", // Purple - complements blue
+      success: "#4caf50", // Vibrant green - distinct from primary
+      error: "#f44336", // Bright red - clear distinction
       background: {
         default: "#121212", // Dark background
         paper: "#1e1e1e", // Dark paper
       },
       // Light mode variant
       light: {
-        primary: "#0d47a1", // Darker blue for light mode
+        primary: "#1976d2", // Classic blue for light mode
         secondary: "#7b1fa2", // Darker purple for light mode
-        success: "#2e7d32", // Same green for light mode
-        error: "#c62828", // Slightly darker red for light mode
+        success: "#2e7d32", // Mature green for light mode
+        error: "#c62828", // Darker red for light mode
         background: {
           default: "#f5f5f5", // Light background
           paper: "#ffffff", // White paper
@@ -94,20 +94,20 @@ export const predefinedThemes: ThemeOption[] = [
     id: "dartboard",
     name: "Dartboard",
     colors: {
-      primary: "#1b5e20", // Dark green
-      secondary: "#d32f2f", // Red
-      success: "#33691e", // Very dark green
-      error: "#b71c1c", // Dark red
+      primary: "#4caf50", // Vibrant green - dartboard green
+      secondary: "#ff5722", // Orange-red - complements green
+      success: "#66bb6a", // Lighter green - success feedback
+      error: "#f44336", // Bright red - clear error indication
       background: {
         default: "#0a0a0a", // Deeper dark background
         paper: "#1a1a1a", // Darker paper
       },
       // Light mode variant
       light: {
-        primary: "#004d40", // Darker green for light mode
-        secondary: "#b71c1c", // Darker red for light mode
-        success: "#33691e", // Same very dark green
-        error: "#b71c1c", // Same dark red
+        primary: "#2e7d32", // Mature green for light mode
+        secondary: "#e64a19", // Darker orange-red for light mode
+        success: "#388e3c", // Distinct green for success
+        error: "#c62828", // Darker red for error
         background: {
           default: "#f5f5f5", // Light background
           paper: "#ffffff", // White paper
@@ -124,20 +124,20 @@ export const predefinedThemes: ThemeOption[] = [
     id: "electric",
     name: "Electric",
     colors: {
-      primary: "#6200ea", // Deep purple
-      secondary: "#00bfa5", // Teal accent
-      success: "#64dd17", // Light green accent
-      error: "#ff1744", // Accent red
+      primary: "#7c4dff", // Bright purple - electric vibe
+      secondary: "#00e5ff", // Cyan - complements purple
+      success: "#00e676", // Bright green - electric success
+      error: "#ff1744", // Bright red - clear error
       background: {
         default: "#0d0221", // Deep purple background
         paper: "#1a1a2e", // Dark blue paper
       },
       // Light mode variant
       light: {
-        primary: "#4a148c", // Darker purple for light mode
-        secondary: "#00796b", // Darker teal for light mode
-        success: "#33691e", // Darker green for light mode
-        error: "#d50000", // Darker red for light mode
+        primary: "#6200ea", // Deep purple for light mode
+        secondary: "#00acc1", // Darker cyan for light mode
+        success: "#00c853", // Mature green for success
+        error: "#d50000", // Darker red for error
         background: {
           default: "#f5f5f5", // Light background
           paper: "#ffffff", // White paper
@@ -154,22 +154,22 @@ export const predefinedThemes: ThemeOption[] = [
     id: "sunset",
     name: "Sunset",
     colors: {
-      primary: "#ff9800", // Orange
-      secondary: "#e91e63", // Pink
-      success: "#8bc34a", // Light green
-      error: "#f44336", // Red
+      primary: "#ff6f00", // Warm orange - sunset color
+      secondary: "#ff4081", // Pink - complements orange
+      success: "#ffb300", // Amber - warm success color
+      error: "#ff5252", // Coral red - warm error
       background: {
-        default: "#190a05", // Dark brown background
-        paper: "#251e18", // Dark brown paper
+        default: "#1a0f0a", // Warm dark background
+        paper: "#2a1f18", // Warm dark paper
       },
       // Light mode variant
       light: {
-        primary: "#e65100", // Darker orange for light mode
-        secondary: "#c2185b", // Darker pink for light mode
-        success: "#558b2f", // Darker green for light mode
-        error: "#c62828", // Darker red for light mode
+        primary: "#e65100", // Deep orange for light mode
+        secondary: "#c2185b", // Deep pink for light mode
+        success: "#f57c00", // Amber for success
+        error: "#d32f2f", // Mature red for error
         background: {
-          default: "#f5f5f5", // Light background
+          default: "#fff8f0", // Warm light background
           paper: "#ffffff", // White paper
         },
         text: {
@@ -184,22 +184,22 @@ export const predefinedThemes: ThemeOption[] = [
     id: "ocean",
     name: "Ocean",
     colors: {
-      primary: "#00838f", // Teal
-      secondary: "#00796b", // Dark teal
-      success: "#00897b", // Teal
-      error: "#e64a19", // Dark orange
+      primary: "#00acc1", // Bright teal - ocean blue
+      secondary: "#00897b", // Teal green - complements primary
+      success: "#26a69a", // Aqua green - distinct success
+      error: "#ff6f00", // Coral orange - warm contrast
       background: {
-        default: "#002147", // Deep navy background
-        paper: "#0a3060", // Navy paper
+        default: "#001a33", // Deep ocean background
+        paper: "#003d66", // Ocean blue paper
       },
       // Light mode variant
       light: {
-        primary: "#006064", // Darker teal for light mode
-        secondary: "#004d40", // Darker teal for light mode
-        success: "#00695c", // Darker teal for light mode
-        error: "#bf360c", // Darker orange for light mode
+        primary: "#00838f", // Classic teal for light mode
+        secondary: "#00695c", // Deep teal for secondary
+        success: "#00796b", // Distinct teal for success
+        error: "#e64a19", // Warm orange for error
         background: {
-          default: "#f5f5f5", // Light background
+          default: "#e0f7fa", // Light ocean background
           paper: "#ffffff", // White paper
         },
         text: {
@@ -215,22 +215,22 @@ export const predefinedThemes: ThemeOption[] = [
     id: "unicorn",
     name: "Magical Unicorn",
     colors: {
-      primary: "#FF6AD5", // Bright pink
-      secondary: "#8A2BE2", // Violet
-      success: "#64FFDA", // Aqua
-      error: "#FF4081", // Pink accent
+      primary: "#e91e63", // Magical pink
+      secondary: "#9c27b0", // Purple - complements pink
+      success: "#00bcd4", // Cyan - magical accent
+      error: "#f50057", // Bright pink-red - distinct from primary
       background: {
         default: "#2C0A37", // Deep purple background
         paper: "#3B1A4A", // Lighter purple paper
       },
       // Light mode variant
       light: {
-        primary: "#C2185B", // Darker pink for light mode
-        secondary: "#6A1B9A", // Darker violet for light mode
-        success: "#00BFA5", // Darker aqua for light mode
-        error: "#D81B60", // Darker pink for light mode
+        primary: "#c2185b", // Deep pink for light mode
+        secondary: "#7b1fa2", // Deep purple for light mode
+        success: "#0097a7", // Darker cyan for success
+        error: "#d81b60", // Distinct pink-red for error
         background: {
-          default: "#f5f5f5", // Light background
+          default: "#fce4ec", // Light pink background
           paper: "#ffffff", // White paper
         },
         text: {
@@ -246,20 +246,20 @@ export const predefinedThemes: ThemeOption[] = [
     id: "neon",
     name: "Neon Nights",
     colors: {
-      primary: "#00FF9F", // Bright green
-      secondary: "#FF00E4", // Bright pink
-      success: "#00FFFF", // Cyan
-      error: "#FF003C", // Bright red
+      primary: "#00e676", // Neon green - vibrant
+      secondary: "#e91e63", // Neon pink - complements green
+      success: "#00e5ff", // Bright cyan - distinct success
+      error: "#ff1744", // Neon red - clear error
       background: {
-        default: "#000B14", // Very dark blue background
-        paper: "#001524", // Dark blue paper
+        default: "#000510", // Very dark background
+        paper: "#001122", // Dark blue-gray paper
       },
       // Light mode variant
       light: {
-        primary: "#00BFA5", // Darker neon green for light mode
-        secondary: "#D500F9", // Darker neon pink for light mode
-        success: "#00B8D4", // Darker cyan for light mode
-        error: "#D50000", // Darker red for light mode
+        primary: "#00c853", // Mature green for light mode
+        secondary: "#c2185b", // Deep pink for light mode
+        success: "#00acc1", // Teal for success
+        error: "#d50000", // Deep red for error
         background: {
           default: "#f5f5f5", // Light background
           paper: "#ffffff", // White paper
@@ -277,22 +277,22 @@ export const predefinedThemes: ThemeOption[] = [
     id: "retro",
     name: "Retro Arcade",
     colors: {
-      primary: "#FFD700", // Gold
-      secondary: "#FF6347", // Tomato
-      success: "#32CD32", // Lime green
-      error: "#DC143C", // Crimson
+      primary: "#ffc107", // Amber gold - retro feel
+      secondary: "#ff5722", // Deep orange - complements gold
+      success: "#4caf50", // Vibrant green - arcade success
+      error: "#f44336", // Bright red - arcade error
       background: {
         default: "#000000", // Black background
-        paper: "#1C1C1C", // Very dark gray paper
+        paper: "#1a1a1a", // Very dark gray paper
       },
       // Light mode variant
       light: {
-        primary: "#FFC107", // Amber for light mode
-        secondary: "#F4511E", // Darker tomato for light mode
-        success: "#2E7D32", // Darker lime green for light mode
-        error: "#B71C1C", // Darker crimson for light mode
+        primary: "#ff8f00", // Deep amber for light mode
+        secondary: "#e64a19", // Deep orange for light mode
+        success: "#388e3c", // Mature green for success
+        error: "#c62828", // Deep red for error
         background: {
-          default: "#f5f5f5", // Light background
+          default: "#fffde7", // Light yellow background
           paper: "#ffffff", // White paper
         },
         text: {
@@ -308,22 +308,22 @@ export const predefinedThemes: ThemeOption[] = [
     id: "forest",
     name: "Enchanted Forest",
     colors: {
-      primary: "#4CAF50", // Green
-      secondary: "#8D6E63", // Brown
-      success: "#81C784", // Light green
-      error: "#E57373", // Light red
+      primary: "#66bb6a", // Forest green - vibrant
+      secondary: "#8d6e63", // Earth brown - complements green
+      success: "#81c784", // Light green - natural success
+      error: "#ef5350", // Coral red - warm error
       background: {
-        default: "#1B2D2A", // Dark forest green background
-        paper: "#2D403C", // Lighter forest green paper
+        default: "#1a2523", // Dark forest background
+        paper: "#2d403c", // Forest green paper
       },
       // Light mode variant
       light: {
-        primary: "#2E7D32", // Darker green for light mode
-        secondary: "#5D4037", // Darker brown for light mode
-        success: "#388E3C", // Darker green for light mode
-        error: "#C62828", // Darker red for light mode
+        primary: "#388e3c", // Deep green for light mode
+        secondary: "#6d4c41", // Rich brown for secondary
+        success: "#4caf50", // Vibrant green for success
+        error: "#d32f2f", // Mature red for error
         background: {
-          default: "#f5f5f5", // Light background
+          default: "#e8f5e9", // Light green background
           paper: "#ffffff", // White paper
         },
         text: {

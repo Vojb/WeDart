@@ -25,6 +25,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  useTheme,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -191,6 +192,7 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
   onChange,
   presets,
 }) => {
+  const theme = useTheme();
   return (
     <Box>
       <Box
@@ -213,7 +215,9 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
               borderRadius: 1,
               cursor: "pointer",
               border: "2px solid",
-              borderColor: value === color ? "white" : "transparent",
+              borderColor: value === color 
+                ? theme.palette.mode === "dark" ? "#ffffff" : "#000000"
+                : "transparent",
               boxShadow: value === color ? 3 : 1,
               "&:hover": {
                 opacity: 0.8,
@@ -233,7 +237,7 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
         sx={{
           "& .MuiOutlinedInput-root": {
             "& fieldset": {
-              borderColor: "divider",
+              borderColor: theme.palette.divider,
             },
           },
         }}
@@ -247,7 +251,7 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
                 borderRadius: "4px",
                 mr: 1,
                 border: "1px solid",
-                borderColor: "divider",
+                borderColor: theme.palette.divider,
               }}
             />
           ),
@@ -259,6 +263,7 @@ const SimpleColorPicker: React.FC<SimpleColorPickerProps> = ({
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const {
     setThemeColors,
     themeColors,
@@ -596,7 +601,9 @@ const Settings: React.FC = () => {
           aria-controls="permissions-content"
           id="permissions-header"
           sx={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            backgroundColor: theme.palette.mode === "dark" 
+              ? "rgba(255, 255, 255, 0.05)" 
+              : "rgba(0, 0, 0, 0.03)",
             borderRadius: 1,
           }}
         >
@@ -713,7 +720,9 @@ const Settings: React.FC = () => {
           aria-controls="theme-mode-content"
           id="theme-mode-header"
           sx={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            backgroundColor: theme.palette.mode === "dark" 
+              ? "rgba(255, 255, 255, 0.05)" 
+              : "rgba(0, 0, 0, 0.03)",
             borderRadius: 1,
           }}
         >
@@ -751,7 +760,9 @@ const Settings: React.FC = () => {
           aria-controls="theme-selection-content"
           id="theme-selection-header"
           sx={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            backgroundColor: theme.palette.mode === "dark" 
+              ? "rgba(255, 255, 255, 0.05)" 
+              : "rgba(0, 0, 0, 0.03)",
             borderRadius: 1,
           }}
         >
@@ -794,7 +805,7 @@ const Settings: React.FC = () => {
                             borderRadius: "50%",
                             bgcolor: theme.colors.primary,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: theme.palette.divider,
                           }}
                         />
                         <Box
@@ -804,7 +815,7 @@ const Settings: React.FC = () => {
                             borderRadius: "50%",
                             bgcolor: theme.colors.secondary,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: theme.palette.divider,
                           }}
                         />
                         <Box
@@ -814,7 +825,7 @@ const Settings: React.FC = () => {
                             borderRadius: "50%",
                             bgcolor: theme.colors.success,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: theme.palette.divider,
                           }}
                         />
                         <Box
@@ -824,7 +835,7 @@ const Settings: React.FC = () => {
                             borderRadius: "50%",
                             bgcolor: theme.colors.error,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: theme.palette.divider,
                           }}
                         />
                       </Box>
@@ -836,7 +847,7 @@ const Settings: React.FC = () => {
                             borderRadius: "4px",
                             bgcolor: theme.colors.background.default,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: theme.palette.divider,
                           }}
                         />
                         <Box
@@ -846,7 +857,7 @@ const Settings: React.FC = () => {
                             borderRadius: "4px",
                             bgcolor: theme.colors.background.paper,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: theme.palette.divider,
                           }}
                         />
                         <Typography variant="caption" sx={{ ml: 1 }}>
@@ -886,7 +897,7 @@ const Settings: React.FC = () => {
                           borderRadius: "50%",
                           bgcolor: primaryColor,
                           border: "1px solid",
-                          borderColor: "divider",
+                          borderColor: theme.palette.divider,
                         }}
                       />
                       <Box
@@ -896,7 +907,7 @@ const Settings: React.FC = () => {
                           borderRadius: "50%",
                           bgcolor: secondaryColor,
                           border: "1px solid",
-                          borderColor: "divider",
+                          borderColor: theme.palette.divider,
                         }}
                       />
                       <Box
@@ -906,7 +917,7 @@ const Settings: React.FC = () => {
                           borderRadius: "50%",
                           bgcolor: successColor,
                           border: "1px solid",
-                          borderColor: "divider",
+                          borderColor: theme.palette.divider,
                         }}
                       />
                       <Box
@@ -916,7 +927,7 @@ const Settings: React.FC = () => {
                           borderRadius: "50%",
                           bgcolor: errorColor,
                           border: "1px solid",
-                          borderColor: "divider",
+                          borderColor: theme.palette.divider,
                         }}
                       />
                     </Box>
@@ -928,7 +939,7 @@ const Settings: React.FC = () => {
                           borderRadius: "4px",
                           bgcolor: backgroundDefaultColor,
                           border: "1px solid",
-                          borderColor: "divider",
+                          borderColor: theme.palette.divider,
                         }}
                       />
                       <Box
@@ -938,7 +949,7 @@ const Settings: React.FC = () => {
                           borderRadius: "4px",
                           bgcolor: backgroundPaperColor,
                           border: "1px solid",
-                          borderColor: "divider",
+                          borderColor: theme.palette.divider,
                         }}
                       />
                       <Typography variant="caption" sx={{ ml: 1 }}>
@@ -964,7 +975,9 @@ const Settings: React.FC = () => {
           aria-controls="custom-colors-content"
           id="custom-colors-header"
           sx={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            backgroundColor: theme.palette.mode === "dark" 
+              ? "rgba(255, 255, 255, 0.05)" 
+              : "rgba(0, 0, 0, 0.03)",
             borderRadius: 1,
           }}
         >
@@ -992,9 +1005,10 @@ const Settings: React.FC = () => {
                   p: 2,
                   mb: 2,
                   border: "1px solid",
-                  borderColor: "divider",
+                  borderColor: theme.palette.divider,
                   height: "auto",
                   overflow: "visible",
+                  backgroundColor: theme.palette.background.paper,
                 }}
               >
                 <SimpleColorPicker
@@ -1035,9 +1049,10 @@ const Settings: React.FC = () => {
                   p: 2,
                   mb: 2,
                   border: "1px solid",
-                  borderColor: "divider",
+                  borderColor: theme.palette.divider,
                   height: "auto",
                   overflow: "visible",
+                  backgroundColor: theme.palette.background.paper,
                 }}
               >
                 <SimpleColorPicker
@@ -1078,9 +1093,10 @@ const Settings: React.FC = () => {
                   p: 2,
                   mb: 2,
                   border: "1px solid",
-                  borderColor: "divider",
+                  borderColor: theme.palette.divider,
                   height: "auto",
                   overflow: "visible",
+                  backgroundColor: theme.palette.background.paper,
                 }}
               >
                 <SimpleColorPicker
@@ -1121,9 +1137,10 @@ const Settings: React.FC = () => {
                   p: 2,
                   mb: 2,
                   border: "1px solid",
-                  borderColor: "divider",
+                  borderColor: theme.palette.divider,
                   height: "auto",
                   overflow: "visible",
+                  backgroundColor: theme.palette.background.paper,
                 }}
               >
                 <SimpleColorPicker
@@ -1164,9 +1181,10 @@ const Settings: React.FC = () => {
                   p: 2,
                   mb: 2,
                   border: "1px solid",
-                  borderColor: "divider",
+                  borderColor: theme.palette.divider,
                   height: "auto",
                   overflow: "visible",
+                  backgroundColor: theme.palette.background.paper,
                 }}
               >
                 <SimpleColorPicker
@@ -1207,9 +1225,10 @@ const Settings: React.FC = () => {
                   p: 2,
                   mb: 2,
                   border: "1px solid",
-                  borderColor: "divider",
+                  borderColor: theme.palette.divider,
                   height: "auto",
                   overflow: "visible",
+                  backgroundColor: theme.palette.background.paper,
                 }}
               >
                 <SimpleColorPicker
@@ -1268,7 +1287,9 @@ const Settings: React.FC = () => {
           aria-controls="preview-content"
           id="preview-header"
           sx={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            backgroundColor: theme.palette.mode === "dark" 
+              ? "rgba(255, 255, 255, 0.05)" 
+              : "rgba(0, 0, 0, 0.03)",
             borderRadius: 1,
           }}
         >
