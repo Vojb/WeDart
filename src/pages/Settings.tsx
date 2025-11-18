@@ -774,27 +774,27 @@ const Settings: React.FC = () => {
           </Typography>
 
           <Grid container spacing={2}>
-            {predefinedThemes.map((theme) => (
-              <Grid item xs={6} sm={4} key={theme.id}>
+            {predefinedThemes.map((themeOption) => (
+              <Grid item xs={6} sm={4} key={themeOption.id}>
                 <Card
                   sx={{
                     height: "100%",
                     position: "relative",
-                    border: currentThemeId === theme.id ? 2 : 0,
+                    border: currentThemeId === themeOption.id ? 2 : 0,
                     borderColor: "primary.main",
                   }}
                 >
                   <CardActionArea
-                    onClick={() => handleThemeSelect(theme.id)}
+                    onClick={() => handleThemeSelect(themeOption.id)}
                     sx={{ height: "100%" }}
                   >
                     <CardContent>
                       <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                        {currentThemeId === theme.id && (
+                        {currentThemeId === themeOption.id && (
                           <CheckCircleIcon color="primary" />
                         )}
                         <Typography variant="subtitle1" component="div">
-                          {theme.name}
+                          {themeOption.name}
                         </Typography>
                       </Stack>
                       <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
@@ -803,7 +803,7 @@ const Settings: React.FC = () => {
                             width: 24,
                             height: 24,
                             borderRadius: "50%",
-                            bgcolor: theme.colors.primary,
+                            bgcolor: themeOption.colors.primary,
                             border: "1px solid",
                             borderColor: theme.palette.divider,
                           }}
@@ -813,7 +813,7 @@ const Settings: React.FC = () => {
                             width: 24,
                             height: 24,
                             borderRadius: "50%",
-                            bgcolor: theme.colors.secondary,
+                            bgcolor: themeOption.colors.secondary,
                             border: "1px solid",
                             borderColor: theme.palette.divider,
                           }}
@@ -823,7 +823,7 @@ const Settings: React.FC = () => {
                             width: 24,
                             height: 24,
                             borderRadius: "50%",
-                            bgcolor: theme.colors.success,
+                            bgcolor: themeOption.colors.success,
                             border: "1px solid",
                             borderColor: theme.palette.divider,
                           }}
@@ -833,7 +833,7 @@ const Settings: React.FC = () => {
                             width: 24,
                             height: 24,
                             borderRadius: "50%",
-                            bgcolor: theme.colors.error,
+                            bgcolor: themeOption.colors.error,
                             border: "1px solid",
                             borderColor: theme.palette.divider,
                           }}
@@ -845,7 +845,7 @@ const Settings: React.FC = () => {
                             width: 24,
                             height: 24,
                             borderRadius: "4px",
-                            bgcolor: theme.colors.background.default,
+                            bgcolor: themeOption.colors.background.default,
                             border: "1px solid",
                             borderColor: theme.palette.divider,
                           }}
@@ -855,7 +855,7 @@ const Settings: React.FC = () => {
                             width: 24,
                             height: 24,
                             borderRadius: "4px",
-                            bgcolor: theme.colors.background.paper,
+                            bgcolor: themeOption.colors.background.paper,
                             border: "1px solid",
                             borderColor: theme.palette.divider,
                           }}

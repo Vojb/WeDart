@@ -253,18 +253,16 @@ const VoiceInput: React.FC<{
   ).length;
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ p: 1, height: "100%", display: "flex",  flexDirection: "column", overflow: "hidden" }}>
       <Paper
         elevation={3}
         sx={{
           p: 3,
           borderRadius: 2,
+          flex: 1,
           position: "relative",
           transition: "all 0.3s ease",
-          backgroundColor: isListening ? "rgba(76, 175, 80, 0.05)" : "white",
-          borderLeft: isListening
-            ? "4px solid #4caf50"
-            : "4px solid transparent",
+
         }}
       >
         {/* Header with current score and language selector */}
@@ -272,13 +270,14 @@ const VoiceInput: React.FC<{
           sx={{
             display: "flex",
             alignItems: "center",
+     
             justifyContent: "space-between",
             mb: 3,
             pb: 2,
             borderBottom: "1px solid #eee",
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Box sx={{ display: "flex", flex:1, minHeight:0, alignItems: "center" }}>
             <SportsScoreIcon color="primary" sx={{ mr: 1 }} />
             <Typography variant="h5" fontWeight="bold" color="primary">
               Current Score:{" "}
@@ -310,7 +309,7 @@ const VoiceInput: React.FC<{
         </Box>
 
         {/* Voice recognition area */}
-        <Box sx={{ position: "relative", mb: 3 }}>
+        <Box sx={{ position: "relative", mb: 2,flex:1}}>
           {isListening && (
             <Chip
               label="Listening..."
