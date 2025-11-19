@@ -65,8 +65,8 @@ const X01Game: React.FC = () => {
   const [inputMode, setInputMode] = useState<InputMode>("numeric");
   const [showRoundAvg, setShowRoundAvg] = useState(false);
 
-  // Get microphone permission status from store
-  const { permissionSettings } = useStore();
+  // Get microphone permission status and countdown duration from store
+  const { permissionSettings, countdownDuration } = useStore();
   const isMicrophoneEnabled = permissionSettings.microphone.enabled;
 
   // Handle game finished dialog
@@ -416,8 +416,9 @@ const X01Game: React.FC = () => {
       isCheckout: isCheckout && !wouldBust,
     });
 
-    // Start countdown (5 seconds)
-    setCountdown(5);
+    // Start countdown
+    const durationMs = countdownDuration * 1000;
+    setCountdown(countdownDuration);
     setProgress(0);
     progressStartTimeRef.current = Date.now();
 
@@ -449,7 +450,7 @@ const X01Game: React.FC = () => {
     // Update progress bar every 50ms for smooth animation
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / 5000) * 100, 100);
+      const newProgress = Math.min((elapsed / durationMs) * 100, 100);
       setProgress(newProgress);
 
       if (newProgress >= 100) {
@@ -460,7 +461,7 @@ const X01Game: React.FC = () => {
       }
     }, 50) as unknown as number;
 
-    // Record score after countdown completes (5 seconds)
+    // Record score after countdown completes
     countdownTimerRef.current = setTimeout(() => {
       if (pendingScoreRef.current) {
         recordScore(
@@ -489,7 +490,7 @@ const X01Game: React.FC = () => {
         saveGameToHistory();
         setDialogOpen(true);
       }
-    }, 5000) as unknown as number;
+    }, durationMs) as unknown as number;
   };
 
   const handleCancelCountdown = () => {

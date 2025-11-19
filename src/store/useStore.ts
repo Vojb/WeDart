@@ -364,6 +364,10 @@ interface StoreState {
   setMicrophoneEnabled: (enabled: boolean) => void;
   updateMicrophoneLastChecked: () => void;
 
+  // Game settings
+  countdownDuration: number; // Duration in seconds for countdown timers
+  setCountdownDuration: (duration: number) => void;
+
   // Sticky activation state - tracks if user has interacted with the page
   hasUserActivation: boolean;
   setUserActivation: (activated: boolean) => void;
@@ -480,6 +484,11 @@ export const useStore = create<StoreState>()(
           },
         })),
 
+      // Game settings
+      countdownDuration: 3, // Default 3 seconds
+      setCountdownDuration: (duration: number) =>
+        set({ countdownDuration: Math.max(1, Math.min(30, duration)) }), // Clamp between 1 and 30 seconds
+
       // Sticky activation state
       hasUserActivation: false,
       setUserActivation: (activated: boolean) =>
@@ -496,6 +505,7 @@ export const useStore = create<StoreState>()(
         currentThemeId: state.currentThemeId,
         vibrationEnabled: state.vibrationEnabled,
         permissionSettings: state.permissionSettings,
+        countdownDuration: state.countdownDuration,
         hasUserActivation: state.hasUserActivation,
       }),
     }

@@ -26,6 +26,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useHalveItStore } from "../store/useHalveItStore";
 import { useHistoryStore } from "../store/useHistoryStore";
+import { useStore } from "../store/useStore";
 import { v4 as uuidv4 } from "uuid";
 import VibrationButton from "../components/VibrationButton";
 import HitCounterInput from "../components/hit-counter-input/hit-counter-input";
@@ -44,6 +45,7 @@ const HalveItGame: React.FC = () => {
     endGame,
   } = useHalveItStore();
   const { addCompletedGame } = useHistoryStore();
+  const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -403,8 +405,9 @@ const HalveItGame: React.FC = () => {
       data,
     };
     
-    // Start countdown (5 seconds)
-    setCountdown(5);
+    // Start countdown
+    const durationMs = countdownDuration * 1000;
+    setCountdown(countdownDuration);
     setProgress(0);
     progressStartTimeRef.current = Date.now();
     
@@ -436,7 +439,7 @@ const HalveItGame: React.FC = () => {
     // Update progress bar every 50ms for smooth animation
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / 5000) * 100, 100);
+      const newProgress = Math.min((elapsed / durationMs) * 100, 100);
       setProgress(newProgress);
       
       if (newProgress >= 100) {
@@ -447,7 +450,7 @@ const HalveItGame: React.FC = () => {
       }
     }, 50) as unknown as number;
     
-    // Record score after countdown completes (5 seconds)
+    // Record score after countdown completes
     countdownTimerRef.current = setTimeout(() => {
       if (pendingScoreRef.current) {
         recordRoundScore(
@@ -469,7 +472,7 @@ const HalveItGame: React.FC = () => {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-    }, 5000);
+    }, durationMs) as unknown as number;
   };
 
   const handleCancelCountdown = () => {

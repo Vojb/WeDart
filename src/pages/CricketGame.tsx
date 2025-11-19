@@ -25,6 +25,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCricketStore } from "../store/useCricketStore";
+import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
 import CountUp from "../components/count-up/count-up";
@@ -42,6 +43,7 @@ const CricketGame: React.FC = () => {
     setCricketPlayers,
     finishTurn,
   } = useCricketStore();
+  const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +57,7 @@ const CricketGame: React.FC = () => {
   // Cricket numbers in order
   const cricketNumbers = [20, 19, 18, 17, 16, 15, "Bull"];
 
-  // Auto-advance timer: 5 seconds after last click (only starts after first click)
+  // Auto-advance timer: configurable duration after last click (only starts after first click)
   useEffect(() => {
     if (!currentGame || currentGame.isGameFinished) {
       // Clear timer if game is finished
@@ -98,14 +100,15 @@ const CricketGame: React.FC = () => {
     progressStartTimeRef.current = Date.now();
 
     // Set new timer
+    const durationMs = countdownDuration * 1000;
     autoAdvanceTimerRef.current = setTimeout(() => {
       finishTurn();
-    }, 5000);
+    }, durationMs);
 
     // Update progress every 50ms for smooth animation
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / 5000) * 100, 100);
+      const newProgress = Math.min((elapsed / durationMs) * 100, 100);
       setProgress(newProgress);
     }, 50);
 
@@ -118,7 +121,7 @@ const CricketGame: React.FC = () => {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [lastClickTime, currentGame, finishTurn]);
+  }, [lastClickTime, currentGame, finishTurn, countdownDuration]);
 
   const shape: React.CSSProperties = {
     strokeWidth: 10,

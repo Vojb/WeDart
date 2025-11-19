@@ -26,6 +26,7 @@ import {
   DialogContent,
   DialogActions,
   useTheme,
+  Slider,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -276,6 +277,8 @@ const Settings: React.FC = () => {
     permissionSettings,
     setMicrophoneEnabled,
     updateMicrophoneLastChecked,
+    countdownDuration,
+    setCountdownDuration,
   } = useStore();
 
   // State for color values
@@ -702,6 +705,37 @@ const Settings: React.FC = () => {
             </Box>
             <Typography variant="body2" color="text.secondary">
               Enable vibration feedback for button presses and game events.
+            </Typography>
+          </Box>
+
+          {/* Countdown Duration Setting */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Countdown Duration
+            </Typography>
+            <Box sx={{ px: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {countdownDuration} {countdownDuration === 1 ? "second" : "seconds"}
+              </Typography>
+              <Slider
+                value={countdownDuration}
+                onChange={(_, value) => setCountdownDuration(value as number)}
+                min={1}
+                max={30}
+                step={1}
+                marks={[
+                  { value: 1, label: "1s" },
+                  { value: 5, label: "5s" },
+                  { value: 10, label: "10s" },
+                  { value: 20, label: "20s" },
+                  { value: 30, label: "30s" },
+                ]}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => `${value}s`}
+              />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Set how long the countdown timer lasts before auto-submitting scores in Halve It, X01, and Cricket games.
             </Typography>
           </Box>
 
