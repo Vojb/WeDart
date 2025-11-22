@@ -27,6 +27,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useCricketStore } from "../store/useCricketStore";
 import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
+import { vibrateDevice } from "../theme/ThemeProvider";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
 import CountUp from "../components/count-up/count-up";
 import { motion, Variants } from "framer-motion";
@@ -262,6 +263,8 @@ const CricketGame: React.FC = () => {
     if (!currentGame || currentGame.isGameFinished) return;
     // Always use multiplier 1 (single hit per click)
     recordHit(number, 1);
+    // Vibrate on hit
+    vibrateDevice(50);
     // Update last click time to reset auto-advance timer
     setLastClickTime(Date.now());
   };
@@ -269,6 +272,8 @@ const CricketGame: React.FC = () => {
   const handleUndo = () => {
     if (!currentGame) return;
     undoLastHit();
+    // Vibrate on undo
+    vibrateDevice([50, 30, 50]);
     setLastClickTime(Date.now());
   };
 
