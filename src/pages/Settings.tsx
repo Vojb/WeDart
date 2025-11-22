@@ -40,6 +40,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore, predefinedThemes } from "../store/useStore";
 import React from "react";
 import VibrationButton from "../components/VibrationButton";
+import { vibrateDevice } from "../theme/ThemeProvider";
 
 // Common color presets
 const colorPresets = {
@@ -703,9 +704,17 @@ const Settings: React.FC = () => {
                 {vibrationEnabled ? "Vibration Enabled" : "Vibration Disabled"}
               </Typography>
             </Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Enable vibration feedback for button presses and game events.
             </Typography>
+            <VibrationButton
+              variant="outlined"
+              color="primary"
+              onClick={() => vibrateDevice(100)}
+              disabled={!vibrationEnabled}
+            >
+              Test Vibration
+            </VibrationButton>
           </Box>
 
           {/* Countdown Duration Setting */}
