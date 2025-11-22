@@ -14,6 +14,11 @@ export interface CricketDart {
   targetNumber: number | string;
   multiplier: number;
   points: number;
+  // Store previous state for easy undo
+  previousHits?: number;
+  previousTargetPoints?: number;
+  previousPlayerScore?: number;
+  previousOpponentScores?: Record<number, number>; // For cutthroat mode
 }
 
 export interface CricketRound {
@@ -190,21 +195,51 @@ export const useCricketStore = create<CricketStoreState>()(
               ? { ...newGame.currentRound }
               : { playerId: currentPlayer.id, darts: [], totalPoints: 0 };
 
-            // Track the dart
+            // Find the target in the player's targets
+            const targetIndex = currentPlayer.targets.findIndex(
+              (t) => t.number === targetNumber
+            );
+
+            // Store previous state before making changes
+            let previousHits = 0;
+            let previousTargetPoints = 0;
+            let previousPlayerScore = currentPlayer.totalScore;
+            const previousOpponentScores: Record<number, number> = {};
+
+            if (targetIndex !== -1) {
+              const targets = [...currentPlayer.targets];
+              const target = { ...targets[targetIndex] };
+              
+              // Store previous state
+              previousHits = target.hits;
+              previousTargetPoints = target.points;
+              
+              // Store opponent scores for cutthroat mode
+              if (newGame.gameType === "cutthroat") {
+                players.forEach((player, idx) => {
+                  if (idx !== playerIndex) {
+                    previousOpponentScores[player.id] = player.totalScore;
+                  }
+                });
+              }
+            }
+
+            // Track the dart with previous state
             const newDart: CricketDart = {
               targetNumber,
               multiplier,
               points: 0, // Will be updated with actual points
+              previousHits,
+              previousTargetPoints,
+              previousPlayerScore,
+              previousOpponentScores: Object.keys(previousOpponentScores).length > 0 
+                ? previousOpponentScores 
+                : undefined,
             };
 
             // Add darts thrown count (for statistics only, no limit)
             currentPlayer.dartsThrown += 1;
             currentPlayer.currentDartIndex += 1;
-
-            // Find the target in the player's targets
-            const targetIndex = currentPlayer.targets.findIndex(
-              (t) => t.number === targetNumber
-            );
 
             let pointsEarned = 0;
 
@@ -407,125 +442,124 @@ export const useCricketStore = create<CricketStoreState>()(
           if (!state.currentGame) return state;
 
           const newGame = { ...state.currentGame };
+          const players = [...newGame.players];
 
-          // If there are darts in the current round, remove the last one
+          // Find the last dart - either in current round or last completed round
+          let lastDart: CricketDart | undefined;
+          let roundToModify: CricketRound | null = null;
+          let playerIndex = -1;
+          let isCurrentRound = false;
+
+          // Check current round first
           if (newGame.currentRound && newGame.currentRound.darts.length > 0) {
-            const currentRound = { ...newGame.currentRound };
-            const players = [...newGame.players];
-            const playerIndex = newGame.currentPlayerIndex;
-            const currentPlayer = { ...players[playerIndex] };
-
-            // Remove last dart
-            const lastDart = currentRound.darts.pop();
-            currentRound.totalPoints -= lastDart?.points || 0;
-
-            // Decrease darts thrown and current dart index
-            currentPlayer.dartsThrown = Math.max(
-              0,
-              currentPlayer.dartsThrown - 1
-            );
-            currentPlayer.currentDartIndex = Math.max(
-              0,
-              currentPlayer.currentDartIndex - 1
-            );
-
-            // Update targets if needed
-            if (lastDart) {
-              const targetIndex = currentPlayer.targets.findIndex(
-                (t) => t.number === lastDart.targetNumber
-              );
-
-              if (targetIndex !== -1) {
-                const targets = [...currentPlayer.targets];
-                const target = { ...targets[targetIndex] };
-
-                // Revert hits
-                target.hits = Math.max(0, target.hits - lastDart.multiplier);
-                target.closed = target.hits >= 3;
-
-                // Revert points if any were scored
-                if (lastDart.points > 0) {
-                  // For standard cricket, remove points from the current player
-                  if (newGame.gameType === "standard") {
-                    target.points = Math.max(
-                      0,
-                      target.points - lastDart.points
-                    );
-                    currentPlayer.totalScore = Math.max(
-                      0,
-                      currentPlayer.totalScore - lastDart.points
-                    );
-                  }
-                  // For cutthroat cricket, remove points from opponents
-                  else if (newGame.gameType === "cutthroat") {
-                    players.forEach((player, idx) => {
-                      if (
-                        idx !== playerIndex &&
-                        !player.targets[targetIndex].closed
-                      ) {
-                        players[idx] = {
-                          ...player,
-                          totalScore: Math.max(
-                            0,
-                            player.totalScore - lastDart.points
-                          ),
-                        };
-                      }
-                    });
-                  }
-                }
-
-                targets[targetIndex] = target;
-                currentPlayer.targets = targets;
-              }
-            }
-
-            // Update player
-            players[playerIndex] = currentPlayer;
-            newGame.players = players;
-            newGame.currentRound = currentRound;
-
-            return {
-              ...state,
-              currentGame: newGame,
-            };
+            roundToModify = { ...newGame.currentRound };
+            lastDart = roundToModify.darts[roundToModify.darts.length - 1];
+            playerIndex = newGame.currentPlayerIndex;
+            isCurrentRound = true;
           }
-          // If there are no darts in the current round but there are previous rounds
+          // If no darts in current round, check last completed round
           else if (newGame.rounds.length > 0) {
-            // Get the last completed round
-            const lastRound = newGame.rounds.pop();
-
-            if (lastRound) {
-              const players = [...newGame.players];
-
-              // Find the player from the last round
-              const lastPlayerIndex = players.findIndex(
+            const lastRound = newGame.rounds[newGame.rounds.length - 1];
+            if (lastRound && lastRound.darts.length > 0) {
+              roundToModify = { ...lastRound };
+              lastDart = roundToModify.darts[roundToModify.darts.length - 1];
+              playerIndex = players.findIndex(
                 (p) => p.id === lastRound.playerId
               );
-
-              if (lastPlayerIndex !== -1) {
-                // Set current player to the player from the last round
-                newGame.currentPlayerIndex = lastPlayerIndex;
-                newGame.currentRound = { ...lastRound };
-
-                // Set dart index to 3 (turn completed)
-                players[lastPlayerIndex].currentDartIndex = 3;
-
-                newGame.players = players;
-              }
+              isCurrentRound = false;
             }
-
-            return {
-              ...state,
-              currentGame: newGame,
-            };
           }
 
-          // Default case: just move to previous player
-          const prevPlayerIndex =
-            (newGame.currentPlayerIndex - 1 + newGame.players.length) %
-            newGame.players.length;
-          newGame.currentPlayerIndex = prevPlayerIndex;
+          // If no dart found, nothing to undo
+          if (!lastDart || !roundToModify || playerIndex === -1) {
+            return state;
+          }
+
+          const currentPlayer = { ...players[playerIndex] };
+
+          // Remove last dart from the round
+          roundToModify.darts.pop();
+          roundToModify.totalPoints -= lastDart.points || 0;
+
+          // Decrease darts thrown and current dart index
+          currentPlayer.dartsThrown = Math.max(
+            0,
+            currentPlayer.dartsThrown - 1
+          );
+          currentPlayer.currentDartIndex = Math.max(
+            0,
+            currentPlayer.currentDartIndex - 1
+          );
+
+          // Update targets if needed - restore previous state directly
+          const targetIndex = currentPlayer.targets.findIndex(
+            (t) => t.number === lastDart.targetNumber
+          );
+
+          if (targetIndex !== -1 && lastDart.previousHits !== undefined) {
+            const targets = [...currentPlayer.targets];
+            const target = { ...targets[targetIndex] };
+
+            // Restore previous state directly from stored values
+            target.hits = lastDart.previousHits;
+            target.closed = target.hits >= 3;
+            
+            // Restore previous target points
+            if (lastDart.previousTargetPoints !== undefined) {
+              target.points = lastDart.previousTargetPoints;
+            }
+
+            // Restore previous player score
+            if (lastDart.previousPlayerScore !== undefined) {
+              currentPlayer.totalScore = lastDart.previousPlayerScore;
+            }
+
+            // Restore opponent scores for cutthroat mode
+            if (newGame.gameType === "cutthroat" && lastDart.previousOpponentScores) {
+              players.forEach((player, idx) => {
+                if (idx !== playerIndex && lastDart.previousOpponentScores![player.id] !== undefined) {
+                  players[idx] = {
+                    ...player,
+                    totalScore: lastDart.previousOpponentScores![player.id],
+                  };
+                }
+              });
+            }
+
+            targets[targetIndex] = target;
+            currentPlayer.targets = targets;
+          }
+
+          // Update player
+          players[playerIndex] = currentPlayer;
+          newGame.players = players;
+
+          // Update round state
+          if (isCurrentRound) {
+            // Update current round
+            newGame.currentRound = roundToModify;
+          } else {
+            // Update the last completed round
+            newGame.rounds[newGame.rounds.length - 1] = roundToModify;
+            // If round is now empty, remove it and move to previous player
+            if (roundToModify.darts.length === 0) {
+              newGame.rounds.pop();
+              const prevPlayerIndex =
+                (playerIndex - 1 + players.length) % players.length;
+              newGame.currentPlayerIndex = prevPlayerIndex;
+              // Create new empty round for previous player
+              newGame.currentRound = {
+                playerId: players[prevPlayerIndex].id,
+                darts: [],
+                totalPoints: 0,
+              };
+            } else {
+              // Restore the round as current round
+              newGame.currentPlayerIndex = playerIndex;
+              newGame.currentRound = roundToModify;
+              newGame.rounds.pop();
+            }
+          }
 
           return {
             ...state,

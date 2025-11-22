@@ -4,4 +4,4 @@
  * Increment patch version (0.0.1) for each commit
  */
 
-export const VERSION = "v0.1.167";
+export const VERSION = "v0.1.177";

@@ -100,7 +100,7 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
               lineHeight: 1.2,
             }}
           >
-            Avg: {avgMarksPerRound.toFixed(1)}
+            MPR: {avgMarksPerRound.toFixed(1)}
           </Typography>
         </Box>
 

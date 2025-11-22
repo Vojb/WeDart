@@ -1110,7 +1110,7 @@ const CricketGame: React.FC = () => {
                 return `repeat(${playerCount}, 1fr) 60px`;
               })(),
               gap: 0.5,
-              p: 0.5,
+              p: { xs: 2, sm: 3, md: 4 },
               borderTop: "2px solid",
               borderColor: "divider",
               backgroundColor: alpha(theme.palette.primary.main, 0.05),
@@ -1137,6 +1137,7 @@ const CricketGame: React.FC = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
+                            p: { xs: 1, sm: 2, md: 3 },
                           }}
                         >
                           <Typography
@@ -1145,7 +1146,7 @@ const CricketGame: React.FC = () => {
                             sx={{
                               fontWeight: 700,
                               color: playerColor,
-                              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                              fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
                             }}
                           >
                             <CountUp
@@ -1193,6 +1194,7 @@ const CricketGame: React.FC = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
+                            p: { xs: 1, sm: 2, md: 3 },
                           }}
                         >
                           <Typography
@@ -1201,7 +1203,7 @@ const CricketGame: React.FC = () => {
                             sx={{
                               fontWeight: 700,
                               color: playerColor,
-                              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                              fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
                             }}
                           >
                             <CountUp
@@ -1297,6 +1299,12 @@ const CricketGame: React.FC = () => {
             <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
             {currentGame.currentRound && currentGame.currentRound.darts.length > 0 ? (
               (() => {
+                // Get current player's color
+                const currentPlayerIndex = currentGame.currentPlayerIndex;
+                const playerColor = currentPlayerIndex % 2 === 0 
+                  ? theme.palette.primary.main 
+                  : theme.palette.secondary.main;
+                
                 // Group darts by target number and count occurrences
                 const groupedDarts = currentGame.currentRound.darts.reduce((acc, dart) => {
                   const key = String(dart.targetNumber);
@@ -1318,8 +1326,8 @@ const CricketGame: React.FC = () => {
                       px: 1,
                       py: 0.5,
                       borderRadius: 1,
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                      border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                      backgroundColor: alpha(playerColor, 0.1),
+                      border: `1px solid ${alpha(playerColor, 0.3)}`,
                     }}
                   >
                     <Typography
