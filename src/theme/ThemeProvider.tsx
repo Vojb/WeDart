@@ -8,11 +8,11 @@ import { createAppTheme } from "./theme";
 export const vibrateDevice = (pattern: number | number[]): boolean => {
   console.log("[Vibration] Requested pattern:", pattern);
 
-  // Get store state directly (can't use hooks outside components)
-  // @ts-ignore - Accessing the store directly
-  const state = window.__ZUSTAND_STATE__?.state;
-  const vibrationEnabled = state?.vibrationEnabled !== false; // Default to true if can't access state
-  const hasActivation = state?.hasUserActivation === true;
+  // Get store state directly using Zustand's getState() method
+  // This is the proper way to access store state outside React components
+  const state = useStore.getState();
+  const vibrationEnabled = state.vibrationEnabled !== false; // Default to true if can't access state
+  const hasActivation = state.hasUserActivation === true;
 
   console.log("[Vibration] Vibration enabled:", vibrationEnabled);
   console.log("[Vibration] Has user activation:", hasActivation);
