@@ -60,7 +60,7 @@ const HitCounterInput: React.FC<HitCounterInputProps> = ({
 
       <Grid container spacing={1} sx={{ flex: 1 }}>
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((num) => (
-          <Grid item xs={4} key={num}>
+          <Grid item xs={num === 0 ? 12 : 4} key={num}>
             <VibrationButton
               fullWidth
               variant="contained"

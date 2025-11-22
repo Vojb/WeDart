@@ -765,10 +765,10 @@ const HalveItGame: React.FC = () => {
                     {player.name}
                   </Typography>
                   <Typography
-                    variant="h6"
+                    variant="h4"
                     sx={{
                       fontWeight: "bold",
-                      color: playerColor,
+                      color: theme.palette.info.main,
                     }}
                   >
                     <CountUp

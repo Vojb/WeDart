@@ -148,7 +148,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
         <Grid container spacing={1} sx={{ flex: 1 }}>
           {numbers.map((num) => {
             return (
-              <Grid item xs={2.4} key={num} sx={{ flexBasis: "20%", maxWidth: "20%" }}>
+              <Grid item xs={3} key={num}>
                 <VibrationButton
                   fullWidth
                   variant="contained"
@@ -164,7 +164,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
             );
           })}
           {hits.length === 0 && (
-            <Grid item xs={2.4} sx={{ flexBasis: "20%", maxWidth: "20%" }}>
+            <Grid item xs={9}>
               <VibrationButton
                 fullWidth
                 variant="outlined"
@@ -179,7 +179,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
             </Grid>
           )}
           {hits.length > 0 && (
-            <Grid item xs={2.4} sx={{ flexBasis: "20%", maxWidth: "20%" }}>
+            <Grid item xs={3}>
               <VibrationButton
                 fullWidth
                 variant="outlined"
@@ -194,7 +194,7 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
             </Grid>
           )}
           {hits.length > 0 && hits.length < 3 && (
-            <Grid item xs={2.4} sx={{ flexBasis: "20%", maxWidth: "20%" }}>
+            <Grid item xs={3}>
               <VibrationButton
                 fullWidth
                 variant="contained"
@@ -288,19 +288,6 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
           <VibrationButton
             fullWidth
             variant="contained"
-            color="success"
-            onClick={handleSubmit}
-            disabled={!isValid || !currentInput || disabled}
-            vibrationPattern={100}
-            sx={{ height: "100%" }}
-          >
-            <CheckCircle />
-          </VibrationButton>
-        </Grid>
-        <Grid item xs={4}>
-          <VibrationButton
-            fullWidth
-            variant="contained"
             color="error"
             onClick={() => handleNumericInput("0")}
             disabled={disabled}
@@ -308,6 +295,19 @@ const PointsInput: React.FC<PointsInputProps> = ({ roundType, onSubmit, previewD
             sx={{ height: "100%" }}
           >
             0
+          </VibrationButton>
+        </Grid>
+        <Grid item xs={4}>
+          <VibrationButton
+            fullWidth
+            variant="contained"
+            color="success"
+            onClick={handleSubmit}
+            disabled={!isValid || !currentInput || disabled}
+            vibrationPattern={100}
+            sx={{ height: "100%" }}
+          >
+            <CheckCircle />
           </VibrationButton>
         </Grid>
       </Grid>
