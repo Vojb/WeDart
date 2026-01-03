@@ -915,9 +915,9 @@ const HiddenCricketGame: React.FC = () => {
                         const secondHalf = playerCount - firstHalf;
                         return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
                       }
-                      return `repeat(${playerCount}, 1fr) 60px`;
+                      return `repeat(${playerCount}, 1fr) 30px`;
                     })(),
-                    gap: 0.5,
+                    gap: 0.5,   
                     p: 0.5,
                     height: "100%",
                     alignItems: "stretch",
