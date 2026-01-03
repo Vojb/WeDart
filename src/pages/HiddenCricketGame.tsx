@@ -1164,7 +1164,7 @@ const HiddenCricketGame: React.FC = () => {
               display: "grid",
               gridTemplateColumns: `repeat(${currentGame.players.length}, 1fr)`,
               gap: 0.5,
-              p: { xs: 2, sm: 3, md: 4 },
+              p: { xs: 1, sm: 3, md: 4 },
               borderTop: "2px solid",
               borderColor: "divider",
               backgroundColor: alpha(theme.palette.primary.main, 0.05),
@@ -1190,7 +1190,7 @@ const HiddenCricketGame: React.FC = () => {
                     sx={{
                       fontWeight: 700,
                       color: playerColor,
-                      fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                      fontSize: { xs: "1rem", sm: "1.5rem", md: "1.75rem" },
                     }}
                   >
                     <CountUp
@@ -1234,7 +1234,10 @@ const HiddenCricketGame: React.FC = () => {
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ fontWeight: 600 }}
+              sx={{ 
+                fontWeight: 600,
+                fontSize: { xs: "0.75rem", sm: "0.875rem" }
+              }}
             >
               Select Number
             </Typography>
@@ -1307,7 +1310,7 @@ const HiddenCricketGame: React.FC = () => {
         {/* Bottom Action Bar */}
         <Paper
           sx={{
-            p: 2,
+            p: 1,
             borderRadius: 0,
             borderTop: 1,
             borderColor: "divider",
@@ -1315,7 +1318,7 @@ const HiddenCricketGame: React.FC = () => {
             justifyContent: "space-between",
             alignItems: "center",
             flexDirection: "row",
-            gap: 2,
+            gap: 1,
           }}
         >
           <Box
@@ -1326,7 +1329,7 @@ const HiddenCricketGame: React.FC = () => {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              gap: 2,
+              gap: 1,
             }}
           >
             <IconButton onClick={handleUndo} color="info" size="small">
@@ -1458,8 +1461,8 @@ const HiddenCricketGame: React.FC = () => {
               startIcon={<NavigateNext />}
               sx={{
                 flex: 1,
-                py: 1.5,
-                fontSize: "1.2rem",
+                py: 0.75,
+                fontSize: "1rem",
                 fontWeight: "bold",
                 position: "relative",
                 overflow: "hidden",
