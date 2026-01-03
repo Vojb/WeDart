@@ -818,6 +818,7 @@ const HiddenCricketGame: React.FC = () => {
           <Box
             sx={{
               display: "grid",
+              marginRight:"42px",
               gridTemplateColumns: (() => {
                 const playerCount = currentGame.players.length;
                 return `repeat(${playerCount}, 1fr)`;
@@ -948,7 +949,7 @@ const HiddenCricketGame: React.FC = () => {
                                   flexDirection: "column",
                                   justifyContent: "center",
                                   alignItems: "center",
-                                  height: "100%",
+              height: "100%",
                                   width: "100%",
                                   minHeight: 0,
                                   overflow: "hidden",
@@ -1103,6 +1104,7 @@ const HiddenCricketGame: React.FC = () => {
                                     justifyContent: "center",
                                     minHeight: 0,
                                     overflow: "hidden",
+                                    marginRight: "10px",
                                   }}
                                 >
                                   {isClosed ? (
@@ -1166,6 +1168,7 @@ const HiddenCricketGame: React.FC = () => {
               gap: 0.5,
               p: { xs: 1, sm: 3, md: 4 },
               borderTop: "2px solid",
+              paddingRight: "42px",
               borderColor: "divider",
               backgroundColor: alpha(theme.palette.primary.main, 0.05),
             }}
