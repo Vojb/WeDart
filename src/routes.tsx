@@ -11,6 +11,8 @@ import Highscore from "./pages/Highscore";
 import Players from "./pages/Players";
 import Cricket from "./pages/Cricket";
 import CricketGame from "./pages/CricketGame";
+import HiddenCricket from "./pages/HiddenCricket";
+import HiddenCricketGame from "./pages/HiddenCricketGame";
 import HalveIt from "./pages/HalveIt";
 import HalveItGame from "./pages/HalveItGame";
 import { Box } from "@mui/material";
@@ -53,6 +55,10 @@ export const router = createHashRouter([
       {
         path: "cricket",
         element: <Cricket />,
+      },
+      {
+        path: "hidden-cricket",
+        element: <HiddenCricket />,
       },
       {
         path: "halveit",
@@ -98,6 +104,16 @@ export const router = createHashRouter([
       {
         index: true,
         element: <CricketGame />,
+      },
+    ],
+  },
+  {
+    path: "/hidden-cricket/game",
+    element: <GameLayoutRoute />,
+    children: [
+      {
+        index: true,
+        element: <HiddenCricketGame />,
       },
     ],
   },

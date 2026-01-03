@@ -17,7 +17,6 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
-import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
 import {
   useHiddenCricketStore,
   updateHiddenCricketCachedPlayers,
@@ -38,12 +37,12 @@ function TabPanel(props: TabPanelProps) {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`cricket-setup-tabpanel-${index}`}
-      aria-labelledby={`cricket-setup-tab-${index}`}
+      id={`hidden-cricket-setup-tabpanel-${index}`}
+      aria-labelledby={`hidden-cricket-setup-tab-${index}`}
       {...other}
       style={{
         height: "100%",
-        display: value === index ? "flex" : "none",
+        display: value !== index ? "none" : "flex",
         flexDirection: "column",
       }}
     >
@@ -56,14 +55,13 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const Cricket: React.FC = () => {
+const HiddenCricket: React.FC = () => {
   const navigate = useNavigate();
   const { players } = useStore();
-  const { updateGameSettings, gameSettings, startGame, setCricketPlayers } =
-    useCricketStore();
   const {
-    updateGameSettings: updateHiddenGameSettings,
-    startGame: startHiddenGame,
+    updateGameSettings,
+    gameSettings,
+    startGame,
     setHiddenCricketPlayers,
   } = useHiddenCricketStore();
   const [tabValue, setTabValue] = useState(0);
@@ -71,8 +69,8 @@ const Cricket: React.FC = () => {
   // Local state for form values
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
   const [gameType, setGameType] = useState<
-    "standard" | "cutthroat" | "no-score" | "hidden"
-  >(gameSettings.gameType as any);
+    "standard" | "cutthroat" | "no-score"
+  >(gameSettings.gameType);
   const [winCondition, setWinCondition] = useState<"first-closed" | "points">(
     gameSettings.winCondition
   );
@@ -91,7 +89,7 @@ const Cricket: React.FC = () => {
       return;
     }
 
-    console.log("Starting Cricket game with players:", selectedPlayerIds);
+    console.log("Starting Hidden Cricket game with players:", selectedPlayerIds);
 
     // Filter and prepare selected players
     const selectedPlayers = players.filter((player) =>
@@ -111,42 +109,21 @@ const Cricket: React.FC = () => {
       name: p.name,
     }));
 
-    // Handle hidden cricket mode separately
-    if (gameType === "hidden") {
-      // Set hidden cricket players first to ensure they're cached
-      setHiddenCricketPlayers(simplePlayers);
-      updateHiddenCricketCachedPlayers(simplePlayers);
-
-      // Update game settings in hidden cricket store
-      updateHiddenGameSettings({
-        gameType: "standard", // Hidden cricket uses standard scoring by default
-        winCondition,
-      });
-
-      // Start a new hidden cricket game
-      startHiddenGame("standard", winCondition, selectedPlayerIds);
-
-      // Navigate to hidden cricket game screen
-      navigate("/hidden-cricket/game");
-      return;
-    }
-
-    // Regular cricket modes
-    // Set cricket players first to ensure they're cached
-    setCricketPlayers(simplePlayers);
-    updateCachedPlayers(simplePlayers);
+    // Set hidden cricket players first to ensure they're cached
+    setHiddenCricketPlayers(simplePlayers);
+    updateHiddenCricketCachedPlayers(simplePlayers);
 
     // Update game settings in store
     updateGameSettings({
-      gameType: gameType as "standard" | "cutthroat" | "no-score",
+      gameType,
       winCondition,
     });
 
     // Start a new game
-    startGame(gameType as "standard" | "cutthroat" | "no-score", winCondition, selectedPlayerIds);
+    startGame(gameType, winCondition, selectedPlayerIds);
 
     // Navigate to game screen
-    navigate("/cricket/game");
+    navigate("/hidden-cricket/game");
   };
 
   return (
@@ -168,7 +145,7 @@ const Cricket: React.FC = () => {
           color="primary"
           sx={{ mb: { xs: 1, sm: 2 } }}
         >
-          Cricket Setup
+          Hidden Cricket Setup
         </Typography>
 
         <Tabs
@@ -248,21 +225,6 @@ const Cricket: React.FC = () => {
                           </Typography>
                         </Box>
                       }
-                      sx={{ mb: 0.5 }}
-                    />
-                    <FormControlLabel
-                      value="hidden"
-                      control={<Radio size="small" />}
-                      label={
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            Hidden Cricket
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Target numbers are hidden and randomly selected
-                          </Typography>
-                        </Box>
-                      }
                     />
                   </RadioGroup>
                 </FormControl>
@@ -322,6 +284,25 @@ const Cricket: React.FC = () => {
                     />
                   </RadioGroup>
                 </FormControl>
+              </CardContent>
+            </Card>
+
+            {/* Info Card */}
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <Typography variant="body2" fontWeight="medium" gutterBottom>
+                  How to Play
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  In Hidden Cricket, the target numbers (15-20 and Bull) are
+                  randomly selected and hidden. Select numbers 1-20 or Bull,
+                  and if it's a valid target, choose single, double, or triple.
+                </Typography>
               </CardContent>
             </Card>
           </Stack>
@@ -395,4 +376,5 @@ const Cricket: React.FC = () => {
   );
 };
 
-export default Cricket;
+export default HiddenCricket;
+
