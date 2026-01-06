@@ -289,6 +289,14 @@ const HiddenCricketGame: React.FC = () => {
       return;
     }
 
+    // Check if all players have closed this number - if so, treat as miss
+    if (isNumberClosedByAll(number)) {
+      recordMiss();
+      vibrateDevice([50, 30, 50]);
+      setLastClickTime(Date.now());
+      return;
+    }
+
     // Check if this number is a valid hidden number
     if (isHiddenNumber(number)) {
       // Valid hidden number - show multiplier selector
@@ -312,6 +320,16 @@ const HiddenCricketGame: React.FC = () => {
       setShowMultiplierSelector(false);
       setSelectedNumber(null);
       vibrateDevice([50, 30, 50]);
+      return;
+    }
+
+    // Check if all players have closed this number - if so, treat as miss
+    if (isNumberClosedByAll(selectedNumber)) {
+      recordMiss();
+      vibrateDevice([50, 30, 50]);
+      setLastClickTime(Date.now());
+      setShowMultiplierSelector(false);
+      setSelectedNumber(null);
       return;
     }
 
@@ -632,13 +650,6 @@ const HiddenCricketGame: React.FC = () => {
     );
   }
 
-  // Get hidden numbers sorted for display (but don't reveal them)
-  const hiddenNumbersSorted = [...currentGame.hiddenNumbers].sort((a, b) => {
-    if (a === "Bull") return 1;
-    if (b === "Bull") return -1;
-    return Number(b) - Number(a);
-  });
-
   // Check if all players have closed a number
   const isNumberClosedByAll = (number: number | string) => {
     if (!currentGame) return false;
@@ -656,6 +667,43 @@ const HiddenCricketGame: React.FC = () => {
       return target && target.hits > 0;
     });
   };
+
+  // Get display text for a number (shows Bull if lastBull is enabled)
+  const getNumberDisplayText = (number: number | string) => {
+    if (!currentGame) return "?";
+    // If lastBull is enabled and this is Bull, always show it
+    if (currentGame.lastBull && number === "Bull") {
+      return "Bull";
+    }
+    // Otherwise, show number if any player has hit it, or "?" if not
+    return hasAnyPlayerHitNumber(number) ? number : "?";
+  };
+
+  // Check if current player has closed all non-Bull numbers (for lastBull rule)
+  const hasCurrentPlayerClosedAllNonBull = () => {
+    if (!currentGame || !currentPlayer) return false;
+    if (!currentGame.lastBull) return false;
+    const nonBullTargets = currentPlayer.targets.filter((t) => t.number !== "Bull");
+    return nonBullTargets.every((t) => t.closed);
+  };
+
+  // Get hidden numbers sorted for display - found numbers at the top, Bull always at bottom
+  const hiddenNumbersSorted = [...currentGame.hiddenNumbers].sort((a, b) => {
+    // Bull always goes to the bottom
+    if (a === "Bull") return 1;
+    if (b === "Bull") return -1;
+    
+    // For non-Bull numbers, separate found and unfound
+    const aFound = hasAnyPlayerHitNumber(a);
+    const bFound = hasAnyPlayerHitNumber(b);
+    
+    // Found numbers come first
+    if (aFound && !bFound) return -1;
+    if (!aFound && bFound) return 1;
+    
+    // Within the same group (both found or both unfound), sort by value
+    return Number(b) - Number(a);
+  });
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -1009,9 +1057,12 @@ const HiddenCricketGame: React.FC = () => {
                                 maxHeight: "100%",
                                 maxWidth: "100%",
                                 wordBreak: "break-word",
+                                color: currentGame.lastBull && number === "Bull" && !hasCurrentPlayerClosedAllNonBull()
+                                  ? "error.main"
+                                  : "inherit",
                               }}
                             >
-                              {hasAnyPlayerHitNumber(number) ? number : "?"}
+                              {getNumberDisplayText(number)}
                             </Typography>
                           </Box>
 
@@ -1147,9 +1198,12 @@ const HiddenCricketGame: React.FC = () => {
                               maxHeight: "100%",
                               maxWidth: "100%",
                               wordBreak: "break-word",
+                              color: currentGame.lastBull && number === "Bull" && !hasCurrentPlayerClosedAllNonBull()
+                                ? "error.main"
+                                : "inherit",
                             }}
                           >
-                            {hasAnyPlayerHitNumber(number) ? number : "?"}
+                            {getNumberDisplayText(number)}
                           </Typography>
                         </Box>
                       </>
@@ -1266,6 +1320,7 @@ const HiddenCricketGame: React.FC = () => {
                 {allNumbers.map((number) => {
                   const currentRoundDarts = currentGame.currentRound?.darts.length || 0;
                   const isTurnComplete = currentRoundDarts >= 3;
+                  const isClosedByAll = isNumberClosedByAll(number);
                   
                   return (
                     <Grid item xs={3} sm={2.4} key={number}>
@@ -1278,6 +1333,12 @@ const HiddenCricketGame: React.FC = () => {
                         sx={{
                           minHeight: { xs: 40, sm: 48 },
                           fontSize: { xs: "0.875rem", sm: "1rem" },
+                          color: isClosedByAll ? "error.main" : "inherit",
+                          borderColor: isClosedByAll ? "error.main" : "inherit",
+                          "&:hover": {
+                            borderColor: isClosedByAll ? "error.dark" : "inherit",
+                            backgroundColor: isClosedByAll ? "error.light" : "inherit",
+                          },
                         }}
                       >
                         {number}

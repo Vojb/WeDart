@@ -18,10 +18,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
-import {
-  useHiddenCricketStore,
-  updateHiddenCricketCachedPlayers,
-} from "../store/useHiddenCricketStore";
 import PlayerSelector from "../components/PlayerSelector";
 import VibrationButton from "../components/VibrationButton";
 
@@ -61,24 +57,32 @@ const Cricket: React.FC = () => {
   const { players } = useStore();
   const { updateGameSettings, gameSettings, startGame, setCricketPlayers } =
     useCricketStore();
-  const {
-    updateGameSettings: updateHiddenGameSettings,
-    startGame: startHiddenGame,
-    setHiddenCricketPlayers,
-  } = useHiddenCricketStore();
   const [tabValue, setTabValue] = useState(0);
+
+  // First level: Cricket mode selection
+  const [cricketMode, setCricketMode] = useState<"cricket" | "hidden-cricket">("cricket");
 
   // Local state for form values
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
   const [gameType, setGameType] = useState<
-    "standard" | "cutthroat" | "no-score" | "hidden"
-  >(gameSettings.gameType as any);
+    "standard" | "cutthroat" | "no-score"
+  >((gameSettings.gameType === "cutthroat" || gameSettings.gameType === "no-score") 
+    ? gameSettings.gameType 
+    : "standard");
   const [winCondition, setWinCondition] = useState<"first-closed" | "points">(
-    gameSettings.winCondition
+    gameSettings.winCondition || "points"
   );
 
   // Validation error state
   const [error, setError] = useState<string | null>(null);
+
+  // Handle cricket mode change
+  const handleCricketModeChange = (mode: "cricket" | "hidden-cricket") => {
+    setCricketMode(mode);
+    if (mode === "hidden-cricket") {
+      navigate("/hidden-cricket");
+    }
+  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -110,26 +114,6 @@ const Cricket: React.FC = () => {
       id: p.id,
       name: p.name,
     }));
-
-    // Handle hidden cricket mode separately
-    if (gameType === "hidden") {
-      // Set hidden cricket players first to ensure they're cached
-      setHiddenCricketPlayers(simplePlayers);
-      updateHiddenCricketCachedPlayers(simplePlayers);
-
-      // Update game settings in hidden cricket store
-      updateHiddenGameSettings({
-        gameType: "standard", // Hidden cricket uses standard scoring by default
-        winCondition,
-      });
-
-      // Start a new hidden cricket game
-      startHiddenGame("standard", winCondition, selectedPlayerIds);
-
-      // Navigate to hidden cricket game screen
-      navigate("/hidden-cricket/game");
-      return;
-    }
 
     // Regular cricket modes
     // Set cricket players first to ensure they're cached
@@ -183,93 +167,7 @@ const Cricket: React.FC = () => {
 
         <TabPanel value={tabValue} index={0}>
           <Stack spacing={2} sx={{ flex: 1 }}>
-            {/* Game Type Selection */}
-            <Card variant="outlined" sx={{ borderRadius: 2 }}>
-              <CardContent
-                sx={{
-                  p: { xs: 1.5, sm: 2 },
-                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
-                }}
-              >
-                <FormControl
-                  component="fieldset"
-                  sx={{ width: "100%", display: "flex", flexDirection: "row" }}
-                >
-                  <FormLabel
-                    component="legend"
-                    sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
-                  >
-                    Game Type
-                  </FormLabel>
-                  <RadioGroup
-                    value={gameType}
-                    onChange={(e) => setGameType(e.target.value as any)}
-                  >
-                    <FormControlLabel
-                      value="standard"
-                      control={<Radio size="small" />}
-                      label={
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            Standard Cricket
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Players score points on open numbers
-                          </Typography>
-                        </Box>
-                      }
-                      sx={{ mb: 0.5 }}
-                    />
-                    <FormControlLabel
-                      value="cutthroat"
-                      control={<Radio size="small" />}
-                      label={
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            Cutthroat Cricket
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Scoring adds points to opponents (lowest score wins)
-                          </Typography>
-                        </Box>
-                      }
-                      sx={{ mb: 0.5 }}
-                    />
-                    <FormControlLabel
-                      value="no-score"
-                      control={<Radio size="small" />}
-                      label={
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            No-Score Cricket
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            First to close all numbers wins (no points)
-                          </Typography>
-                        </Box>
-                      }
-                      sx={{ mb: 0.5 }}
-                    />
-                    <FormControlLabel
-                      value="hidden"
-                      control={<Radio size="small" />}
-                      label={
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            Hidden Cricket
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Target numbers are hidden and randomly selected
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                  </RadioGroup>
-                </FormControl>
-              </CardContent>
-            </Card>
-
-            {/* Win Condition Selection */}
+            {/* First Level: Cricket Mode Selection */}
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent
                 sx={{
@@ -280,42 +178,39 @@ const Cricket: React.FC = () => {
                 <FormControl component="fieldset" sx={{ width: "100%" }}>
                   <FormLabel
                     component="legend"
-                    sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
+                    sx={{ mb: 1, fontWeight: "medium", fontSize: "0.9rem" }}
                   >
-                    Win Condition
+                    Cricket Mode
                   </FormLabel>
                   <RadioGroup
-                    value={winCondition}
-                    onChange={(e) => setWinCondition(e.target.value as any)}
+                    value={cricketMode}
+                    onChange={(e) => handleCricketModeChange(e.target.value as "cricket" | "hidden-cricket")}
                   >
                     <FormControlLabel
-                      value="points"
+                      value="cricket"
                       control={<Radio size="small" />}
                       label={
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            Points
+                            Cricket
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {gameType === "cutthroat"
-                              ? "Lowest score after all numbers are closed wins"
-                              : "Highest score after all numbers are closed wins"}
+                            Standard cricket with visible target numbers
                           </Typography>
                         </Box>
                       }
-                      disabled={gameType === "no-score"}
                       sx={{ mb: 0.5 }}
                     />
                     <FormControlLabel
-                      value="first-closed"
+                      value="hidden-cricket"
                       control={<Radio size="small" />}
                       label={
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            First to Close
+                            Hidden Cricket
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            First player to close all numbers wins
+                            Target numbers are randomly selected and hidden
                           </Typography>
                         </Box>
                       }
@@ -324,6 +219,137 @@ const Cricket: React.FC = () => {
                 </FormControl>
               </CardContent>
             </Card>
+
+            {/* Game Type Selection - Only show when Cricket is selected */}
+            {cricketMode === "cricket" && (
+              <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                <CardContent
+                  sx={{
+                    p: { xs: 1.5, sm: 2 },
+                    "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                  }}
+                >
+                  <FormControl
+                    component="fieldset"
+                    sx={{ width: "100%" }}
+                  >
+                    <FormLabel
+                      component="legend"
+                      sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
+                    >
+                      Game Type
+                    </FormLabel>
+                    <RadioGroup
+                      value={gameType}
+                      onChange={(e) => setGameType(e.target.value as any)}
+                    >
+                      <FormControlLabel
+                        value="standard"
+                        control={<Radio size="small" />}
+                        label={
+                          <Box>
+                            <Typography variant="body2" fontWeight="medium">
+                              Normal Cricket
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Players score points on open numbers
+                            </Typography>
+                          </Box>
+                        }
+                        sx={{ mb: 0.5 }}
+                      />
+                      <FormControlLabel
+                        value="cutthroat"
+                        control={<Radio size="small" />}
+                        label={
+                          <Box>
+                            <Typography variant="body2" fontWeight="medium">
+                              Cutthroat Cricket
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Scoring adds points to opponents (lowest score wins)
+                            </Typography>
+                          </Box>
+                        }
+                        sx={{ mb: 0.5 }}
+                      />
+                      <FormControlLabel
+                        value="no-score"
+                        control={<Radio size="small" />}
+                        label={
+                          <Box>
+                            <Typography variant="body2" fontWeight="medium">
+                              No-Score Cricket
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              First to close all numbers wins (no points)
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </RadioGroup>
+                  </FormControl>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Win Condition Selection - Only show when Cricket is selected */}
+            {cricketMode === "cricket" && (
+              <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                <CardContent
+                  sx={{
+                    p: { xs: 1.5, sm: 2 },
+                    "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                  }}
+                >
+                  <FormControl component="fieldset" sx={{ width: "100%" }}>
+                    <FormLabel
+                      component="legend"
+                      sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
+                    >
+                      Win Condition
+                    </FormLabel>
+                    <RadioGroup
+                      value={winCondition}
+                      onChange={(e) => setWinCondition(e.target.value as any)}
+                    >
+                      <FormControlLabel
+                        value="points"
+                        control={<Radio size="small" />}
+                        label={
+                          <Box>
+                            <Typography variant="body2" fontWeight="medium">
+                              Points
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {gameType === "cutthroat"
+                                ? "Lowest score after all numbers are closed wins"
+                                : "Highest score after all numbers are closed wins"}
+                            </Typography>
+                          </Box>
+                        }
+                        disabled={gameType === "no-score"}
+                        sx={{ mb: 0.5 }}
+                      />
+                      <FormControlLabel
+                        value="first-closed"
+                        control={<Radio size="small" />}
+                        label={
+                          <Box>
+                            <Typography variant="body2" fontWeight="medium">
+                              First to Close
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              First player to close all numbers wins
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </RadioGroup>
+                  </FormControl>
+                </CardContent>
+              </Card>
+            )}
           </Stack>
 
           <Button

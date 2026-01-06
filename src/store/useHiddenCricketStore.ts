@@ -41,6 +41,7 @@ export interface HiddenCricketPlayer {
 interface HiddenCricketGameSettings {
   gameType: "standard" | "cutthroat" | "no-score";
   winCondition: "first-closed" | "points";
+  lastBull: boolean;
 }
 
 interface HiddenCricketGameState {
@@ -49,6 +50,7 @@ interface HiddenCricketGameState {
   isGameFinished: boolean;
   gameType: "standard" | "cutthroat" | "no-score";
   winCondition: "first-closed" | "points";
+  lastBull: boolean;
   // Hidden numbers that are valid targets (randomly selected)
   hiddenNumbers: (number | string)[];
   // Round history
@@ -66,6 +68,7 @@ interface HiddenCricketStoreState {
   startGame: (
     gameType: HiddenCricketGameState["gameType"],
     winCondition: HiddenCricketGameState["winCondition"],
+    lastBull: boolean,
     playerIds: number[]
   ) => void;
   recordHit: (targetNumber: number | string, multiplier: number) => void;
@@ -124,8 +127,9 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
   persist(
     (set, get) => ({
       gameSettings: {
-        gameType: "standard",
+        gameType: "cutthroat",
         winCondition: "points",
+        lastBull: false,
       },
       updateGameSettings: (settings) =>
         set((state) => ({
@@ -133,7 +137,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
         })),
 
       currentGame: null,
-      startGame: (gameType, winCondition, playerIds) => {
+      startGame: (gameType, winCondition, lastBull, playerIds) => {
         console.log("Starting hidden cricket game with player IDs:", playerIds);
         console.log("Cached players:", cachedPlayers);
 
@@ -190,6 +194,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
               isGameFinished: false,
               gameType,
               winCondition,
+              lastBull,
               hiddenNumbers,
               rounds: [],
               currentRound: initialRound,
@@ -218,6 +223,58 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
             if (!state.currentGame.hiddenNumbers.includes(targetNumber)) {
               console.warn(`recordHit: Number ${targetNumber} is not a valid hidden target - NOT recording dart. Hidden numbers are:`, state.currentGame.hiddenNumbers);
               return state; // Return unchanged state - no dart recorded, no state changes
+            }
+
+            // LAST BULL RULE: If lastBull is enabled and target is Bull,
+            // check if all other 5 numbers are closed. If not, treat as miss.
+            if (state.currentGame.lastBull && targetNumber === "Bull") {
+              const currentPlayer = state.currentGame.players[state.currentGame.currentPlayerIndex];
+              // Get all non-Bull targets
+              const nonBullTargets = currentPlayer.targets.filter((t) => t.number !== "Bull");
+              // Check if all 5 non-Bull targets are closed
+              const allNonBullClosed = nonBullTargets.every((t) => t.closed);
+              
+              if (!allNonBullClosed) {
+                console.warn(`recordHit: Last Bull rule active - Bull hit doesn't count until all other 5 numbers are closed. Closed: ${nonBullTargets.filter(t => t.closed).length}/5. Recording as miss.`);
+                // Treat as miss - dart is thrown but doesn't count toward bull
+                // Record it as a miss inline
+                const newGame = { ...state.currentGame };
+                const players = [...newGame.players];
+                const playerIndex = newGame.currentPlayerIndex;
+                const currentPlayerCopy = { ...players[playerIndex] };
+                
+                // Create or update the current round
+                let currentRound = newGame.currentRound
+                  ? { ...newGame.currentRound }
+                  : { playerId: currentPlayerCopy.id, darts: [], totalPoints: 0 };
+                
+                // Track the miss dart
+                const newDart: HiddenCricketDart = {
+                  targetNumber: "Miss",
+                  multiplier: 0,
+                  points: 0,
+                  previousPlayerScore: currentPlayerCopy.totalScore,
+                };
+                
+                // Add darts thrown count
+                currentPlayerCopy.dartsThrown += 1;
+                currentPlayerCopy.currentDartIndex += 1;
+                
+                // Add miss to round
+                currentRound.darts.push(newDart);
+                
+                // Update the player
+                players[playerIndex] = currentPlayerCopy;
+                
+                // Update the game state
+                newGame.players = players;
+                newGame.currentRound = currentRound;
+                
+                return {
+                  ...state,
+                  currentGame: newGame,
+                };
+              }
             }
 
             console.log(`recordHit: Valid hidden number ${targetNumber} with multiplier ${multiplier} - proceeding to record`);
@@ -326,7 +383,8 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
                     currentPlayer.totalScore += pointsToAdd;
                     pointsEarned = pointsToAdd;
                   }
-                  // For cutthroat, add points to opponents if target was already closed OR if this throw closes it with extra hits
+                  // For cutthroat, add points to ALL opponents who haven't closed this number
+                  // Points are given when target was already closed OR if this throw closes it with extra hits
                   else if (
                     newGame.gameType === "cutthroat" &&
                     (wasClosed || hasExtraHits)
@@ -336,6 +394,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
                       ? multiplier * pointValue
                       : extraHits * pointValue;
 
+                    // Give points to all players who haven't closed this number
                     players.forEach((player, idx) => {
                       if (
                         idx !== playerIndex &&
