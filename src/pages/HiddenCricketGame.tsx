@@ -32,9 +32,10 @@ import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
-import CountUp from "../components/count-up/count-up";
 import { motion, Variants } from "framer-motion";
 import MultiplierSelector from "../components/multiplier-selector/multiplier-selector";
+import HiddenCricketTwoPlayersLayout from "../components/hidden-cricket-two-players-layout/hidden-cricket-two-players-layout";
+import HiddenCricketMultiPlayersLayout from "../components/hidden-cricket-multi-players-layout/hidden-cricket-multi-players-layout";
 
 const HiddenCricketGame: React.FC = () => {
   const navigate = useNavigate();
@@ -669,14 +670,14 @@ const HiddenCricketGame: React.FC = () => {
   };
 
   // Get display text for a number (shows Bull if lastBull is enabled)
-  const getNumberDisplayText = (number: number | string) => {
+  const getNumberDisplayText = (number: number | string): string => {
     if (!currentGame) return "?";
     // If lastBull is enabled and this is Bull, always show it
     if (currentGame.lastBull && number === "Bull") {
       return "Bull";
     }
     // Otherwise, show number if any player has hit it, or "?" if not
-    return hasAnyPlayerHitNumber(number) ? number : "?";
+    return hasAnyPlayerHitNumber(number) ? String(number) : "?";
   };
 
   // Check if current player has closed all non-Bull numbers (for lastBull rule)
@@ -862,64 +863,163 @@ const HiddenCricketGame: React.FC = () => {
             borderColor: "divider",
           }}
         >
-          {/* Player Headers */}
-          <Box
-            sx={{
-              display: "grid",
-              marginRight:"42px",
-              gridTemplateColumns: (() => {
-                const playerCount = currentGame.players.length;
-                return `repeat(${playerCount}, 1fr)`;
-              })(),
-              gap: 0.5,
-            }}
-          >
-            {currentGame.players.map((player, playerIndex) => {
-              const playerColor =
-                playerIndex % 2 === 0
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.main;
-              const isCurrentPlayer = player.id === currentPlayer?.id;
-              const playerRounds = currentGame.rounds.filter(
-                (round) => round.playerId === player.id
-              );
-              const allRounds = [...playerRounds];
-              if (
-                currentGame.currentRound &&
-                currentGame.currentRound.playerId === player.id
-              ) {
-                allRounds.push(currentGame.currentRound);
-              }
-              const totalMarks = allRounds.reduce(
-                (sum, round) => sum + round.darts.length,
-                0
-              );
-              const avgMarksPerRound =
-                allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-
-              return (
-                <Box
-                  key={player.id}
-                  sx={{
-                    backgroundColor: isCurrentPlayer
-                      ? alpha(playerColor, 0.06)
+          {currentGame.players.length === 2 ? (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 60px 1fr",
+                gap: 0.5,
+              }}
+            >
+              {/* First player */}
+              <Box
+                sx={{
+                  backgroundColor:
+                    currentGame.players[0]?.id === currentPlayer?.id
+                      ? alpha(
+                          theme.palette.primary.main,
+                          0.06
+                        )
                       : "transparent",
-                    borderRadius: 1,
-                    transition: "background-color 0.3s ease",
-                  }}
-                >
-                  <CricketPlayerBox
-                    player={player as any}
-                    isCurrentPlayer={isCurrentPlayer}
-                    avgMarksPerRound={avgMarksPerRound}
-                    playerIndex={playerIndex}
-                  />
-                </Box>
-              );
-            })}
-          </Box>
-        </Paper>
+                  borderRadius: 1,
+                  transition: "background-color 0.3s ease",
+                }}
+              >
+                {(() => {
+                  const player = currentGame.players[0];
+                  const playerIndex = 0;
+                  const playerRounds = currentGame.rounds.filter(
+                    (round) => round.playerId === player.id
+                  );
+                  const allRounds = [...playerRounds];
+                  if (
+                    currentGame.currentRound &&
+                    currentGame.currentRound.playerId === player.id
+                  ) {
+                    allRounds.push(currentGame.currentRound);
+                  }
+                  const totalMarks = allRounds.reduce(
+                    (sum, round) => sum + round.darts.length,
+                    0
+                  );
+                  const avgMarksPerRound =
+                    allRounds.length > 0 ? totalMarks / allRounds.length : 0;
 
+                  return (
+                    <CricketPlayerBox
+                      player={player as any}
+                      isCurrentPlayer={player.id === currentPlayer?.id}
+                      avgMarksPerRound={avgMarksPerRound}
+                      playerIndex={playerIndex}
+                    />
+                  );
+                })()}
+              </Box>
+
+              {/* Empty middle column to match grid layout */}
+              <Box />
+
+              {/* Second player */}
+              <Box
+                sx={{
+                  backgroundColor:
+                    currentGame.players[1]?.id === currentPlayer?.id
+                      ? alpha(
+                          theme.palette.secondary.main,
+                          0.06
+                        )
+                      : "transparent",
+                  borderRadius: 1,
+                  transition: "background-color 0.3s ease",
+                }}
+              >
+                {(() => {
+                  const player = currentGame.players[1];
+                  const playerIndex = 1;
+                  const playerRounds = currentGame.rounds.filter(
+                    (round) => round.playerId === player.id
+                  );
+                  const allRounds = [...playerRounds];
+                  if (
+                    currentGame.currentRound &&
+                    currentGame.currentRound.playerId === player.id
+                  ) {
+                    allRounds.push(currentGame.currentRound);
+                  }
+                  const totalMarks = allRounds.reduce(
+                    (sum, round) => sum + round.darts.length,
+                    0
+                  );
+                  const avgMarksPerRound =
+                    allRounds.length > 0 ? totalMarks / allRounds.length : 0;
+
+                  return (
+                    <CricketPlayerBox
+                      player={player as any}
+                      isCurrentPlayer={player.id === currentPlayer?.id}
+                      avgMarksPerRound={avgMarksPerRound}
+                      playerIndex={playerIndex}
+                    />
+                  );
+                })()}
+              </Box>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${currentGame.players.length}, 1fr) 60px`,
+                gap: 0.5,
+              }}
+            >
+              {currentGame.players.map((player, playerIndex) => {
+                const playerColor =
+                  playerIndex % 2 === 0
+                    ? theme.palette.primary.main
+                    : theme.palette.secondary.main;
+                const isCurrentPlayer = player.id === currentPlayer?.id;
+                const playerRounds = currentGame.rounds.filter(
+                  (round) => round.playerId === player.id
+                );
+                const allRounds = [...playerRounds];
+                if (
+                  currentGame.currentRound &&
+                  currentGame.currentRound.playerId === player.id
+                ) {
+                  allRounds.push(currentGame.currentRound);
+                }
+                const totalMarks = allRounds.reduce(
+                  (sum, round) => sum + round.darts.length,
+                  0
+                );
+                const avgMarksPerRound =
+                  allRounds.length > 0 ? totalMarks / allRounds.length : 0;
+
+                return (
+                  <Box
+                    key={player.id}
+                    sx={{
+                      backgroundColor: isCurrentPlayer
+                        ? alpha(playerColor, 0.06)
+                        : "transparent",
+                      borderRadius: 1,
+                      transition: "background-color 0.3s ease",
+                    }}
+                  >
+                    <CricketPlayerBox
+                      player={player as any}
+                      isCurrentPlayer={isCurrentPlayer}
+                      avgMarksPerRound={avgMarksPerRound}
+                      playerIndex={playerIndex}
+                    />
+                  </Box>
+                );
+              })}
+              {/* Empty column to match grid layout */}
+              <Box />
+            </Box>
+          )}
+        </Paper>
 
         {/* Number Grid - Showing all players' progress on hidden numbers */}
         <Box
@@ -934,334 +1034,37 @@ const HiddenCricketGame: React.FC = () => {
             transition: "flex 0.3s ease-in-out",
           }}
         >
-          {hiddenNumbersSorted.map((number) => {
-            const allClosed = isNumberClosedByAll(number);
-
-            return (
-              <Box
-                key={number}
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  borderTop: "1px solid",
-                  borderColor: "divider",
-                  filter: allClosed ? "blur(4px)" : "none",
-                  opacity: allClosed ? 0.5 : 1,
-                  transition: "filter 0.3s ease, opacity 0.3s ease",
-                  flex: 1,
-                  minHeight: 0,
-                }}
-              >
-                {/* Main row with players and number */}
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: (() => {
-                      const playerCount = currentGame.players.length;
-                      if (playerCount === 1) return `1fr 60px`;
-                      if (playerCount === 2) {
-                        const firstHalf = Math.ceil(playerCount / 2);
-                        const secondHalf = playerCount - firstHalf;
-                        return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
-                      }
-                      return `repeat(${playerCount}, 1fr) 30px`;
-                    })(),
-                    gap: 0.5,   
-                    p: 0.5,
-                    height: "100%",
-                    alignItems: "stretch",
-                  }}
-                >
-                  {(() => {
-                    const playerCount = currentGame.players.length;
-
-                    // For 1-2 players, split in half with number in middle
-                    if (playerCount <= 2) {
-                      const firstHalfCount = Math.ceil(playerCount / 2);
-                      return (
-                        <>
-                          {/* First half of players */}
-                          {currentGame.players.slice(0, firstHalfCount).map((player, playerIndex) => {
-                            const playerColor =
-                              playerIndex % 2 === 0
-                                ? theme.palette.primary.main
-                                : theme.palette.secondary.main;
-                            const target = player.targets.find((t) => t.number === number);
-                            const isClosed = target?.closed || false;
-
-                            return (
-                              <Box
-                                key={`${player.id}-${number}`}
-                                sx={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  justifyContent: "center",
-                                  alignItems: "center",
-              height: "100%",
-                                  width: "100%",
-                                  minHeight: 0,
-                                  overflow: "hidden",
-                                }}
-                              >
-                                {target && (
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      alignItems: "center",
-                                      gap: 0.25,
-                                      height: "100%",
-                                      width: "100%",
-                                      justifyContent: "center",
-                                      minHeight: 0,
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    {isClosed ? (
-                                      renderClosedMark(playerColor)
-                                    ) : (
-                                      renderMarks(target.hits, playerColor)
-                                    )}
-                                  </Box>
-                                )}
-                              </Box>
-                            );
-                          })}
-
-                          {/* Number Label - positioned between players */}
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              height: "100%",
-                              width: "100%",
-                              minHeight: 0,
-                              overflow: "hidden",
-                            }}
-                          >
-                            <Typography
-                              variant="h5"
-                              component="div"
-                              sx={{
-                                fontWeight: "bold",
-                                fontSize: isInputExpanded ? "clamp(0.75rem, 60%, 1.5rem)" : "clamp(1rem, 60%, 2rem)",
-                                lineHeight: 1,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                height: "100%",
-                                width: "100%",
-                                overflow: "hidden",
-                                textAlign: "center",
-                                maxHeight: "100%",
-                                maxWidth: "100%",
-                                wordBreak: "break-word",
-                                color: currentGame.lastBull && number === "Bull" && !hasCurrentPlayerClosedAllNonBull()
-                                  ? "error.main"
-                                  : "inherit",
-                              }}
-                            >
-                              {getNumberDisplayText(number)}
-                            </Typography>
-                          </Box>
-
-                          {/* Second half of players */}
-                          {currentGame.players.slice(firstHalfCount).map((player, playerIndex) => {
-                            const actualIndex = firstHalfCount + playerIndex;
-                            const playerColor =
-                              actualIndex % 2 === 0
-                                ? theme.palette.primary.main
-                                : theme.palette.secondary.main;
-                            const target = player.targets.find((t) => t.number === number);
-                            const isClosed = target?.closed || false;
-
-                            return (
-                              <Box
-                                key={`${player.id}-${number}`}
-                                sx={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  justifyContent: "center",
-                                  alignItems: "center",
-                                  height: "100%",
-                                  width: "100%",
-                                  minHeight: 0,
-                                  overflow: "hidden",
-                                }}
-                              >
-                                {target && (
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      alignItems: "center",
-                                      gap: 0.25,
-                                      height: "100%",
-                                      width: "100%",
-                                      justifyContent: "center",
-                                      minHeight: 0,
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    {isClosed ? (
-                                      renderClosedMark(playerColor)
-                                    ) : (
-                                      renderMarks(target.hits, playerColor)
-                                    )}
-                                  </Box>
-                                )}
-                              </Box>
-                            );
-                          })}
-                        </>
-                      );
-                    }
-
-                    // For 3+ players, all players first, then number
-                    return (
-                      <>
-                        {currentGame.players.map((player, playerIndex) => {
-                          const playerColor =
-                            playerIndex % 2 === 0
-                              ? theme.palette.primary.main
-                              : theme.palette.secondary.main;
-                          const target = player.targets.find((t) => t.number === number);
-                          const isClosed = target?.closed || false;
-
-                          return (
-                            <Box
-                              key={`${player.id}-${number}`}
-                              sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                height: "100%",
-                                width: "100%",
-                                minHeight: 0,
-                                overflow: "hidden",
-                              }}
-                            >
-                              {target && (
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    gap: 0.25,
-                                    height: "100%",
-                                    width: "100%",
-                                    justifyContent: "center",
-                                    minHeight: 0,
-                                    overflow: "hidden",
-                                    marginRight: "10px",
-                                  }}
-                                >
-                                  {isClosed ? (
-                                    renderClosedMark(playerColor)
-                                  ) : (
-                                    renderMarks(target.hits, playerColor)
-                                  )}
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
-
-                        {/* Number Label - positioned last */}
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            height: "100%",
-                            width: "100%",
-                            minHeight: 0,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Typography
-                            variant="h5"
-                            component="div"
-                            sx={{
-                              fontWeight: "bold",
-                              fontSize: isInputExpanded ? "clamp(0.75rem, 60%, 1.5rem)" : "clamp(1rem, 60%, 2rem)",
-                              lineHeight: 1,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              height: "100%",
-                              width: "100%",
-                              overflow: "hidden",
-                              textAlign: "center",
-                              maxHeight: "100%",
-                              maxWidth: "100%",
-                              wordBreak: "break-word",
-                              color: currentGame.lastBull && number === "Bull" && !hasCurrentPlayerClosedAllNonBull()
-                                ? "error.main"
-                                : "inherit",
-                            }}
-                          >
-                            {getNumberDisplayText(number)}
-                          </Typography>
-                        </Box>
-                      </>
-                    );
-                  })()}
-                </Box>
-              </Box>
-            );
-          })}
-
-          {/* Total Score Row */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${currentGame.players.length}, 1fr)`,
-              gap: 0.5,
-              p: { xs: 1, sm: 3, md: 4 },
-              borderTop: "2px solid",
-              paddingRight: "42px",
-              borderColor: "divider",
-              backgroundColor: alpha(theme.palette.primary.main, 0.05),
-            }}
-          >
-            {currentGame.players.map((player, playerIndex) => {
-              const playerColor =
-                playerIndex % 2 === 0
-                  ? theme.palette.primary.main
-                  : theme.palette.secondary.main;
-              return (
-                <Box
-                  key={`score-${player.id}`}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Typography
-                    variant="h6"
-                    component="div"
-                    sx={{
-                      fontWeight: 700,
-                      color: playerColor,
-                      fontSize: { xs: "1rem", sm: "1.5rem", md: "1.75rem" },
-                    }}
-                  >
-                    <CountUp
-                      to={player.totalScore}
-                      duration={0.5}
-                      delay={0}
-                      animateOnChange={true}
-                      startWhen={true}
-                    />
-                  </Typography>
-                </Box>
-              );
-            })}
-          </Box>
+          {currentGame.players.length === 2 ? (
+            <HiddenCricketTwoPlayersLayout
+              players={currentGame.players}
+              currentPlayerId={currentPlayer?.id || null}
+              rounds={currentGame.rounds}
+              currentRound={currentGame.currentRound}
+              renderMarks={renderMarks}
+              renderClosedMark={renderClosedMark}
+              getNumberDisplayText={getNumberDisplayText}
+              isNumberClosedByAll={isNumberClosedByAll}
+              hasCurrentPlayerClosedAllNonBull={hasCurrentPlayerClosedAllNonBull}
+              lastBull={currentGame.lastBull}
+              isInputExpanded={isInputExpanded}
+              hiddenNumbersSorted={hiddenNumbersSorted}
+            />
+          ) : (
+            <HiddenCricketMultiPlayersLayout
+              players={currentGame.players}
+              currentPlayerId={currentPlayer?.id || null}
+              rounds={currentGame.rounds}
+              currentRound={currentGame.currentRound}
+              renderMarks={renderMarks}
+              renderClosedMark={renderClosedMark}
+              getNumberDisplayText={getNumberDisplayText}
+              isNumberClosedByAll={isNumberClosedByAll}
+              hasCurrentPlayerClosedAllNonBull={hasCurrentPlayerClosedAllNonBull}
+              lastBull={currentGame.lastBull}
+              isInputExpanded={isInputExpanded}
+              hiddenNumbersSorted={hiddenNumbersSorted}
+            />
+          )}
         </Box>
 
         {/* Number Input Buttons (1-20, Bull) - Collapsible */}
