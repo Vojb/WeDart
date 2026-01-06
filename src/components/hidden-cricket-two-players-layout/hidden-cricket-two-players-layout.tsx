@@ -66,9 +66,8 @@ const HiddenCricketTwoPlayersLayout: React.FC<HiddenCricketTwoPlayersLayoutProps
               flexDirection: "column",
               borderTop: "1px solid",
               borderColor: "divider",
-              filter: allClosed ? "blur(4px)" : "none",
-              opacity: allClosed ? 0.5 : 1,
-              transition: "filter 0.3s ease, opacity 0.3s ease",
+              opacity: allClosed ? 0.25 : 1,
+              transition: "opacity 0.3s ease",
               flex: "1 1 0",
               minHeight: 0,
             }}
@@ -82,6 +81,8 @@ const HiddenCricketTwoPlayersLayout: React.FC<HiddenCricketTwoPlayersLayoutProps
                 p: 0.5,
                 height: "100%",
                 alignItems: "stretch",
+                filter: allClosed ? "blur(4px)" : "none",
+                transition: "filter 0.3s ease",
               }}
             >
               {/* First player */}
