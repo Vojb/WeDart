@@ -20,9 +20,9 @@ interface HiddenCricketMultiPlayersLayoutProps {
 
 const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutProps> = ({
   players,
-  currentPlayerId,
-  rounds,
-  currentRound,
+  currentPlayerId: _currentPlayerId,
+  rounds: _rounds,
+  currentRound: _currentRound,
   renderMarks,
   renderClosedMark,
   getNumberDisplayText,
@@ -35,9 +35,26 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
   const theme = useTheme();
 
   return (
-    <>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    >
       {/* Number Grid - Showing all players' progress on hidden numbers */}
-      {hiddenNumbersSorted.map((number) => {
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          overflow: "auto",
+        }}
+      >
+        {hiddenNumbersSorted.map((number) => {
         const allClosed = isNumberClosedByAll(number);
 
         return (
@@ -51,8 +68,8 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
               filter: allClosed ? "blur(4px)" : "none",
               opacity: allClosed ? 0.5 : 1,
               transition: "filter 0.3s ease, opacity 0.3s ease",
-              flex: 1,
-              minHeight: 0,
+              minHeight: "60px",
+              flexShrink: 0,
             }}
           >
             {/* Main row with players and number */}
@@ -160,6 +177,7 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
           </Box>
         );
       })}
+      </Box>
 
       {/* Total Score Row */}
       <Box
@@ -212,7 +230,7 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
         {/* Empty column to match grid layout */}
         <Box />
       </Box>
-    </>
+    </Box>
   );
 };
 

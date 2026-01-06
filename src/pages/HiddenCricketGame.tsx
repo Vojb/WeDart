@@ -1027,9 +1027,8 @@ const HiddenCricketGame: React.FC = () => {
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            overflow: "auto",
+            overflow: "hidden",
             p: 0.5,
-            gap: 0.5,
             minHeight: 0,
             transition: "flex 0.3s ease-in-out",
           }}

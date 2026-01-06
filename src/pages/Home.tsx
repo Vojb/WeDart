@@ -1,12 +1,17 @@
 import {
   Typography,
   Box,
-  Paper,
+  Container,
   Grid,
   Card,
+  CardContent,
   CardActionArea,
-  Button,
+  Stack,
+  Divider,
+  Chip,
+  Avatar,
   useTheme,
+  alpha,
 } from "@mui/material";
 import {
   SportsEsports as GameIcon,
@@ -19,65 +24,49 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { VERSION } from "../constants/version";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { players } = useStore();
-  const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Preload the background image
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => setImageLoaded(true);
-    img.onerror = () => setImageLoaded(false);
-    img.src =
-      "https://images.unsplash.com/photo-1570303278474-fa99155c82c2?ixlib=rb-4.0.3&auto=format&fit=crop&q=80";
-  }, []);
-
-  const menuItems = [
+  const gameModes = [
     {
-      title: "Play X01",
-      description: "Start a new X01 dart game",
-      icon: (
-        <GameIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-      ),
+      title: "X01",
+      description: "Classic X01 dart game",
+      icon: <GameIcon />,
       path: "/x01",
+      color: "primary",
     },
     {
-      title: "Play Cricket",
-      description: "Start a new Cricket dart game",
-      icon: (
-        <CricketIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-      ),
+      title: "Cricket",
+      description: "Strategic Cricket game",
+      icon: <CricketIcon />,
       path: "/cricket",
+      color: "secondary",
     },
     {
       title: "Halve It",
-      description: "Start a new Halve It dart game",
-      icon: (
-        <HalveItIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-      ),
+      description: "Challenge yourself",
+      icon: <HalveItIcon />,
       path: "/halveit",
+      color: "success",
     },
+  ];
+
+  const menuItems = [
     {
       title: "Game History",
       description: "View your recent games",
-      icon: (
-        <HistoryIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-      ),
+      icon: <HistoryIcon />,
       path: "/history",
     },
     {
       title: "Highscores",
       description: "Check out the best performances",
-      icon: (
-        <HighscoreIcon
-          sx={{ fontSize: 40, color: theme.palette.primary.main }}
-        />
-      ),
+      icon: <HighscoreIcon />,
       path: "/highscore",
     },
     {
@@ -85,130 +74,188 @@ const Home: React.FC = () => {
       description: `Manage ${players.length} player${
         players.length !== 1 ? "s" : ""
       }`,
-      icon: (
-        <PlayersIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
-      ),
+      icon: <PlayersIcon />,
       path: "/players",
     },
     {
       title: "Settings",
       description: "Customize your experience",
-      icon: (
-        <SettingsIcon
-          sx={{ fontSize: 40, color: theme.palette.primary.main }}
-        />
-      ),
+      icon: <SettingsIcon />,
       path: "/settings",
     },
   ];
 
   return (
-    <Box sx={{ p: 2, height: "100%" }}>
-      <Paper
-        sx={{
-          p: 3,
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          ...(imageLoaded
-            ? {
-                backgroundImage:
-                  "linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8)), url(https://images.unsplash.com/photo-1570303278474-fa99155c82c2?ixlib=rb-4.0.3&auto=format&fit=crop&q=80)",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : {
-                background: `linear-gradient(to bottom right, ${theme.palette.background.default}, ${theme.palette.background.paper})`,
-              }),
-        }}
-      >
-        <Box sx={{ mb: 4, textAlign: "center" }}>
-          <Typography
-            variant="h2"
-            component="h1"
-            gutterBottom
-            sx={{ fontWeight: "bold", color: theme.palette.primary.main }}
-          >
-            WeDart
-          </Typography>
-          <Typography variant="h6" sx={{ mb: 3, opacity: 0.9 }}>
-            Your digital dart scoring companion
-          </Typography>
-
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate("/x01")}
-            sx={{
-              px: 4,
-              py: 1,
-              fontSize: "1.1rem",
-              mb: 4,
-              fontWeight: "bold",
-            }}
-          >
-            Start Playing
-          </Button>
-        </Box>
-
-        <Grid container spacing={2}>
-          {menuItems.map((item, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "translateY(-5px)",
-                    boxShadow: 6,
-                  },
-                }}
-              >
-                <CardActionArea
-                  onClick={() => navigate(item.path)}
+    <Container maxWidth="lg" sx={{ py: 4, height: "100%" }}>
+      <Stack spacing={4} sx={{ height: "100%" }}>
+        {/* Game Modes Section */}
+        <Box>
+          <Grid container spacing={3}>
+            {gameModes.map((game, index) => (
+              <Grid item xs={12} sm={6} md={4} key={index}>
+                <Card
                   sx={{
                     height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    p: 2,
+                    transition: "all 0.3s ease-in-out",
+                    border: `2px solid ${alpha(
+                      game.color === "primary"
+                        ? theme.palette.primary.main
+                        : game.color === "secondary"
+                        ? theme.palette.secondary.main
+                        : theme.palette.success.main,
+                      0.1
+                    )}`,
+                    "&:hover": {
+                      transform: "translateY(-8px)",
+                      boxShadow: 8,
+                      borderColor:
+                        game.color === "primary"
+                          ? theme.palette.primary.main
+                          : game.color === "secondary"
+                          ? theme.palette.secondary.main
+                          : theme.palette.success.main,
+                    },
                   }}
                 >
-                  <Box sx={{ display: "flex", width: "100%", mb: 1 }}>
-                    {item.icon}
-                  </Box>
-                  <Typography
-                    variant="h6"
-                    component="h2"
-                    sx={{ fontWeight: "bold", mb: 1 }}
+                  <CardActionArea
+                    onClick={() => navigate(game.path)}
+                    sx={{ height: "100%", p: 0 }}
                   >
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {item.description}
-                  </Typography>
-                </CardActionArea>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                    <CardContent
+                      sx={{
+                        p: 3,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        textAlign: "center",
+                        minHeight: 200,
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Avatar
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          mb: 2,
+                          bgcolor: `${game.color}.main`,
+                          color: "white",
+                        }}
+                      >
+                        {game.icon}
+                      </Avatar>
+                      <Typography
+                        variant="h5"
+                        component="h3"
+                        gutterBottom
+                        sx={{ fontWeight: 600, mb: 1 }}
+                      >
+                        {game.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 2 }}
+                      >
+                        {game.description}
+                      </Typography>
+                      <Chip
+                        label="Play"
+                        color={game.color as "primary" | "secondary" | "success"}
+                        size="small"
+                        sx={{ mt: 1 }}
+                      />
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ mt: "auto", pt: 4, textAlign: "center", opacity: 0.7 }}
+        <Divider />
+
+        {/* Menu Items Section */}
+        <Box>
+          <Typography
+            variant="h4"
+            component="h2"
+            gutterBottom
+            sx={{ mb: 3, fontWeight: 600 }}
+          >
+            More Options
+          </Typography>
+          <Grid container spacing={2}>
+            {menuItems.map((item, index) => (
+              <Grid item xs={12} sm={6} key={index}>
+                <Card
+                  sx={{
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "translateX(4px)",
+                      boxShadow: 4,
+                    },
+                  }}
+                >
+                  <CardActionArea onClick={() => navigate(item.path)}>
+                    <CardContent
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        p: 2.5,
+                      }}
+                    >
+                      <Avatar
+                        sx={{
+                          bgcolor: "primary.main",
+                          color: "white",
+                          width: 48,
+                          height: 48,
+                        }}
+                      >
+                        {item.icon}
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography
+                          variant="h6"
+                          component="h3"
+                          sx={{ fontWeight: 600, mb: 0.5 }}
+                        >
+                          {item.title}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          {item.description}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+
+        {/* Footer */}
+        <Box
+          sx={{
+            mt: "auto",
+            pt: 3,
+            textAlign: "center",
+            borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+          }}
         >
-          WeDart - Your Digital Dart Companion
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ mt: 1, textAlign: "center", opacity: 0.5 }}
-        >
-          {VERSION}
-        </Typography>
-      </Paper>
-    </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            WeDart - Your Digital Dart Companion
+          </Typography>
+          <Typography variant="caption" color="text.disabled">
+            {VERSION}
+          </Typography>
+        </Box>
+      </Stack>
+    </Container>
   );
 };
 

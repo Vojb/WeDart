@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   Box,
+  Container,
   Paper,
   Typography,
   FormControl,
@@ -134,7 +135,16 @@ const Cricket: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 1, sm: 1.5 }, height: "100%" }}>
+    <Container
+      maxWidth="lg"
+      sx={{
+        py: 4,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <Paper
         sx={{
           p: { xs: 1.5, sm: 2 },
@@ -143,6 +153,7 @@ const Cricket: React.FC = () => {
           flexDirection: "column",
           borderRadius: 2,
           boxShadow: 3,
+          overflow: "auto",
         }}
       >
         <Typography
@@ -417,7 +428,7 @@ const Cricket: React.FC = () => {
           </Box>
         </TabPanel>
       </Paper>
-    </Box>
+    </Container>
   );
 };
 
