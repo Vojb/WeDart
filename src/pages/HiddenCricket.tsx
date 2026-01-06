@@ -12,10 +12,11 @@ import {
   Card,
   CardContent,
   Stack,
-  Tabs,
-  Tab,
   Button,
   Switch,
+  Stepper,
+  Step,
+  StepLabel,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -26,37 +27,6 @@ import {
 import PlayerSelector from "../components/PlayerSelector";
 import VibrationButton from "../components/VibrationButton";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`hidden-cricket-setup-tabpanel-${index}`}
-      aria-labelledby={`hidden-cricket-setup-tab-${index}`}
-      {...other}
-      style={{
-        height: "100%",
-        display: value !== index ? "none" : "flex",
-        flexDirection: "column",
-      }}
-    >
-      {value === index && (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
-
 const HiddenCricket: React.FC = () => {
   const navigate = useNavigate();
   const { players } = useStore();
@@ -66,7 +36,7 @@ const HiddenCricket: React.FC = () => {
     startGame,
     setHiddenCricketPlayers,
   } = useHiddenCricketStore();
-  const [tabValue, setTabValue] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
 
   // First level: Cricket mode selection
   const [cricketMode, setCricketMode] = useState<"cricket" | "hidden-cricket">("hidden-cricket");
@@ -87,6 +57,9 @@ const HiddenCricket: React.FC = () => {
   // Validation error state
   const [error, setError] = useState<string | null>(null);
 
+  // Wizard steps
+  const steps = ["Game Mode", "Game Type", "Win Condition & Bull", "Select Players"];
+
   // Handle cricket mode change
   const handleCricketModeChange = (mode: "cricket" | "hidden-cricket") => {
     setCricketMode(mode);
@@ -95,8 +68,33 @@ const HiddenCricket: React.FC = () => {
     }
   };
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  const handleNext = () => {
+    if (activeStep === 0) {
+      // Validate game mode selection
+      if (!cricketMode) {
+        setError("Please select a game mode");
+        return;
+      }
+    } else if (activeStep === 1) {
+      // Validate game type
+      if (!gameType) {
+        setError("Please select a game type");
+        return;
+      }
+    } else if (activeStep === 2) {
+      // Validate win condition
+      if (!winCondition) {
+        setError("Please select a win condition");
+        return;
+      }
+    }
+    setError(null);
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  };
+
+  const handleBack = () => {
+    setError(null);
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
   // Handle form submission
@@ -144,51 +142,11 @@ const HiddenCricket: React.FC = () => {
     navigate("/hidden-cricket/game");
   };
 
-  return (
-    <Container
-      maxWidth="lg"
-      sx={{
-        py: 4,
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <Paper
-        sx={{
-          p: { xs: 1.5, sm: 2 },
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: 2,
-          boxShadow: 3,
-          overflow: "auto",
-        }}
-      >
-        <Typography
-          variant="h5"
-          component="h1"
-          gutterBottom
-          color="primary"
-          sx={{ mb: { xs: 1, sm: 2 } }}
-        >
-          Cricket Setup
-        </Typography>
-
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
-        >
-          <Tab label="Game Settings" />
-          <Tab label="Select Players" />
-        </Tabs>
-
-        <TabPanel value={tabValue} index={0}>
+  const renderStepContent = (step: number) => {
+    switch (step) {
+      case 0:
+        return (
           <Stack spacing={2} sx={{ flex: 1 }}>
-            {/* First Level: Cricket Mode Selection */}
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent
                 sx={{
@@ -240,202 +198,209 @@ const HiddenCricket: React.FC = () => {
                 </FormControl>
               </CardContent>
             </Card>
-
-            {/* Game Type Selection - Only show when Hidden Cricket is selected */}
-            {cricketMode === "hidden-cricket" && (
-              <Card variant="outlined" sx={{ borderRadius: 2 }}>
-                <CardContent
-                  sx={{
-                    p: { xs: 1.5, sm: 2 },
-                    "&:last-child": { pb: { xs: 1.5, sm: 2 } },
-                  }}
-                >
-                  <FormControl
-                    component="fieldset"
-                    sx={{ width: "100%" }}
-                  >
-                    <FormLabel
-                      component="legend"
-                      sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
-                    >
-                      Game Type
-                    </FormLabel>
-                    <RadioGroup
-                      value={gameType}
-                      onChange={(e) => setGameType(e.target.value as any)}
-                    >
-                      <FormControlLabel
-                        value="standard"
-                        control={<Radio size="small" />}
-                        label={
-                          <Box>
-                            <Typography variant="body2" fontWeight="medium">
-                              Normal Cricket
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Players score points on open numbers
-                            </Typography>
-                          </Box>
-                        }
-                        sx={{ mb: 0.5 }}
-                      />
-                      <FormControlLabel
-                        value="cutthroat"
-                        control={<Radio size="small" />}
-                        label={
-                          <Box>
-                            <Typography variant="body2" fontWeight="medium">
-                              Cutthroat Cricket
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Scoring adds points to opponents (lowest score wins)
-                            </Typography>
-                          </Box>
-                        }
-                        sx={{ mb: 0.5 }}
-                      />
-                      <FormControlLabel
-                        value="no-score"
-                        control={<Radio size="small" />}
-                        label={
-                          <Box>
-                            <Typography variant="body2" fontWeight="medium">
-                              No-Score Cricket
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              First to close all numbers wins (no points)
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </RadioGroup>
-                  </FormControl>
-                </CardContent>
-              </Card>
+            {error && (
+              <Typography color="error" variant="body2">
+                {error}
+              </Typography>
             )}
+          </Stack>
+        );
 
-            {/* Win Condition Selection - Only show when Hidden Cricket is selected */}
-            {cricketMode === "hidden-cricket" && (
-              <>
-                <Card variant="outlined" sx={{ borderRadius: 2 }}>
-                  <CardContent
-                    sx={{
-                      p: { xs: 1.5, sm: 2 },
-                      "&:last-child": { pb: { xs: 1.5, sm: 2 } },
-                    }}
+      case 1:
+        return (
+          <Stack spacing={2} sx={{ flex: 1 }}>
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <FormControl
+                  component="fieldset"
+                  sx={{ width: "100%" }}
+                >
+                  <FormLabel
+                    component="legend"
+                    sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
                   >
-                    <FormControl component="fieldset" sx={{ width: "100%" }}>
-                      <FormLabel
-                        component="legend"
-                        sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
-                      >
-                        Win Condition
-                      </FormLabel>
-                      <RadioGroup
-                        value={winCondition}
-                        onChange={(e) => setWinCondition(e.target.value as any)}
-                      >
-                        <FormControlLabel
-                          value="points"
-                          control={<Radio size="small" />}
-                          label={
-                            <Box>
-                              <Typography variant="body2" fontWeight="medium">
-                                Points
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {gameType === "cutthroat"
-                                  ? "Lowest score after all numbers are closed wins"
-                                  : "Highest score after all numbers are closed wins"}
-                              </Typography>
-                            </Box>
-                          }
-                          disabled={gameType === "no-score"}
-                          sx={{ mb: 0.5 }}
-                        />
-                        <FormControlLabel
-                          value="first-closed"
-                          control={<Radio size="small" />}
-                          label={
-                            <Box>
-                              <Typography variant="body2" fontWeight="medium">
-                                First to Close
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                First player to close all numbers wins
-                              </Typography>
-                            </Box>
-                          }
-                        />
-                      </RadioGroup>
-                    </FormControl>
-                  </CardContent>
-                </Card>
-
-                {/* Last Bull Option */}
-                <Card variant="outlined" sx={{ borderRadius: 2 }}>
-                  <CardContent
-                    sx={{
-                      p: { xs: 1.5, sm: 2 },
-                      "&:last-child": { pb: { xs: 1.5, sm: 2 } },
-                    }}
+                    Game Type
+                  </FormLabel>
+                  <RadioGroup
+                    value={gameType}
+                    onChange={(e) => setGameType(e.target.value as any)}
                   >
                     <FormControlLabel
-                      control={
-                        <Switch
-                          checked={lastBull}
-                          onChange={(e) => setLastBull(e.target.checked)}
-                          size="small"
-                        />
-                      }
+                      value="standard"
+                      control={<Radio size="small" />}
                       label={
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            Last Bull
+                            Normal Cricket
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Bull doesn't count until all other 5 numbers are closed
+                            Players score points on open numbers
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ mb: 0.5 }}
+                    />
+                    <FormControlLabel
+                      value="cutthroat"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            Cutthroat Cricket
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Scoring adds points to opponents (lowest score wins)
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ mb: 0.5 }}
+                    />
+                    <FormControlLabel
+                      value="no-score"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            No-Score Cricket
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            First to close all numbers wins (no points)
                           </Typography>
                         </Box>
                       }
                     />
-                  </CardContent>
-                </Card>
-
-                {/* Info Card */}
-                <Card variant="outlined" sx={{ borderRadius: 2 }}>
-                  <CardContent
-                    sx={{
-                      p: { xs: 1.5, sm: 2 },
-                      "&:last-child": { pb: { xs: 1.5, sm: 2 } },
-                    }}
-                  >
-                    <Typography variant="body2" fontWeight="medium" gutterBottom>
-                      How to Play
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      In Hidden Cricket, 6 random numbers from 1-20 plus Bull are
-                      randomly selected and hidden. Select numbers 1-20 or Bull,
-                      and if it's a valid target, choose single, double, or triple.
-                      You need to close all 7 targets (6 numbers + Bull) to win.
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </>
+                  </RadioGroup>
+                </FormControl>
+              </CardContent>
+            </Card>
+            {error && (
+              <Typography color="error" variant="body2">
+                {error}
+              </Typography>
             )}
           </Stack>
+        );
 
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={() => setTabValue(1)}
-            sx={{ mt: 2 }}
-          >
-            Next: Select Players
-          </Button>
-        </TabPanel>
+      case 2:
+        return (
+          <Stack spacing={2} sx={{ flex: 1 }}>
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <FormControl component="fieldset" sx={{ width: "100%" }}>
+                  <FormLabel
+                    component="legend"
+                    sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
+                  >
+                    Win Condition
+                  </FormLabel>
+                  <RadioGroup
+                    value={winCondition}
+                    onChange={(e) => setWinCondition(e.target.value as any)}
+                  >
+                    <FormControlLabel
+                      value="points"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            Points
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {gameType === "cutthroat"
+                              ? "Lowest score after all numbers are closed wins"
+                              : "Highest score after all numbers are closed wins"}
+                          </Typography>
+                        </Box>
+                      }
+                      disabled={gameType === "no-score"}
+                      sx={{ mb: 0.5 }}
+                    />
+                    <FormControlLabel
+                      value="first-closed"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            First to Close
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            First player to close all numbers wins
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </RadioGroup>
+                </FormControl>
+              </CardContent>
+            </Card>
 
-        <TabPanel value={tabValue} index={1}>
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={lastBull}
+                      onChange={(e) => setLastBull(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        Last Bull
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Bull doesn't count until all other 5 numbers are closed
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </CardContent>
+            </Card>
+
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <Typography variant="body2" fontWeight="medium" gutterBottom>
+                  How to Play
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  In Hidden Cricket, 6 random numbers from 1-20 plus Bull are
+                  randomly selected and hidden. Select numbers 1-20 or Bull,
+                  and if it's a valid target, choose single, double, or triple.
+                  You need to close all 7 targets (6 numbers + Bull) to win.
+                </Typography>
+              </CardContent>
+            </Card>
+            {error && (
+              <Typography color="error" variant="body2">
+                {error}
+              </Typography>
+            )}
+          </Stack>
+        );
+
+      case 3:
+        return (
           <Box
             sx={{
               flex: 1,
@@ -458,15 +423,87 @@ const HiddenCricket: React.FC = () => {
               </Typography>
             )}
           </Box>
+        );
 
-          <Box
-            sx={{
-              mt: { xs: 1.5, sm: 2 },
-              display: "flex",
-              flexDirection: "column",
-              gap: 1,
-            }}
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Container
+      maxWidth="lg"
+      sx={{
+        py: 4,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <Paper
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: 2,
+          boxShadow: 3,
+          overflow: "auto",
+        }}
+      >
+        <Typography
+          variant="h5"
+          component="h1"
+          gutterBottom
+          color="primary"
+          sx={{ mb: { xs: 1, sm: 2 } }}
+        >
+          Cricket Setup
+        </Typography>
+
+        <Stepper
+          activeStep={activeStep}
+          alternativeLabel
+          orientation="horizontal"
+          sx={{
+            mb: 3,
+            "& .MuiStepLabel-label": {
+              fontSize: { xs: "0.8rem", sm: "0.875rem" },
+            },
+          }}
+        >
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", mb: 2 }}>
+          {renderStepContent(activeStep)}
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 2,
+            pt: 2,
+            borderTop: 1,
+            borderColor: "divider",
+          }}
+        >
+          <Button
+            disabled={activeStep === 0}
+            onClick={handleBack}
+            variant="outlined"
+            size="medium"
           >
+            Back
+          </Button>
+
+          {activeStep === steps.length - 1 ? (
             <VibrationButton
               variant="contained"
               color="primary"
@@ -474,21 +511,19 @@ const HiddenCricket: React.FC = () => {
               disabled={selectedPlayerIds.length < 1}
               vibrationPattern={100}
               size="medium"
-              fullWidth
             >
               Start Game
             </VibrationButton>
-
+          ) : (
             <Button
-              variant="outlined"
-              onClick={() => setTabValue(0)}
+              variant="contained"
+              onClick={handleNext}
               size="medium"
-              fullWidth
             >
-              Back to Game Settings
+              Next
             </Button>
-          </Box>
-        </TabPanel>
+          )}
+        </Box>
       </Paper>
     </Container>
   );

@@ -1024,12 +1024,13 @@ const HiddenCricketGame: React.FC = () => {
         {/* Number Grid - Showing all players' progress on hidden numbers */}
         <Box
           sx={{
-            flex: 1,
+            flex: "1 1 0",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             p: 0.5,
             minHeight: 0,
+            width: "100%",
             transition: "flex 0.3s ease-in-out",
           }}
         >
@@ -1111,10 +1112,11 @@ const HiddenCricketGame: React.FC = () => {
           {/* Collapsible Content */}
           <Box
             sx={{
-              maxHeight: isInputExpanded ? "40vh" : 0,
+              maxHeight: isInputExpanded ? "50vh" : 0,
               overflow: "hidden",
               transition: "max-height 0.3s ease-in-out",
               overflowY: "auto",
+              flexShrink: 0,
             }}
           >
             <Box sx={{ p: 1 }}>
@@ -1125,7 +1127,7 @@ const HiddenCricketGame: React.FC = () => {
                   const isClosedByAll = isNumberClosedByAll(number);
                   
                   return (
-                    <Grid item xs={3} sm={2.4} key={number}>
+                    <Grid item xs={3} sm={2} md={2} key={number}>
                       <VibrationButton
                         variant="outlined"
                         onClick={() => handleNumberClick(number)}
@@ -1149,7 +1151,7 @@ const HiddenCricketGame: React.FC = () => {
                   );
                 })}
                 {/* Miss button */}
-                <Grid item xs={3} sm={2.4}>
+                <Grid item xs={3} sm={2} md={2}>
                   <VibrationButton
                     variant="outlined"
                     color="error"

@@ -40,6 +40,7 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        width: "100%",
         minHeight: 0,
         overflow: "hidden",
       }}
@@ -51,7 +52,7 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
-          overflow: "auto",
+          overflow: "hidden",
         }}
       >
         {hiddenNumbersSorted.map((number) => {
@@ -68,8 +69,8 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
               filter: allClosed ? "blur(4px)" : "none",
               opacity: allClosed ? 0.5 : 1,
               transition: "filter 0.3s ease, opacity 0.3s ease",
-              minHeight: "60px",
-              flexShrink: 0,
+              flex: "1 1 0",
+              minHeight: 0,
             }}
           >
             {/* Main row with players and number */}
