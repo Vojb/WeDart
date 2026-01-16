@@ -600,6 +600,8 @@ const HalveItGame: React.FC = () => {
     }
   };
 
+  const hasManyPlayers = sortedPlayers.length > 3;
+
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Game Summary Dialog */}
@@ -715,6 +717,10 @@ const HalveItGame: React.FC = () => {
             borderRadius: 0,
             borderBottom: 1,
             borderColor: "divider",
+            height: hasManyPlayers ? "30%" : "auto",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
           <Box sx={{ mb: 1 }}>
@@ -726,9 +732,15 @@ const HalveItGame: React.FC = () => {
           {/* Player Headers */}
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${sortedPlayers.length}, 1fr)`,
+              display: hasManyPlayers ? "flex" : "grid",
+              gridTemplateColumns: hasManyPlayers
+                ? undefined
+                : `repeat(${sortedPlayers.length}, 1fr)`,
+              flexWrap: hasManyPlayers ? "wrap" : "nowrap",
+              alignContent: hasManyPlayers ? "flex-start" : undefined,
               gap: 0.5,
+              height: hasManyPlayers ? "100%" : "auto",
+              flex: 1,
             }}
           >
             {/* Display players sorted by orderIndex to ensure correct order */}
@@ -753,6 +765,11 @@ const HalveItGame: React.FC = () => {
                     border: isCurrentPlayer
                       ? `2px solid ${playerColor}`
                       : "2px solid transparent",
+                    flex: hasManyPlayers ? "1 1 calc(50% - 4px)" : undefined,
+                    height: hasManyPlayers ? "calc(50% - 4px)" : "auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
                   }}
                 >
                   <Typography
@@ -760,12 +777,16 @@ const HalveItGame: React.FC = () => {
                     sx={{
                       fontWeight: isCurrentPlayer ? "bold" : "normal",
                       mb: 0.5,
+                      fontSize: hasManyPlayers ? "0.85rem" : undefined,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {player.name}
                   </Typography>
                   <Typography
-                    variant="h4"
+                    variant={hasManyPlayers ? "h5" : "h4"}
                     sx={{
                       fontWeight: "bold",
                       color: theme.palette.info.main,
