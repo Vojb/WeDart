@@ -17,6 +17,7 @@ import {
   Stepper,
   Step,
   StepLabel,
+  TextField,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -52,6 +53,9 @@ const HiddenCricket: React.FC = () => {
   );
   const [lastBull, setLastBull] = useState<boolean>(
     gameSettings.lastBull || false
+  );
+  const [numberOfLegs, setNumberOfLegs] = useState<number>(
+    gameSettings.defaultLegs || 1
   );
 
   // Validation error state
@@ -133,10 +137,11 @@ const HiddenCricket: React.FC = () => {
       gameType,
       winCondition,
       lastBull,
+      defaultLegs: numberOfLegs,
     });
 
     // Start a new game
-    startGame(gameType, winCondition, lastBull, selectedPlayerIds);
+    startGame(gameType, winCondition, lastBull, selectedPlayerIds, numberOfLegs);
 
     // Navigate to game screen
     navigate("/hidden-cricket/game");
@@ -369,6 +374,29 @@ const HiddenCricket: React.FC = () => {
                       </Typography>
                     </Box>
                   }
+                />
+              </CardContent>
+            </Card>
+
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <TextField
+                  fullWidth
+                  label="Number of Legs"
+                  type="number"
+                  value={numberOfLegs}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value > 0) {
+                      setNumberOfLegs(value);
+                    }
+                  }}
+                  inputProps={{ min: 1 }}
                 />
               </CardContent>
             </Card>

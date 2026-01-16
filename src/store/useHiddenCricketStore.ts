@@ -42,6 +42,7 @@ interface HiddenCricketGameSettings {
   gameType: "standard" | "cutthroat" | "no-score";
   winCondition: "first-closed" | "points";
   lastBull: boolean;
+  defaultLegs: number;
 }
 
 interface HiddenCricketGameState {
@@ -56,6 +57,17 @@ interface HiddenCricketGameState {
   // Round history
   rounds: HiddenCricketRound[];
   currentRound: HiddenCricketRound | null;
+  totalLegs: number;
+  currentLeg: number;
+  legsWon: Record<number, number>;
+  completedLegs: HiddenCricketLeg[];
+}
+
+export interface HiddenCricketLeg {
+  legNumber: number;
+  winnerId: number;
+  rounds: HiddenCricketRound[];
+  hiddenNumbers: (number | string)[];
 }
 
 interface HiddenCricketStoreState {
@@ -69,7 +81,8 @@ interface HiddenCricketStoreState {
     gameType: HiddenCricketGameState["gameType"],
     winCondition: HiddenCricketGameState["winCondition"],
     lastBull: boolean,
-    playerIds: number[]
+    playerIds: number[],
+    totalLegs: number
   ) => void;
   recordHit: (targetNumber: number | string, multiplier: number) => void;
   recordMiss: () => void;
@@ -130,6 +143,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
         gameType: "cutthroat",
         winCondition: "points",
         lastBull: false,
+        defaultLegs: 3,
       },
       updateGameSettings: (settings) =>
         set((state) => ({
@@ -137,7 +151,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
         })),
 
       currentGame: null,
-      startGame: (gameType, winCondition, lastBull, playerIds) => {
+      startGame: (gameType, winCondition, lastBull, playerIds, totalLegs) => {
         console.log("Starting hidden cricket game with player IDs:", playerIds);
         console.log("Cached players:", cachedPlayers);
 
@@ -186,6 +200,11 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
             totalPoints: 0,
           };
 
+          const legsWon = playerIds.reduce<Record<number, number>>(
+            (acc, id) => ({ ...acc, [id]: 0 }),
+            {}
+          );
+
           return {
             ...state,
             currentGame: {
@@ -198,6 +217,10 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
               hiddenNumbers,
               rounds: [],
               currentRound: initialRound,
+              totalLegs,
+              currentLeg: 1,
+              legsWon,
+              completedLegs: [],
             },
           };
         });
@@ -499,29 +522,65 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
               }
             }
 
-            // Mark the winner
-            if (isGameFinished && winnerId) {
-              players.forEach((player) => {
-                if (player.id === winnerId) {
-                  player.isWinner = true;
-                }
-              });
-            }
-
-            // If game is finished, end the turn
-            if (isGameFinished) {
-              // Save the current round
-              newGame.rounds.push({ ...currentRound });
-              // If game is finished, keep the last round
-              newGame.currentRound = currentRound;
-            } else {
-              // If turn continues, update the current round
-              newGame.currentRound = currentRound;
-            }
+            // Always keep current round in state
+            newGame.currentRound = currentRound;
 
             // Update the game state
             newGame.players = players;
             newGame.isGameFinished = isGameFinished;
+
+            // Handle leg win logic
+            if (isGameFinished && winnerId) {
+              const updatedLegsWon = { ...newGame.legsWon };
+              updatedLegsWon[winnerId] = (updatedLegsWon[winnerId] || 0) + 1;
+
+              const legRounds = [...newGame.rounds, { ...currentRound }];
+              const completedLeg: HiddenCricketLeg = {
+                legNumber: newGame.currentLeg,
+                winnerId,
+                rounds: legRounds,
+                hiddenNumbers: newGame.hiddenNumbers,
+              };
+
+              const legsToWin = Math.ceil(newGame.totalLegs / 2);
+              const hasMatchWinner = updatedLegsWon[winnerId] >= legsToWin;
+
+              newGame.completedLegs = [...newGame.completedLegs, completedLeg];
+              newGame.legsWon = updatedLegsWon;
+
+              if (hasMatchWinner) {
+                players.forEach((player) => {
+                  if (player.id === winnerId) {
+                    player.isWinner = true;
+                  }
+                });
+                newGame.rounds = legRounds;
+                newGame.isGameFinished = true;
+              } else {
+                const nextPlayerIndex = (playerIndex + 1) % players.length;
+                const nextHiddenNumbers = generateHiddenNumbers();
+                const resetPlayers = players.map((player) => ({
+                  ...player,
+                  totalScore: 0,
+                  dartsThrown: 0,
+                  targets: createDefaultTargets(nextHiddenNumbers),
+                  isWinner: false,
+                  currentDartIndex: 0,
+                }));
+
+                newGame.players = resetPlayers;
+                newGame.currentLeg += 1;
+                newGame.currentPlayerIndex = nextPlayerIndex;
+                newGame.hiddenNumbers = nextHiddenNumbers;
+                newGame.rounds = [];
+                newGame.currentRound = {
+                  playerId: resetPlayers[nextPlayerIndex].id,
+                  darts: [],
+                  totalPoints: 0,
+                };
+                newGame.isGameFinished = false;
+              }
+            }
 
             return {
               ...state,

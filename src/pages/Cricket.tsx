@@ -16,6 +16,7 @@ import {
   Stepper,
   Step,
   StepLabel,
+  TextField,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -42,6 +43,9 @@ const Cricket: React.FC = () => {
     : "standard");
   const [winCondition, setWinCondition] = useState<"first-closed" | "points">(
     gameSettings.winCondition || "points"
+  );
+  const [numberOfLegs, setNumberOfLegs] = useState<number>(
+    gameSettings.defaultLegs || 1
   );
 
   // Validation error state
@@ -123,10 +127,16 @@ const Cricket: React.FC = () => {
     updateGameSettings({
       gameType: gameType as "standard" | "cutthroat" | "no-score",
       winCondition,
+      defaultLegs: numberOfLegs,
     });
 
     // Start a new game
-    startGame(gameType as "standard" | "cutthroat" | "no-score", winCondition, selectedPlayerIds);
+    startGame(
+      gameType as "standard" | "cutthroat" | "no-score",
+      winCondition,
+      selectedPlayerIds,
+      numberOfLegs
+    );
 
     // Navigate to game screen
     navigate("/cricket/game");
@@ -331,6 +341,28 @@ const Cricket: React.FC = () => {
                     />
                   </RadioGroup>
                 </FormControl>
+              </CardContent>
+            </Card>
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <TextField
+                  fullWidth
+                  label="Number of Legs"
+                  type="number"
+                  value={numberOfLegs}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value > 0) {
+                      setNumberOfLegs(value);
+                    }
+                  }}
+                  inputProps={{ min: 1 }}
+                />
               </CardContent>
             </Card>
             {error && (

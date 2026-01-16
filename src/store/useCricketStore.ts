@@ -42,6 +42,7 @@ interface GameSettings {
   gameType: "standard" | "cutthroat" | "no-score";
   winCondition: "first-closed" | "points";
   isHalfIt?: boolean;
+  defaultLegs: number;
 }
 
 interface CricketGameState {
@@ -53,19 +54,30 @@ interface CricketGameState {
   // Add round history
   rounds: CricketRound[];
   currentRound: CricketRound | null;
+  totalLegs: number;
+  currentLeg: number;
+  legsWon: Record<number, number>;
+  completedLegs: CricketLeg[];
+}
+
+export interface CricketLeg {
+  legNumber: number;
+  winnerId: number;
+  rounds: CricketRound[];
 }
 
 interface CricketStoreState {
   // Game settings
   gameSettings: GameSettings;
-  updateGameSettings: (settings: Partial<CricketGameState>) => void;
+  updateGameSettings: (settings: Partial<GameSettings>) => void;
 
   // Current game state
   currentGame: CricketGameState | null;
   startGame: (
     gameType: CricketGameState["gameType"],
     winCondition: CricketGameState["winCondition"],
-    playerIds: number[]
+    playerIds: number[],
+    totalLegs: number
   ) => void;
   recordHit: (targetNumber: number | string, multiplier: number) => void;
   undoLastHit: () => void;
@@ -111,6 +123,7 @@ export const useCricketStore = create<CricketStoreState>()(
       gameSettings: {
         gameType: "standard",
         winCondition: "points",
+        defaultLegs: 3,
       },
       updateGameSettings: (settings) =>
         set((state) => ({
@@ -118,7 +131,7 @@ export const useCricketStore = create<CricketStoreState>()(
         })),
 
       currentGame: null,
-      startGame: (gameType, winCondition, playerIds) => {
+      startGame: (gameType, winCondition, playerIds, totalLegs) => {
         console.log("Starting game with player IDs:", playerIds);
         console.log("Cached players:", cachedPlayers);
 
@@ -163,6 +176,11 @@ export const useCricketStore = create<CricketStoreState>()(
             totalPoints: 0,
           };
 
+          const legsWon = playerIds.reduce<Record<number, number>>(
+            (acc, id) => ({ ...acc, [id]: 0 }),
+            {}
+          );
+
           return {
             ...state,
             currentGame: {
@@ -173,6 +191,10 @@ export const useCricketStore = create<CricketStoreState>()(
               winCondition,
               rounds: [],
               currentRound: initialRound,
+              totalLegs,
+              currentLeg: 1,
+              legsWon,
+              completedLegs: [],
             },
           };
         });
@@ -402,29 +424,62 @@ export const useCricketStore = create<CricketStoreState>()(
               }
             }
 
-            // Mark the winner
-            if (isGameFinished && winnerId) {
-              players.forEach((player) => {
-                if (player.id === winnerId) {
-                  player.isWinner = true;
-                }
-              });
-            }
-
-            // If game is finished, end the turn
-            if (isGameFinished) {
-              // Save the current round
-              newGame.rounds.push({ ...currentRound });
-              // If game is finished, keep the last round
-              newGame.currentRound = currentRound;
-            } else {
-              // If turn continues, update the current round
-              newGame.currentRound = currentRound;
-            }
+            // Always keep current round in state
+            newGame.currentRound = currentRound;
 
             // Update the game state
             newGame.players = players;
             newGame.isGameFinished = isGameFinished;
+
+            // Handle leg win logic
+            if (isGameFinished && winnerId) {
+              const updatedLegsWon = { ...newGame.legsWon };
+              updatedLegsWon[winnerId] = (updatedLegsWon[winnerId] || 0) + 1;
+
+              const legRounds = [...newGame.rounds, { ...currentRound }];
+              const completedLeg: CricketLeg = {
+                legNumber: newGame.currentLeg,
+                winnerId,
+                rounds: legRounds,
+              };
+
+              const legsToWin = Math.ceil(newGame.totalLegs / 2);
+              const hasMatchWinner = updatedLegsWon[winnerId] >= legsToWin;
+
+              newGame.completedLegs = [...newGame.completedLegs, completedLeg];
+              newGame.legsWon = updatedLegsWon;
+
+              if (hasMatchWinner) {
+                players.forEach((player) => {
+                  if (player.id === winnerId) {
+                    player.isWinner = true;
+                  }
+                });
+                newGame.rounds = legRounds;
+                newGame.isGameFinished = true;
+              } else {
+                const nextPlayerIndex = (playerIndex + 1) % players.length;
+                const resetPlayers = players.map((player) => ({
+                  ...player,
+                  totalScore: 0,
+                  dartsThrown: 0,
+                  targets: createDefaultTargets(),
+                  isWinner: false,
+                  currentDartIndex: 0,
+                }));
+
+                newGame.players = resetPlayers;
+                newGame.currentLeg += 1;
+                newGame.currentPlayerIndex = nextPlayerIndex;
+                newGame.rounds = [];
+                newGame.currentRound = {
+                  playerId: resetPlayers[nextPlayerIndex].id,
+                  darts: [],
+                  totalPoints: 0,
+                };
+                newGame.isGameFinished = false;
+              }
+            }
 
             return {
               ...state,
