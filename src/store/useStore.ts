@@ -62,24 +62,34 @@ export interface PermissionSettings {
 export const predefinedThemes: ThemeOption[] = [
   {
     id: "default",
-    name: "Default",
+    name: "Dark Dartboard",
     colors: {
-      primary: "#2196f3", // Bright blue - more vibrant
-      secondary: "#9c27b0", // Purple - complements blue
-      success: "#4caf50", // Vibrant green - distinct from primary
-      error: "#f44336", // Bright red - clear distinction
+      primary: "#da8f11", // Brass gold - dartboard trim
+      secondary: "#2f9b4f", // Dartboard green
+      success: "#4fb86a", // Lighter green for success feedback
+      error: "#c2412d", // Dartboard red
+      warning: "#d2b36a", // Warm gold highlight
+      info: "#a67c52", // Bronze accent
       background: {
-        default: "#121212", // Dark background
-        paper: "#1e1e1e", // Dark paper
+        default: "#0b0b0b", // Deep black background
+        paper: "#151515", // Dark charcoal paper
       },
+      text: {
+        primary: "#f2e5cf", // Warm ivory text
+        secondary: "#c6b79a",
+        disabled: "#8c8270",
+      },
+      divider: "#3b2f1f",
       // Light mode variant
       light: {
-        primary: "#1976d2", // Classic blue for light mode
-        secondary: "#7b1fa2", // Darker purple for light mode
+        primary: "#9b7a35", // Warm gold for light mode
+        secondary: "#2f7d4e", // Rich green for light mode
         success: "#2e7d32", // Mature green for light mode
-        error: "#c62828", // Darker red for light mode
+        error: "#b23c2c", // Deep red for light mode
+        warning: "#c7a24d", // Gold highlight for light mode
+        info: "#8a6a44", // Bronze accent for light mode
         background: {
-          default: "#f5f5f5", // Light background
+          default: "#f6f1e7", // Warm light background
           paper: "#ffffff", // White paper
         },
         text: {
@@ -413,14 +423,22 @@ export const useStore = create<StoreState>()(
         })),
 
       themeColors: loadThemeColors() || {
-        primary: "#1976d2", // Default MUI blue
-        secondary: "#9c27b0", // Default MUI purple
-        success: "#2e7d32", // Default MUI green
-        error: "#d32f2f", // Default MUI red
+        primary: "#c7a24d", // Brass gold - dartboard trim
+        secondary: "#2f9b4f", // Dartboard green
+        success: "#4fb86a", // Lighter green for success feedback
+        error: "#c2412d", // Dartboard red
+        warning: "#d2b36a", // Warm gold highlight
+        info: "#a67c52", // Bronze accent
         background: {
-          default: "#121212", // Dark background
-          paper: "#1e1e1e", // Dark paper
+          default: "#0b0b0b", // Deep black background
+          paper: "#151515", // Dark charcoal paper
         },
+        text: {
+          primary: "#f2e5cf", // Warm ivory text
+          secondary: "#c6b79a",
+          disabled: "#8c8270",
+        },
+        divider: "#3b2f1f",
       },
 
       setThemeColors: (colors: ThemeColors) => {
