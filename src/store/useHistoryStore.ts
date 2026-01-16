@@ -2,12 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 // Define game types enum
-export type GameType =
-  | "301"
-  | "501"
-  | "701"
-  | "cricket"
-  | "halveit";
+export type X01GameType = "301" | "501" | "701" | (string & {});
+export type GameType = X01GameType | "cricket" | "halveit";
 
 // Define the base completed game interface with common properties
 export interface BaseCompletedGame {
@@ -30,7 +26,7 @@ export interface BaseCompletedGamePlayer {
 
 // X01 specific game properties
 export interface X01CompletedGame extends BaseCompletedGame {
-  gameType: "301" | "501" | "701";
+  gameType: X01GameType;
   isDoubleOut: boolean;
   isDoubleIn: boolean;
   players: X01CompletedGamePlayer[];
