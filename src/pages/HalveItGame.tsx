@@ -61,6 +61,7 @@ const HalveItGame: React.FC = () => {
   const countdownIntervalRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
   const progressStartTimeRef = useRef<number>(0);
+  const playerHeaderRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const pendingScoreRef = useRef<{
     playerId: number;
     roundIndex: number;
@@ -256,6 +257,29 @@ const HalveItGame: React.FC = () => {
     }
   }, [currentGame?.currentPlayerIndex, currentGame?.currentRoundIndex, currentGame?.isGameFinished, currentGame?.players]);
 
+  useEffect(() => {
+    if (!currentGame) return;
+    const sortedPlayers = [...currentGame.players].sort((a, b) => {
+      if (a.orderIndex !== b.orderIndex) {
+        return a.orderIndex - b.orderIndex;
+      }
+      return a.id - b.id;
+    });
+    const hasScrollablePlayers = sortedPlayers.length > 4;
+    if (!hasScrollablePlayers) return;
+    const currentPlayer = sortedPlayers[currentGame.currentPlayerIndex] || sortedPlayers[0];
+    if (!currentPlayer) return;
+    const currentPlayerHeader = playerHeaderRefs.current[currentPlayer.id];
+    if (currentPlayerHeader) {
+      currentPlayerHeader.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [currentGame?.currentPlayerIndex, currentGame?.currentRoundIndex, currentGame?.players]);
+
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
@@ -297,6 +321,9 @@ const HalveItGame: React.FC = () => {
     }
     return a.id - b.id;
   });
+
+  const hasManyPlayers = sortedPlayers.length > 3;
+  const hasScrollablePlayers = sortedPlayers.length > 4;
 
   // Use the store's currentPlayerIndex directly on the sorted array
   // The store maintains players sorted by orderIndex, so the index should match
@@ -600,8 +627,6 @@ const HalveItGame: React.FC = () => {
     }
   };
 
-  const hasManyPlayers = sortedPlayers.length > 3;
-
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Game Summary Dialog */}
@@ -723,9 +748,10 @@ const HalveItGame: React.FC = () => {
             overflow: "hidden",
           }}
         >
-          <Box sx={{ mb: 1 }}>
+          <Box sx={{ mb: 0.5 }}>
             <Typography variant="h6" align="center" fontWeight="bold">
               {getRoundLabel()}
+
             </Typography>
           </Box>
 
@@ -741,6 +767,7 @@ const HalveItGame: React.FC = () => {
               gap: 0.5,
               height: hasManyPlayers ? "100%" : "auto",
               flex: 1,
+              overflowY: hasScrollablePlayers ? "auto" : "hidden",
             }}
           >
             {/* Display players sorted by orderIndex to ensure correct order */}
@@ -755,18 +782,22 @@ const HalveItGame: React.FC = () => {
               return (
                 <Box
                   key={player.id}
+                  ref={(element) => {
+                    playerHeaderRefs.current[player.id] =
+                      element as HTMLDivElement | null;
+                  }}
                   sx={{
                     backgroundColor: isCurrentPlayer
                       ? alpha(playerColor, 0.1)
                       : "transparent",
                     borderRadius: 1,
-                    p: 1,
+                    p: hasScrollablePlayers ? 0.5 : 1,
                     textAlign: "center",
                     border: isCurrentPlayer
                       ? `2px solid ${playerColor}`
                       : "2px solid transparent",
                     flex: hasManyPlayers ? "1 1 calc(50% - 4px)" : undefined,
-                    height: hasManyPlayers ? "calc(50% - 4px)" : "auto",
+                    minHeight: hasManyPlayers ? "34px" : "auto",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "center",
@@ -777,7 +808,11 @@ const HalveItGame: React.FC = () => {
                     sx={{
                       fontWeight: isCurrentPlayer ? "bold" : "normal",
                       mb: 0.5,
-                      fontSize: hasManyPlayers ? "0.85rem" : undefined,
+                      fontSize: hasScrollablePlayers
+                        ? "0.75rem"
+                        : hasManyPlayers
+                        ? "0.85rem"
+                        : undefined,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -786,7 +821,7 @@ const HalveItGame: React.FC = () => {
                     {player.name}
                   </Typography>
                   <Typography
-                    variant={hasManyPlayers ? "h5" : "h4"}
+                    variant={hasScrollablePlayers ? "h6" : hasManyPlayers ? "h5" : "h4"}
                     sx={{
                       fontWeight: "bold",
                       color: theme.palette.info.main,
@@ -813,7 +848,7 @@ const HalveItGame: React.FC = () => {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            p: 1,
+            p: 0,
           }}
         >
           {renderInput()}
