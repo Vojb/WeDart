@@ -80,10 +80,7 @@ const X01NewGame: React.FC = () => {
     } else if (gameSettings.lastCustomGameType) {
       // Load last custom game type if available
       setCustomValue(gameSettings.lastCustomGameType);
-      // Only set gameType if it's a valid game type
-      if (["301", "501", "701"].includes(gameSettings.lastCustomGameType)) {
-        setGameType(gameSettings.lastCustomGameType as "301" | "501" | "701");
-      }
+      setGameType(gameSettings.lastCustomGameType);
     }
     setNumberOfLegs(gameSettings.defaultLegs);
   }, [gameSettings, isCustom]);
@@ -91,17 +88,34 @@ const X01NewGame: React.FC = () => {
   // Save preferences when they change
   useEffect(() => {
     if (!isCustom) {
-      updateGameSettings({
-        defaultGameType: gameType as "301" | "501" | "701",
-      });
+      const nextDefaultGameType = gameType as "301" | "501" | "701";
+      if (gameSettings.defaultGameType !== nextDefaultGameType) {
+        updateGameSettings({
+          defaultGameType: nextDefaultGameType,
+        });
+      }
     } else if (customValue) {
       // Save custom game type
-      updateGameSettings({
-        lastCustomGameType: customValue,
-      });
+      if (gameSettings.lastCustomGameType !== customValue) {
+        updateGameSettings({
+          lastCustomGameType: customValue,
+        });
+      }
     }
-    updateGameSettings({ defaultLegs: numberOfLegs });
-  }, [gameType, numberOfLegs, isCustom, customValue, updateGameSettings]);
+
+    if (gameSettings.defaultLegs !== numberOfLegs) {
+      updateGameSettings({ defaultLegs: numberOfLegs });
+    }
+  }, [
+    gameType,
+    numberOfLegs,
+    isCustom,
+    customValue,
+    updateGameSettings,
+    gameSettings.defaultGameType,
+    gameSettings.defaultLegs,
+    gameSettings.lastCustomGameType,
+  ]);
 
   // Handle back button navigation
   useEffect(() => {
@@ -157,10 +171,7 @@ const X01NewGame: React.FC = () => {
     } else if (gameSettings.lastCustomGameType) {
       // Load last custom game type if available
       setCustomValue(gameSettings.lastCustomGameType);
-      // Only set gameType if it's a valid game type
-      if (["301", "501", "701"].includes(gameSettings.lastCustomGameType)) {
-        setGameType(gameSettings.lastCustomGameType as "301" | "501" | "701");
-      }
+      setGameType(gameSettings.lastCustomGameType);
     }
   };
 
@@ -172,11 +183,7 @@ const X01NewGame: React.FC = () => {
     const orderedPlayerIds = selectedPlayers.map((id) => parseInt(id));
 
     // Start game with ordered player IDs and number of legs
-    // Ensure finalGameType is a valid game type
-    const validGameType = ["301", "501", "701"].includes(finalGameType) 
-      ? finalGameType as "301" | "501" | "701"
-      : "501"; // Default to 501 if invalid
-    startGame(validGameType, orderedPlayerIds, numberOfLegs);
+    startGame(finalGameType, orderedPlayerIds, numberOfLegs);
     navigate("/x01/game");
   };
 

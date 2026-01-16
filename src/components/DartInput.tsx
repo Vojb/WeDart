@@ -32,6 +32,7 @@ interface DartInputProps {
       score: number;
       scores: Array<{ score: number; darts: number }>;
     }>;
+    playerPositions?: Record<number, number>;
     isDoubleIn: boolean;
     isDoubleOut: boolean;
   };
@@ -67,6 +68,7 @@ const DartIndicators = ({
       score: number;
       scores: Array<{ score: number; darts: number }>;
     }>;
+    playerPositions?: Record<number, number>;
     currentPlayerIndex: number;
     isDoubleIn?: boolean;
     isDoubleOut?: boolean;
@@ -81,8 +83,24 @@ const DartIndicators = ({
   // Calculate the total score of all darts
   const totalScore = currentDarts.reduce((sum, dart) => sum + dart.value, 0);
 
+  const getCurrentPlayer = () => {
+    if (!currentGame) return null;
+    if (currentGame.playerPositions) {
+      const currentPosition = currentGame.currentPlayerIndex + 1;
+      const currentPlayerId = Object.entries(currentGame.playerPositions).find(
+        ([_, pos]) => pos === currentPosition
+      )?.[0];
+      if (currentPlayerId) {
+        return currentGame.players.find(
+          (player) => player.id === parseInt(currentPlayerId)
+        );
+      }
+    }
+    return currentGame.players[currentGame.currentPlayerIndex];
+  };
+
   // Get the current player
-  const currentPlayer = currentGame?.players[currentGame.currentPlayerIndex];
+  const currentPlayer = getCurrentPlayer();
 
   // Calculate the remaining score after the current darts
   const currentPlayerScore = currentPlayer?.score || 0;
@@ -319,6 +337,22 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
   // Use provided gameContext or fall back to X01 store
   const currentGame = gameContext || x01Game;
 
+  const getCurrentPlayerFromGame = () => {
+    if (!currentGame) return null;
+    if ("playerPositions" in currentGame && currentGame.playerPositions) {
+      const currentPosition = currentGame.currentPlayerIndex + 1;
+      const currentPlayerId = Object.entries(currentGame.playerPositions).find(
+        ([_, pos]) => pos === currentPosition
+      )?.[0];
+      if (currentPlayerId) {
+        return currentGame.players.find(
+          (player) => player.id === parseInt(currentPlayerId)
+        );
+      }
+    }
+    return currentGame.players[currentGame.currentPlayerIndex];
+  };
+
   console.log("Current game from store:", currentGame);
   console.log("Is mobile device:", isMobile);
 
@@ -488,8 +522,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
           return;
         }
 
-        const currentPlayer =
-          currentGame.players[currentGame.currentPlayerIndex];
+        const currentPlayer = getCurrentPlayerFromGame();
         if (!currentPlayer) {
           console.error("Current player not found");
           return;
@@ -566,7 +599,11 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
         return;
       }
 
-      const currentPlayer = currentGame.players[currentGame.currentPlayerIndex];
+      const currentPlayer = getCurrentPlayerFromGame();
+      if (!currentPlayer) {
+        console.error("Current player not found");
+        return;
+      }
       console.log(
         `Current player: ${currentPlayer.name}, Score before: ${currentPlayer.score}`
       );
@@ -716,7 +753,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
           <>
             {/* Extract frequent dart buttons into a dedicated component to ensure it updates properly */}
             <FrequentDartButtons
-              currentPlayerIndex={currentGame.currentPlayerIndex}
+              currentPlayerId={getCurrentPlayerFromGame()?.id}
               currentDartsLength={currentDarts.length}
               recordDart={recordDart}
               selectedMultiplier={selectedMultiplier}
@@ -1027,12 +1064,12 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
 
 // Create a separate component to ensure it re-renders properly
 function FrequentDartButtons({
-  currentPlayerIndex,
+  currentPlayerId,
   currentDartsLength,
   recordDart,
   selectedMultiplier,
 }: {
-  currentPlayerIndex: number;
+  currentPlayerId?: number;
   currentDartsLength: number;
   recordDart: (
     baseNumber: number,
@@ -1047,22 +1084,21 @@ function FrequentDartButtons({
   const [frequentDarts, setFrequentDarts] = useState<string[]>([]);
 
   useEffect(() => {
-    // Get the current player's ID from the game
-    if (currentGame && currentGame.players[currentPlayerIndex]) {
-      const playerId = currentGame.players[currentPlayerIndex].id;
-      // Limit to 5 favorite darts
-      const frequent = getPlayerMostFrequentDarts(playerId, 5);
-      console.log(`Player ${playerId}'s frequent darts:`, frequent);
-      setFrequentDarts(frequent);
-    }
-  }, [currentPlayerIndex, currentGame, getPlayerMostFrequentDarts]);
+    if (!currentPlayerId) return;
+    const frequent = getPlayerMostFrequentDarts(currentPlayerId, 5);
+    console.log(`Player ${currentPlayerId}'s frequent darts:`, frequent);
+    setFrequentDarts(frequent);
+  }, [currentPlayerId, getPlayerMostFrequentDarts]);
 
   // Create dartCounts for tracking frequency
   const dartCounts: Record<string, number> = {};
 
   // Calculate dartCounts if the current player exists
-  if (currentGame && currentGame.players[currentPlayerIndex]) {
-    const currentPlayer = currentGame.players[currentPlayerIndex];
+  if (currentGame && currentPlayerId) {
+    const currentPlayer = currentGame.players.find(
+      (player) => player.id === currentPlayerId
+    );
+    if (!currentPlayer) return null;
     // Track counts for each frequent dart
     frequentDarts.forEach((notation) => {
       dartCounts[notation] = currentPlayer.dartHits[notation] || 0;

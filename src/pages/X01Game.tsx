@@ -368,6 +368,20 @@ const X01Game: React.FC = () => {
     setLeaveDialogOpen(false);
   };
 
+  const getCurrentPlayer = () => {
+    if (!currentGame) return null;
+    const currentPosition = currentGame.currentPlayerIndex + 1;
+    const currentPlayerId = Object.entries(currentGame.playerPositions).find(
+      ([_, pos]) => pos === currentPosition
+    )?.[0];
+    if (currentPlayerId) {
+      return currentGame.players.find(
+        (player) => player.id === parseInt(currentPlayerId)
+      );
+    }
+    return currentGame.players[currentGame.currentPlayerIndex];
+  };
+
   // Handle quick submit from favorite numbers (with countdown)
   const handleQuickSubmit = (
     score: number,
@@ -379,7 +393,8 @@ const X01Game: React.FC = () => {
     // Cancel any existing countdown
     handleCancelCountdown();
 
-    const player = currentGame.players[currentGame.currentPlayerIndex];
+    const player = getCurrentPlayer();
+    if (!player) return;
     const remainingAfterScore = player.score - score;
 
     // Check if this would be a bust
@@ -525,7 +540,8 @@ const X01Game: React.FC = () => {
     }
     
     if (currentGame && !currentGame.isGameFinished) {
-      const player = currentGame.players[currentGame.currentPlayerIndex];
+      const player = getCurrentPlayer();
+      if (!player) return;
       const remainingAfterScore = player.score - score;
 
       // When using voice input, always ensure lastDartMultiplier is 2 if it's a potential winning score
