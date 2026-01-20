@@ -214,7 +214,7 @@ export const useCricketStore = create<CricketStoreState>()(
 
             // Create or update the current round
             let currentRound = newGame.currentRound
-              ? { ...newGame.currentRound }
+              ? { ...newGame.currentRound, darts: [...newGame.currentRound.darts] }
               : { playerId: currentPlayer.id, darts: [], totalPoints: 0 };
 
             // Find the target in the player's targets

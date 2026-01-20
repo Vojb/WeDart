@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Box,
   Paper,
@@ -29,6 +29,7 @@ import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
+import CricketTwoPlayerScoreboard from "../components/cricket-two-player-scoreboard/cricket-two-player-scoreboard";
 import CountUp from "../components/count-up/count-up";
 import { motion, Variants } from "framer-motion";
 
@@ -235,31 +236,109 @@ const CricketGame: React.FC = () => {
     };
   }, [currentGame, location.pathname]);
 
-  // Display loading state
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <CircularProgress />
-      </Box>
+  const currentPlayer = useMemo(
+    () => currentGame?.players?.[currentGame.currentPlayerIndex],
+    [currentGame?.players, currentGame?.currentPlayerIndex]
+  );
+  const playerColors = useMemo(() => {
+    if (!currentGame) return [];
+    return currentGame.players.map((_, index) =>
+      index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main
     );
-  }
+  }, [currentGame, theme.palette.primary.main, theme.palette.secondary.main]);
+  const playerRoundStats = useMemo(() => {
+    if (!currentGame) return new Map<number, { totalMarks: number; roundsCount: number }>();
+    const stats = new Map<number, { totalMarks: number; roundsCount: number }>();
+    currentGame.players.forEach((player) => {
+      stats.set(player.id, { totalMarks: 0, roundsCount: 0 });
+    });
+    currentGame.rounds.forEach((round) => {
+      const stat = stats.get(round.playerId);
+      if (!stat) return;
+      stat.totalMarks += round.darts.length;
+      stat.roundsCount += 1;
+    });
+    if (currentGame.currentRound) {
+      const stat = stats.get(currentGame.currentRound.playerId);
+      if (stat) {
+        stat.totalMarks += currentGame.currentRound.darts.length;
+        stat.roundsCount += 1;
+      }
+    }
+    return stats;
+  }, [currentGame?.players, currentGame?.rounds, currentGame?.currentRound]);
+  const getAvgMarksPerRound = useCallback(
+    (playerId: number) => {
+      const stats = playerRoundStats.get(playerId);
+      if (!stats || stats.roundsCount === 0) return 0;
+      return stats.totalMarks / stats.roundsCount;
+    },
+    [playerRoundStats]
+  );
+  const currentPlayerColor = useMemo(() => {
+    if (!currentGame) return theme.palette.primary.main;
+    return currentGame.currentPlayerIndex % 2 === 0
+      ? theme.palette.primary.main
+      : theme.palette.secondary.main;
+  }, [currentGame?.currentPlayerIndex, theme.palette.primary.main, theme.palette.secondary.main]);
+  const groupedDarts = useMemo(() => {
+    if (!currentGame?.currentRound || currentGame.currentRound.darts.length === 0) return [];
+    const grouped = currentGame.currentRound.darts.reduce(
+      (acc, dart) => {
+        const key = String(dart.targetNumber);
+        if (!acc[key]) {
+          acc[key] = { count: 0, totalPoints: 0 };
+        }
+        acc[key].count += dart.multiplier;
+        acc[key].totalPoints += dart.points;
+        return acc;
+      },
+      {} as Record<string, { count: number; totalPoints: number }>
+    );
+    return Object.entries(grouped);
+  }, [currentGame?.currentRound]);
+  const dartsThrownByPlayer = useMemo(() => {
+    if (!currentGame) return {};
+    const counts = currentGame.players.reduce<Record<number, number>>(
+      (acc, player) => ({ ...acc, [player.id]: 0 }),
+      {}
+    );
+    currentGame.rounds.forEach((round) => {
+      counts[round.playerId] =
+        (counts[round.playerId] ?? 0) + round.darts.length;
+    });
+    if (currentGame.currentRound) {
+      counts[currentGame.currentRound.playerId] =
+        (counts[currentGame.currentRound.playerId] ?? 0) +
+        currentGame.currentRound.darts.length;
+    }
+    return counts;
+  }, [currentGame]);
+  const avgMarksPerRoundByPlayer = useMemo(() => {
+    if (!currentGame) return {};
+    return currentGame.players.reduce((acc, player) => {
+      const playerRounds = currentGame.rounds.filter(
+        (round) => round.playerId === player.id
+      );
+      const allRounds = [...playerRounds];
+      if (
+        currentGame.currentRound &&
+        currentGame.currentRound.playerId === player.id
+      ) {
+        allRounds.push(currentGame.currentRound);
+      }
+      const totalMarks = allRounds.reduce(
+        (sum, round) => sum + round.darts.length,
+        0
+      );
+      const avgMarksPerRound =
+        allRounds.length > 0 ? totalMarks / allRounds.length : 0;
+      acc[player.id] = avgMarksPerRound;
+      return acc;
+    }, {} as Record<number, number>);
+  }, [currentGame]);
 
-  // If no game or invalid game, don't render the main content
-  if (!currentGame || !isValidGame) {
-    return null;
-  }
-
-  // Safely access currentPlayer now that we've validated in the effect
-  const currentPlayer = currentGame?.players?.[currentGame.currentPlayerIndex];
-
-  const handleHit = (number: number | string) => {
+  const handleHit = useCallback((number: number | string) => {
     if (!currentGame || currentGame.isGameFinished) return;
     // Always use multiplier 1 (single hit per click)
     recordHit(number, 1);
@@ -267,17 +346,17 @@ const CricketGame: React.FC = () => {
     vibrateDevice(50);
     // Update last click time to reset auto-advance timer
     setLastClickTime(Date.now());
-  };
+  }, [currentGame, recordHit]);
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (!currentGame) return;
     undoLastHit();
     // Vibrate on undo
     vibrateDevice([50, 30, 50]);
     setLastClickTime(Date.now());
-  };
+  }, [currentGame, undoLastHit]);
 
-  const handleFinishTurn = () => {
+  const handleFinishTurn = useCallback(() => {
     if (!currentGame) return;
     // Clear auto-advance timer and progress interval
     if (autoAdvanceTimerRef.current) {
@@ -289,19 +368,19 @@ const CricketGame: React.FC = () => {
     setProgress(0);
     finishTurn();
     setLastClickTime(Date.now());
-  };
+  }, [currentGame, finishTurn]);
 
-  const handleLeaveGame = () => {
+  const handleLeaveGame = useCallback(() => {
     endGame();
     setLeaveDialogOpen(false);
     navigate("/cricket");
-  };
+  }, [endGame, navigate]);
 
-  const handleCancelLeave = () => {
+  const handleCancelLeave = useCallback(() => {
     setLeaveDialogOpen(false);
-  };
+  }, []);
 
-  const handlePlayAgain = () => {
+  const handlePlayAgain = useCallback(() => {
     // Start a new game with the same players and settings
     if (currentGame?.players && currentGame.players.length > 0) {
       setCricketPlayers(
@@ -316,17 +395,17 @@ const CricketGame: React.FC = () => {
       endGame();
       navigate("/cricket");
     }
-  };
+  }, [currentGame?.players, endGame, navigate, setCricketPlayers]);
 
-  const handleReturnToSetup = () => {
+  const handleReturnToSetup = useCallback(() => {
     // End the current game and navigate back to setup
     endGame();
     setDialogOpen(false);
     navigate("/cricket");
-  };
+  }, [endGame, navigate]);
 
   // Function to render marks (0-3) for a player's target with animation
-  const renderMarks = (hits: number, color?: string) => {
+  const renderMarks = useCallback((hits: number, color?: string) => {
     if (hits === 0) return null;
 
     const viewBoxSize = 48;
@@ -408,10 +487,10 @@ const CricketGame: React.FC = () => {
 
       </Box>
     );
-  };
+  }, [draw, shape, theme.palette.primary.main]);
 
   // Function to render closed mark (ring with cross)
-  const renderClosedMark = (color?: string) => {
+  const renderClosedMark = useCallback((color?: string) => {
     const viewBoxSize = 48;
     const center = viewBoxSize / 2;
     const lineLength = 36;
@@ -481,7 +560,28 @@ const CricketGame: React.FC = () => {
         </motion.svg>
       </Box>
     );
-  };
+  }, [theme.palette.primary.main]);
+
+  // Display loading state
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // If no game or invalid game, don't render the main content
+  if (!currentGame || !isValidGame) {
+    return null;
+  }
 
   // Ensure safe access to players data
   const hasPlayers = currentGame?.players && currentGame.players.length > 0;
@@ -591,7 +691,8 @@ const CricketGame: React.FC = () => {
                           component="span"
                           display="block"
                         >
-                          Darts thrown: {player.dartsThrown}
+                          Darts thrown:{" "}
+                          {dartsThrownByPlayer[player.id] ?? player.dartsThrown}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -673,162 +774,151 @@ const CricketGame: React.FC = () => {
             borderColor: "divider",
           }}
         >
-
-
-          {/* Player Headers */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: (() => {
-                const playerCount = currentGame.players.length;
-                if (playerCount === 1) return `1fr 60px`;
-                if (playerCount === 2) {
-                  const firstHalf = Math.ceil(playerCount / 2);
-                  const secondHalf = playerCount - firstHalf;
-                  return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
-                }
-                // For 3+ players, number goes last
-                return `repeat(${playerCount}, 1fr) 60px`;
-              })(),
-              gap: 0.5,
-            }}
-          >
-            {(() => {
-              const playerCount = currentGame.players.length;
-              // For 1-2 players, split in half with number in middle
-              if (playerCount <= 2) {
-                const firstHalf = Math.ceil(playerCount / 2);
-                return (
-                  <>
-                    {/* First half of players */}
-                    {currentGame.players.slice(0, firstHalf).map((player) => {
-                      const playerIndex = currentGame.players.indexOf(player);
-                      const playerColor = playerIndex % 2 === 0 
-                        ? theme.palette.primary.main 
-                        : theme.palette.secondary.main;
-                      const isCurrentPlayer = player.id === currentPlayer?.id;
-                      const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
-                      const allRounds = [...playerRounds];
-                      if (currentGame.currentRound && currentGame.currentRound.playerId === player.id) {
-                        allRounds.push(currentGame.currentRound);
-                      }
-                      const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
-                      const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-
-                      return (
-                        <Box
-                          key={player.id}
-                          sx={{
-                            backgroundColor: isCurrentPlayer
-                              ? alpha(playerColor, 0.06)
-                              : "transparent",
-                            borderRadius: 1,
-                            transition: "background-color 0.3s ease",
-                          }}
-                        >
-                          <CricketPlayerBox
-                            player={player}
-                            isCurrentPlayer={isCurrentPlayer}
-                            avgMarksPerRound={avgMarksPerRound}
-                            playerIndex={playerIndex}
-                          />
-                        </Box>
-                      );
-                    })}
-
-                    {/* Number label column header */}
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Typography variant="body2" fontWeight="bold">
-                        Number
-                      </Typography>
-                    </Box>
-
-                    {/* Second half of players */}
-                    {currentGame.players.slice(firstHalf).map((player) => {
-                      const playerIndex = currentGame.players.indexOf(player);
-                      const playerColor = playerIndex % 2 === 0 
-                        ? theme.palette.primary.main 
-                        : theme.palette.secondary.main;
-                      const isCurrentPlayer = player.id === currentPlayer?.id;
-                      const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
-                      const allRounds = [...playerRounds];
-                      if (currentGame.currentRound && currentGame.currentRound.playerId === player.id) {
-                        allRounds.push(currentGame.currentRound);
-                      }
-                      const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
-                      const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-
-                      return (
-                        <Box
-                          key={player.id}
-                          sx={{
-                            backgroundColor: isCurrentPlayer
-                              ? alpha(playerColor, 0.06)
-                              : "transparent",
-                            borderRadius: 1,
-                            transition: "background-color 0.3s ease",
-                          }}
-                        >
-                          <CricketPlayerBox
-                            player={player}
-                            isCurrentPlayer={isCurrentPlayer}
-                            avgMarksPerRound={avgMarksPerRound}
-                            playerIndex={playerIndex}
-                          />
-                        </Box>
-                      );
-                    })}
-                  </>
-                );
-              }
-
-              // For 3+ players, all players first, then number
+          {(() => {
+            const playerCount = currentGame.players.length;
+            if (playerCount === 2) {
               return (
-                <>
-                  {currentGame.players.map((player, playerIndex) => {
-                    const playerColor = playerIndex % 2 === 0 
-                      ? theme.palette.primary.main 
-                      : theme.palette.secondary.main;
-                    const isCurrentPlayer = player.id === currentPlayer?.id;
-                    const playerRounds = currentGame.rounds.filter((round) => round.playerId === player.id);
-                    const allRounds = [...playerRounds];
-                    if (currentGame.currentRound && currentGame.currentRound.playerId === player.id) {
-                      allRounds.push(currentGame.currentRound);
-                    }
-                    const totalMarks = allRounds.reduce((sum, round) => sum + round.darts.length, 0);
-                    const avgMarksPerRound = allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-
-                    return (
-                      <Box
-                        key={player.id}
-                        sx={{
-                          backgroundColor: isCurrentPlayer
-                            ? alpha(playerColor, 0.06)
-                            : "transparent",
-                          borderRadius: 1,
-                          transition: "background-color 0.3s ease",
-                        }}
-                      >
-                        <CricketPlayerBox
-                          player={player}
-                          isCurrentPlayer={isCurrentPlayer}
-                          avgMarksPerRound={avgMarksPerRound}
-                          playerIndex={playerIndex}
-                        />
-                      </Box>
-                    );
-                  })}
-
-                  {/* Number label column header - positioned last */}
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography variant="body2" fontWeight="bold">
-                      Number
-                    </Typography>
-                  </Box>
-                </>
+                <CricketTwoPlayerScoreboard
+                  players={currentGame.players}
+                  currentPlayerIndex={currentGame.currentPlayerIndex}
+                  legsWon={currentGame.legsWon}
+                  totalLegs={currentGame.totalLegs}
+                  avgMarksPerRoundByPlayer={avgMarksPerRoundByPlayer}
+                />
               );
-            })()}
-          </Box>
+            }
+
+            return (
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: (() => {
+                    const playerCount = currentGame.players.length;
+                    if (playerCount === 1) return `1fr 60px`;
+                    if (playerCount === 2) {
+                      const firstHalf = Math.ceil(playerCount / 2);
+                      const secondHalf = playerCount - firstHalf;
+                      return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
+                    }
+                    // For 3+ players, number goes last
+                    return `repeat(${playerCount}, 1fr) 60px`;
+                  })(),
+                  gap: 0.5,
+                }}
+              >
+                {(() => {
+                  const playerCount = currentGame.players.length;
+                  // For 1-2 players, split in half with number in middle
+                  if (playerCount <= 2) {
+                    const firstHalf = Math.ceil(playerCount / 2);
+                    return (
+                      <>
+                        {/* First half of players */}
+                        {currentGame.players.slice(0, firstHalf).map((player, playerIndex) => {
+                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+                          const isCurrentPlayer = player.id === currentPlayer?.id;
+                          const avgMarksPerRound = getAvgMarksPerRound(player.id);
+
+                          return (
+                            <Box
+                              key={player.id}
+                              sx={{
+                                backgroundColor: isCurrentPlayer
+                                  ? alpha(playerColor, 0.06)
+                                  : "transparent",
+                                borderRadius: 1,
+                                transition: "background-color 0.3s ease",
+                              }}
+                            >
+                              <CricketPlayerBox
+                                player={player}
+                                isCurrentPlayer={isCurrentPlayer}
+                                avgMarksPerRound={avgMarksPerRound}
+                                playerIndex={playerIndex}
+                              />
+                            </Box>
+                          );
+                        })}
+
+                        {/* Number label column header */}
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Typography variant="body2" fontWeight="bold">
+                            Number
+                          </Typography>
+                        </Box>
+
+                        {/* Second half of players */}
+                        {currentGame.players.slice(firstHalf).map((player, index) => {
+                          const playerIndex = index + firstHalf;
+                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+                          const isCurrentPlayer = player.id === currentPlayer?.id;
+                          const avgMarksPerRound = getAvgMarksPerRound(player.id);
+
+                          return (
+                            <Box
+                              key={player.id}
+                              sx={{
+                                backgroundColor: isCurrentPlayer
+                                  ? alpha(playerColor, 0.06)
+                                  : "transparent",
+                                borderRadius: 1,
+                                transition: "background-color 0.3s ease",
+                              }}
+                            >
+                              <CricketPlayerBox
+                                player={player}
+                                isCurrentPlayer={isCurrentPlayer}
+                                avgMarksPerRound={avgMarksPerRound}
+                                playerIndex={playerIndex}
+                              />
+                            </Box>
+                          );
+                        })}
+                      </>
+                    );
+                  }
+
+                  // For 3+ players, all players first, then number
+                  return (
+                    <>
+                      {currentGame.players.map((player, playerIndex) => {
+                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+                        const isCurrentPlayer = player.id === currentPlayer?.id;
+                        const avgMarksPerRound = getAvgMarksPerRound(player.id);
+
+                        return (
+                          <Box
+                            key={player.id}
+                            sx={{
+                              backgroundColor: isCurrentPlayer
+                                ? alpha(playerColor, 0.06)
+                                : "transparent",
+                              borderRadius: 1,
+                              transition: "background-color 0.3s ease",
+                            }}
+                          >
+                            <CricketPlayerBox
+                              player={player}
+                              isCurrentPlayer={isCurrentPlayer}
+                              avgMarksPerRound={avgMarksPerRound}
+                              playerIndex={playerIndex}
+                            />
+                          </Box>
+                        );
+                      })}
+
+                      {/* Number label column header - positioned last */}
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Typography variant="body2" fontWeight="bold">
+                          Number
+                        </Typography>
+                      </Box>
+                    </>
+                  );
+                })()}
+              </Box>
+            );
+          })()}
         </Paper>
 
         {/* Full-Screen Number Grid with Player Columns */}
@@ -891,11 +981,8 @@ const CricketGame: React.FC = () => {
                     return (
                       <>
                         {/* First half of players */}
-                        {currentGame.players.slice(0, firstHalfCount).map((player) => {
-                          const playerIndex = currentGame.players.indexOf(player);
-                          const playerColor = playerIndex % 2 === 0 
-                            ? theme.palette.primary.main 
-                            : theme.palette.secondary.main;
+                        {currentGame.players.slice(0, firstHalfCount).map((player, playerIndex) => {
+                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
                           const target = player.targets.find((t) => t.number === number);
                           const isCurrentPlayer = player.id === currentPlayer?.id;
                           const isClosed = target?.closed || false;
@@ -967,11 +1054,9 @@ const CricketGame: React.FC = () => {
                         </Box>
 
                         {/* Second half of players */}
-                        {currentGame.players.slice(firstHalfCount).map((player) => {
-                          const playerIndex = currentGame.players.indexOf(player);
-                          const playerColor = playerIndex % 2 === 0 
-                            ? theme.palette.primary.main 
-                            : theme.palette.secondary.main;
+                        {currentGame.players.slice(firstHalfCount).map((player, index) => {
+                          const playerIndex = index + firstHalfCount;
+                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
                           const target = player.targets.find((t) => t.number === number);
                           const isCurrentPlayer = player.id === currentPlayer?.id;
                           const isClosed = target?.closed || false;
@@ -1020,9 +1105,7 @@ const CricketGame: React.FC = () => {
                   return (
                     <>
                       {currentGame.players.map((player, playerIndex) => {
-                        const playerColor = playerIndex % 2 === 0 
-                          ? theme.palette.primary.main 
-                          : theme.palette.secondary.main;
+                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
                         const target = player.targets.find((t) => t.number === number);
                         const isCurrentPlayer = player.id === currentPlayer?.id;
                         const isClosed = target?.closed || false;
@@ -1101,40 +1184,132 @@ const CricketGame: React.FC = () => {
           })}
 
           {/* Total Score Row - below all numbers */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: (() => {
+          {currentGame.players.length !== 2 && (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: (() => {
+                  const playerCount = currentGame.players.length;
+                  if (playerCount === 1) return `1fr 60px`;
+                  if (playerCount === 2) {
+                    const firstHalf = Math.ceil(playerCount / 2);
+                    const secondHalf = playerCount - firstHalf;
+                    return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
+                  }
+                  return `repeat(${playerCount}, 1fr) 60px`;
+                })(),
+                gap: 0.5,
+                p: { xs: 2, sm: 3, md: 4 },
+                borderTop: "2px solid",
+                borderColor: "divider",
+                backgroundColor: alpha(theme.palette.primary.main, 0.05),
+              }}
+            >
+              {(() => {
                 const playerCount = currentGame.players.length;
-                if (playerCount === 1) return `1fr 60px`;
-                if (playerCount === 2) {
-                  const firstHalf = Math.ceil(playerCount / 2);
-                  const secondHalf = playerCount - firstHalf;
-                  return `repeat(${firstHalf}, 1fr) 60px repeat(${secondHalf}, 1fr)`;
-                }
-                return `repeat(${playerCount}, 1fr) 60px`;
-              })(),
-              gap: 0.5,
-              p: { xs: 2, sm: 3, md: 4 },
-              borderTop: "2px solid",
-              borderColor: "divider",
-              backgroundColor: alpha(theme.palette.primary.main, 0.05),
-            }}
-          >
-            {(() => {
-              const playerCount = currentGame.players.length;
 
-              // For 1-2 players, split in half with label in middle
-              if (playerCount <= 2) {
-                const firstHalfCount = Math.ceil(playerCount / 2);
+                // For 1-2 players, split in half with label in middle
+                if (playerCount <= 2) {
+                  const firstHalfCount = Math.ceil(playerCount / 2);
+                  return (
+                    <>
+                      {/* First half of players - total score */}
+                      {currentGame.players.slice(0, firstHalfCount).map((player, playerIndex) => {
+                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+                        return (
+                          <Box
+                            key={`score-${player.id}`}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              p: { xs: 1, sm: 2, md: 3 },
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              component="div"
+                              sx={{
+                                fontWeight: 700,
+                                color: playerColor,
+                                fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
+                              }}
+                            >
+                              <CountUp
+                                to={player.totalScore}
+                                duration={0.5}
+                                delay={0}
+                                animateOnChange={true}
+                                startWhen={true}
+                              />
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+
+                      {/* Score label */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: "bold",
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            color: theme.palette.text.secondary,
+                          }}
+                        >
+                          Score
+                        </Typography>
+                      </Box>
+
+                      {/* Second half of players - total score */}
+                      {currentGame.players.slice(firstHalfCount).map((player, index) => {
+                        const playerIndex = index + firstHalfCount;
+                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+                        return (
+                          <Box
+                            key={`score-${player.id}`}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              p: { xs: 1, sm: 2, md: 3 },
+                            }}
+                          >
+                            <Typography
+                              variant="h6"
+                              component="div"
+                              sx={{
+                                fontWeight: 700,
+                                color: playerColor,
+                                fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
+                              }}
+                            >
+                              <CountUp
+                                to={player.totalScore}
+                                duration={0.5}
+                                delay={0}
+                                animateOnChange={true}
+                                startWhen={true}
+                              />
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    </>
+                  );
+                }
+
+                // For 3+ players, all players first, then label
                 return (
                   <>
-                    {/* First half of players - total score */}
-                    {currentGame.players.slice(0, firstHalfCount).map((player) => {
-                      const playerIndex = currentGame.players.indexOf(player);
-                      const playerColor = playerIndex % 2 === 0 
-                        ? theme.palette.primary.main 
-                        : theme.palette.secondary.main;
+                    {currentGame.players.map((player, playerIndex) => {
+                      const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
                       return (
                         <Box
                           key={`score-${player.id}`}
@@ -1142,7 +1317,6 @@ const CricketGame: React.FC = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            p: { xs: 1, sm: 2, md: 3 },
                           }}
                         >
                           <Typography
@@ -1151,7 +1325,7 @@ const CricketGame: React.FC = () => {
                             sx={{
                               fontWeight: 700,
                               color: playerColor,
-                              fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
+                              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
                             }}
                           >
                             <CountUp
@@ -1185,107 +1359,11 @@ const CricketGame: React.FC = () => {
                         Score
                       </Typography>
                     </Box>
-
-                    {/* Second half of players - total score */}
-                    {currentGame.players.slice(firstHalfCount).map((player) => {
-                      const playerIndex = currentGame.players.indexOf(player);
-                      const playerColor = playerIndex % 2 === 0 
-                        ? theme.palette.primary.main 
-                        : theme.palette.secondary.main;
-                      return (
-                        <Box
-                          key={`score-${player.id}`}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            p: { xs: 1, sm: 2, md: 3 },
-                          }}
-                        >
-                          <Typography
-                            variant="h6"
-                            component="div"
-                            sx={{
-                              fontWeight: 700,
-                              color: playerColor,
-                              fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
-                            }}
-                          >
-                            <CountUp
-                              to={player.totalScore}
-                              duration={0.5}
-                              delay={0}
-                              animateOnChange={true}
-                              startWhen={true}
-                            />
-                          </Typography>
-                        </Box>
-                      );
-                    })}
                   </>
                 );
-              }
-
-              // For 3+ players, all players first, then label
-              return (
-                <>
-                  {currentGame.players.map((player, playerIndex) => {
-                    const playerColor = playerIndex % 2 === 0 
-                      ? theme.palette.primary.main 
-                      : theme.palette.secondary.main;
-                    return (
-                      <Box
-                        key={`score-${player.id}`}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Typography
-                          variant="h6"
-                          component="div"
-                          sx={{
-                            fontWeight: 700,
-                            color: playerColor,
-                            fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
-                          }}
-                        >
-                          <CountUp
-                            to={player.totalScore}
-                            duration={0.5}
-                            delay={0}
-                            animateOnChange={true}
-                            startWhen={true}
-                          />
-                        </Typography>
-                      </Box>
-                    );
-                  })}
-
-                  {/* Score label */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: "bold",
-                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                        color: theme.palette.text.secondary,
-                      }}
-                    >
-                      Score
-                    </Typography>
-                  </Box>
-                </>
-              );
-            })()}
-          </Box>
+              })()}
+            </Box>
+          )}
         </Box>
 
         {/* Bottom Action Bar - Next Button */}
@@ -1302,63 +1380,44 @@ const CricketGame: React.FC = () => {
               <Undo />
             </IconButton>
             <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-            {currentGame.currentRound && currentGame.currentRound.darts.length > 0 ? (
-              (() => {
-                // Get current player's color
-                const currentPlayerIndex = currentGame.currentPlayerIndex;
-                const playerColor = currentPlayerIndex % 2 === 0 
-                  ? theme.palette.primary.main 
-                  : theme.palette.secondary.main;
-                
-                // Group darts by target number and count occurrences
-                const groupedDarts = currentGame.currentRound.darts.reduce((acc, dart) => {
-                  const key = String(dart.targetNumber);
-                  if (!acc[key]) {
-                    acc[key] = { count: 0, totalPoints: 0 };
-                  }
-                  acc[key].count += dart.multiplier;
-                  acc[key].totalPoints += dart.points;
-                  return acc;
-                }, {} as Record<string, { count: number; totalPoints: number }>);
-
-                return Object.entries(groupedDarts).map(([targetNumber, data]) => (
-                  <Box
-                    key={targetNumber}
+            {groupedDarts.length > 0 ? (
+              groupedDarts.map(([targetNumber, data]) => (
+                <Box
+                  key={targetNumber}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.5,
+                    borderRadius: 1,
+                    backgroundColor: alpha(currentPlayerColor, 0.1),
+                    border: `1px solid ${alpha(currentPlayerColor, 0.3)}`,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: 1,
-                      backgroundColor: alpha(playerColor, 0.1),
-                      border: `1px solid ${alpha(playerColor, 0.3)}`,
+                      fontWeight: 600,
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
                     }}
                   >
+                    {data.count > 1 ? `${data.count}x${targetNumber}` : targetNumber}
+                  </Typography>
+                  {data.totalPoints > 0 && (
                     <Typography
-                      variant="body2"
+                      variant="caption"
                       sx={{
+                        color: "secondary.main",
                         fontWeight: 600,
-                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        fontSize: { xs: "0.65rem", sm: "0.75rem" },
                       }}
                     >
-                      {data.count > 1 ? `${data.count}x${targetNumber}` : targetNumber}
+                      (+{data.totalPoints})
                     </Typography>
-                    {data.totalPoints > 0 && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "secondary.main",
-                          fontWeight: 600,
-                          fontSize: { xs: "0.65rem", sm: "0.75rem" },
-                        }}
-                      >
-                        (+{data.totalPoints})
-                      </Typography>
-                    )}
-                  </Box>
-                ));
-              })()
+                  )}
+                </Box>
+              ))
             ) : (
               <Typography
                 variant="body2"
