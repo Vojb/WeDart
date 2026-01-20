@@ -17,7 +17,7 @@ interface Score {
   darts: number;
 }
 
-interface GamePlayer extends Player {
+export interface GamePlayer extends Player {
   score: number;
   dartsThrown: number;
   scores: Score[];

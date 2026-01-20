@@ -256,7 +256,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
         
         {/* Preview data display */}
         {previewData && (
-          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider", width: "100%" }}>
+          <Box sx={{ mt: 1, pt: 2, borderTop: 1, borderColor: "divider", width: "100%" }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Current: {previewData.currentScore}
             </Typography>

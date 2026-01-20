@@ -40,7 +40,8 @@ import { alpha } from "@mui/material/styles";
 import NumericInput from "../components/NumericInput";
 import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
-import checkoutGuide from "../utils/checkoutGuide";
+import X01PlayerBox from "../components/x01-player-box/x01-player-box";
+import X01TwoPlayerScoreboard from "../components/x01-two-player-scoreboard/x01-two-player-scoreboard";
 import VoiceInput from "../components/VoiceInput";
 import VibrationButton from "../components/VibrationButton";
 
@@ -579,51 +580,47 @@ const X01Game: React.FC = () => {
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       {/* Top Bar - Game Info and Players */}
-      <Paper
+      <Box
         sx={{
-          p: 1,
-          borderRadius: 0,
-          borderBottom: 1,
-          borderColor: "divider",
-          flexShrink: 0,
+          display: "flex",
+          gap: 1,
+          overflowX: "auto",
         }}
       >
-       
-
-        {/* Players Section */}
-        <Box
-          sx={{
-            p: 0.5,
-            overflowX: "auto",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              gap: 1,
-              minWidth: "fit-content",
-            }}
-          >
-            {currentGame.players
+        {currentGame.players.length === 2 ? (
+          <X01TwoPlayerScoreboard
+            players={currentGame.players
               .slice()
               .sort(
                 (a, b) =>
                   (currentGame.playerPositions[a.id] || 0) -
                   (currentGame.playerPositions[b.id] || 0)
-              )
-              .map((player, index) => (
-                <PlayerBox
-                  key={player.id}
-                  player={player}
-                  isCurrentPlayer={currentGame.currentPlayerIndex === index}
-                  showRoundAvg={showRoundAvg}
-                  onToggleAvgView={() => setShowRoundAvg(!showRoundAvg)}
-                  legsWon={currentGame.legsWon[player.id] || 0}
-                />
-              ))}
-          </Box>
-        </Box>
-      </Paper>
+              )}
+            currentPlayerIndex={currentGame.currentPlayerIndex}
+            legsWon={currentGame.legsWon}
+            totalLegs={currentGame.totalLegs}
+            gameType={currentGame.gameType}
+          />
+        ) : (
+          currentGame.players
+            .slice()
+            .sort(
+              (a, b) =>
+                (currentGame.playerPositions[a.id] || 0) -
+                (currentGame.playerPositions[b.id] || 0)
+            )
+            .map((player, index) => (
+              <X01PlayerBox
+                key={player.id}
+                player={player}
+                isCurrentPlayer={currentGame.currentPlayerIndex === index}
+                showRoundAvg={showRoundAvg}
+                onToggleAvgView={() => setShowRoundAvg(!showRoundAvg)}
+                legsWon={currentGame.legsWon[player.id] || 0}
+              />
+            ))
+        )}
+      </Box>
 
       {/* Input Area - Takes remaining space */}
       <Box
@@ -944,195 +941,5 @@ const X01Game: React.FC = () => {
     </Box>
   );
 };
-
-// Move PlayerBox to its own dedicated component
-function PlayerBox({
-  player,
-  isCurrentPlayer,
-  showRoundAvg,
-  onToggleAvgView,
-  legsWon,
-}: {
-  player: any;
-  isCurrentPlayer: boolean;
-  showRoundAvg: boolean;
-  onToggleAvgView: () => void;
-  legsWon: number;
-}) {
-  // Calculate player-specific averages
-  const playerInitialScore = player.initialScore;
-  const playerPointsScored = playerInitialScore - player.score;
-  const playerDartsThrown = player.dartsThrown || 1; // Avoid division by zero
-  const playerRoundsPlayed = Math.ceil(playerDartsThrown / 3);
-
-  const playerAvgPerDart = (playerPointsScored / playerDartsThrown).toFixed(1);
-  const playerAvgPerRound = (
-    playerPointsScored / playerRoundsPlayed || 0
-  ).toFixed(1);
-
-  // Check if we need to display checkout guide (score below 170)
-  const showCheckoutGuide = player.score <= 170 && player.score > 1;
-  const checkoutPath = showCheckoutGuide ? checkoutGuide[player.score] : null;
-
-  return (
-    <Paper
-      sx={{
-        p: { xs: 0.5, sm: 1 },
-        flex: "1 1 0",
-        minWidth: { xs: "100px", sm: "120px" },
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        backgroundColor: (theme) =>
-          isCurrentPlayer
-            ? alpha(theme.palette.primary.main, 0.1)
-            : "transparent",
-        borderLeft: (theme) =>
-          isCurrentPlayer ? `4px solid ${theme.palette.primary.main}` : "none",
-      }}
-    >
-      <Box
-        display="flex"
-        flexDirection="column"
-        gap={0.5}
-        justifyContent="space-between"
-      >
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: "bold",
-                color: "primary.main",
-                fontSize: { xs: "0.8rem", sm: "1rem" },
-              }}
-            >
-              {legsWon}
-            </Typography>
-            <Typography
-              variant="body1"
-              noWrap
-              sx={{ fontSize: { xs: "0.8rem", sm: "1rem" } }}
-            >
-              {player.name}
-            </Typography>
-          </Box>
-          {player.lastRoundScore === 0 && player.scores.length > 0 ? (
-            <Typography
-              variant="body2"
-              sx={{
-                opacity: 0.3,
-                color: "error.main",
-                position: "absolute",
-                top: 4,
-                right: 8,
-                fontWeight: "bold",
-                fontSize: { xs: "0.7rem", sm: "0.875rem" },
-              }}
-            >
-              Bust
-            </Typography>
-          ) : player.lastRoundScore > 0 ? (
-            <Typography
-              variant="body2"
-              sx={{
-                opacity: 0.3,
-                color: "text.secondary",
-                fontSize: { xs: "0.7rem", sm: "0.875rem" },
-              }}
-            >
-              {player.lastRoundScore}
-            </Typography>
-          ) : null}
-        </Box>
-
-        {/* Player's current score */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "center",
-            mt: 1,
-          }}
-        >
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 500,
-              fontSize: { xs: "1.8rem", sm: "2.125rem" },
-              lineHeight: 1.1,
-            }}
-          >
-            {player.score}
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            display: "flex",
-            gap: { xs: 0.5, sm: 1 },
-            flexDirection: "row",
-            justifyContent: "space-between",
-          }}
-        >
-          <Typography
-            variant="caption"
-            sx={{
-              cursor: "pointer",
-              fontSize: { xs: "0.65rem", sm: "0.75rem" },
-            }}
-            onClick={onToggleAvgView}
-          >
-            Avg: {showRoundAvg ? playerAvgPerRound : playerAvgPerDart}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ fontSize: { xs: "0.65rem", sm: "0.75rem" } }}
-          >
-            Darts: {player.dartsThrown}
-          </Typography>
-        </Box>
-        {showCheckoutGuide && checkoutPath && (
-          <Box
-            sx={{
-              p: { xs: 0.5, sm: 0.75 },
-              borderRadius: 1,
-              backgroundColor: (theme) =>
-                theme.palette.mode === "dark"
-                  ? alpha(theme.palette.success.main, 0.2)
-                  : alpha(theme.palette.success.main, 0.1),
-              border: "1px solid",
-              borderColor: "success.main",
-              mt: { xs: 0.5, sm: 0.75 },
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: "bold",
-                lineHeight: 1.2,
-                fontSize: { xs: "0.7rem", sm: "0.875rem" },
-                color: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? theme.palette.success.light
-                    : theme.palette.success.dark,
-              }}
-            >
-              {checkoutPath}
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Paper>
-  );
-}
 
 export default X01Game;
