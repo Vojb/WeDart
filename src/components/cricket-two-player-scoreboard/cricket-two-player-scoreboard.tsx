@@ -22,6 +22,7 @@ interface ScoreRingProps {
 
 const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent, mprValue }) => {
   const theme = useTheme();
+  const outerRingSize = { xs: 86, sm: 100 };
   const ringSize = { xs: 76, sm: 88 };
   const innerRingSize = { xs: 58, sm: 68 };
   const ringTrackColor = useMemo(
@@ -29,13 +30,33 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent, mprValu
     [theme.palette.text.primary]
   );
   const ringStartColor = useMemo(
-    () => alpha(color, 0.95),
+    () => alpha(color, 0.75),
     [color]
   );
   const ringEndColor = useMemo(
-    () => alpha(color, 0.55),
+    () => alpha(color, 0.45),
     [color]
   );
+  const dartboardBackground = useMemo(() => {
+    const segmentLight = alpha(theme.palette.text.primary, 0.08);
+    const segmentDark = alpha(theme.palette.text.primary, 0.18);
+    const bullInner = alpha(theme.palette.error.main, 0.7);
+    const bullOuter = alpha(theme.palette.success.main, 0.6);
+    const ringLight = alpha(theme.palette.text.primary, 0.1);
+    const ringDark = alpha(theme.palette.text.primary, 0.2);
+    const outerRing = alpha(theme.palette.text.primary, 0.12);
+    const baseFill = alpha(theme.palette.background.paper, 0.18);
+
+    return [
+      `repeating-conic-gradient(from -9deg, ${segmentLight} 0deg 18deg, ${segmentDark} 18deg 36deg)`,
+      `radial-gradient(circle at 50% 50%, ${bullInner} 0 6%, ${bullOuter} 6% 12%, ${ringLight} 12% 30%, ${ringDark} 30% 34%, ${ringLight} 34% 48%, ${outerRing} 48% 52%, ${baseFill} 52% 100%)`,
+    ].join(", ");
+  }, [
+    theme.palette.background.paper,
+    theme.palette.error.main,
+    theme.palette.success.main,
+    theme.palette.text.primary,
+  ]);
   const completionPercent = useMemo(() => {
     const maxHits = player.targets.length * 3;
     const totalHits = player.targets.reduce((sum, target) => sum + target.hits, 0);
@@ -51,9 +72,9 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent, mprValu
     const clamped = Math.max(0, Math.min(100, value));
     const zeroThreshold = isCurrent ? 0.01 : 0.5;
     if (clamped <= zeroThreshold) {
-      return `conic-gradient(from 0deg, ${ringTrackColor} 0%, ${ringTrackColor} 100%)`;
+      return `conic-gradient(from 0deg, ${ringTrackColor} 0%, ${ringTrackColor} 100%), ${dartboardBackground}`;
     }
-    return `conic-gradient(from 0deg, ${ringStartColor} 0%, ${ringEndColor} ${clamped}%, ${ringTrackColor} ${clamped}%, ${ringTrackColor} 100%)`;
+    return `conic-gradient(from 0deg, ${ringStartColor} 0%, ${ringEndColor} ${clamped}%, ${ringTrackColor} ${clamped}%, ${ringTrackColor} 100%), ${dartboardBackground}`;
   });
 
   useEffect(() => {
@@ -64,22 +85,26 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent, mprValu
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <Box
         sx={{
-          width: ringSize,
-          height: ringSize,
-          minWidth: ringSize,
-          minHeight: ringSize,
+          width: outerRingSize,
+          height: outerRingSize,
+          minWidth: outerRingSize,
+          minHeight: outerRingSize,
           flexShrink: 0,
           aspectRatio: "1 / 1",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          borderRadius: "50%",
+          backgroundImage: dartboardBackground,
+          padding: { xs: "4px", sm: "6px" },
+          boxSizing: "border-box",
         }}
       >
         <Box
           component={motion.div}
           sx={{
-            width: "100%",
-            height: "100%",
+            width: ringSize,
+            height: ringSize,
             borderRadius: "50%",
             display: "flex",
             alignItems: "center",
@@ -94,7 +119,7 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent, mprValu
               : `1px solid ${alpha(theme.palette.divider, 0.6)}`,
           }}
           style={{
-            background: ringBackground,
+            backgroundImage: ringBackground,
           }}
         >
           <Box
@@ -106,7 +131,12 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent, mprValu
               flexShrink: 0,
               aspectRatio: "1 / 1",
               borderRadius: "50%",
-              backgroundColor: theme.palette.background.paper,
+              backgroundColor: alpha(theme.palette.common.black, 0.7),
+              backgroundImage: `radial-gradient(circle at 50% 50%, ${alpha(
+                theme.palette.common.black,
+                0.7
+              )} 0 68%, ${alpha(theme.palette.common.black, 0.45)} 68% 100%), ${dartboardBackground}`,
+              backgroundBlendMode: "normal",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",

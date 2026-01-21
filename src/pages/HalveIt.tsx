@@ -44,7 +44,7 @@ function TabPanel(props: TabPanelProps) {
       }}
     >
       {value === index && (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           {children}
         </Box>
       )}
@@ -197,6 +197,7 @@ const HalveIt: React.FC = () => {
               display: "flex",
               flexDirection: "column",
               overflow: "auto",
+              minHeight: 0,
             }}
           >
             <PlayerSelector
@@ -218,10 +219,18 @@ const HalveIt: React.FC = () => {
             sx={{
               mt: { xs: 1.5, sm: 2 },
               display: "flex",
-              flexDirection: "column",
               gap: 1,
             }}
           >
+            <Button
+              variant="outlined"
+              onClick={() => setTabValue(0)}
+              size="medium"
+              sx={{ flex: 1 }}
+            >
+              Back to Game Settings
+            </Button>
+
             <VibrationButton
               variant="contained"
               color="primary"
@@ -229,19 +238,10 @@ const HalveIt: React.FC = () => {
               disabled={selectedPlayerIds.length < 1}
               vibrationPattern={100}
               size="medium"
-              fullWidth
+              sx={{ flex: 1 }}
             >
               Start Game
             </VibrationButton>
-
-            <Button
-              variant="outlined"
-              onClick={() => setTabValue(0)}
-              size="medium"
-              fullWidth
-            >
-              Back to Game Settings
-            </Button>
           </Box>
         </TabPanel>
       </Paper>

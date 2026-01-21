@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Box, Paper, Typography, useTheme } from "@mui/material";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { alpha } from "@mui/material/styles";
@@ -38,6 +38,26 @@ const X01PlayerBox: React.FC<X01PlayerBoxProps> = ({
     ? theme.palette.primary.main
     : alpha(theme.palette.text.primary, 0.45);
   const ringTrackColor = alpha(theme.palette.text.primary, 0.12);
+  const dartboardBackground = useMemo(() => {
+    const segmentLight = alpha(theme.palette.text.primary, 0.08);
+    const segmentDark = alpha(theme.palette.text.primary, 0.18);
+    const bullInner = alpha(theme.palette.error.main, 0.7);
+    const bullOuter = alpha(theme.palette.success.main, 0.6);
+    const ringLight = alpha(theme.palette.text.primary, 0.1);
+    const ringDark = alpha(theme.palette.text.primary, 0.2);
+    const outerRing = alpha(theme.palette.text.primary, 0.12);
+    const baseFill = alpha(theme.palette.background.paper, 0.18);
+
+    return [
+      `repeating-conic-gradient(from -9deg, ${segmentLight} 0deg 18deg, ${segmentDark} 18deg 36deg)`,
+      `radial-gradient(circle at 50% 50%, ${bullInner} 0 6%, ${bullOuter} 6% 12%, ${ringLight} 12% 30%, ${ringDark} 30% 34%, ${ringLight} 34% 48%, ${outerRing} 48% 52%, ${baseFill} 52% 100%)`,
+    ].join(", ");
+  }, [
+    theme.palette.background.paper,
+    theme.palette.error.main,
+    theme.palette.success.main,
+    theme.palette.text.primary,
+  ]);
   const scorePercent = Math.max(
     0,
     Math.min(100, (player.score / player.initialScore) * 100)
@@ -48,10 +68,10 @@ const X01PlayerBox: React.FC<X01PlayerBoxProps> = ({
     damping: 22,
     mass: 0.9,
   });
-  const ringBackground = useTransform(
-    percentSpring,
-    (value) => `conic-gradient(${ringColor} ${value}%, ${ringTrackColor} 0)`
-  );
+  const ringBackground = useTransform(percentSpring, (value) => {
+    const clamped = Math.max(0, Math.min(100, value));
+    return `conic-gradient(from 0deg, ${ringColor} 0% ${clamped}%, ${ringTrackColor} ${clamped}% 100%), ${dartboardBackground}`;
+  });
 
   useEffect(() => {
     percentMotion.set(scorePercent);
@@ -168,7 +188,7 @@ const X01PlayerBox: React.FC<X01PlayerBoxProps> = ({
               position: "relative",
             }}
             style={{
-              background: ringBackground,
+              backgroundImage: ringBackground,
             }}
           >
             <Box
@@ -176,7 +196,15 @@ const X01PlayerBox: React.FC<X01PlayerBoxProps> = ({
                 width: { xs: 54, sm: 62 },
                 height: { xs: 54, sm: 62 },
                 borderRadius: "50%",
-                backgroundColor: theme.palette.background.paper,
+                backgroundColor: alpha(theme.palette.common.black, 0.7),
+                backgroundImage: `radial-gradient(circle at 50% 50%, ${alpha(
+                  theme.palette.common.black,
+                  0.7
+                )} 0 68%, ${alpha(
+                  theme.palette.common.black,
+                  0.45
+                )} 68% 100%), ${dartboardBackground}`,
+                backgroundBlendMode: "normal",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

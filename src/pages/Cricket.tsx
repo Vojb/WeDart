@@ -381,6 +381,7 @@ const Cricket: React.FC = () => {
               display: "flex",
               flexDirection: "column",
               overflow: "auto",
+              minHeight: 0,
             }}
           >
             <PlayerSelector
@@ -423,7 +424,7 @@ const Cricket: React.FC = () => {
           flexDirection: "column",
           borderRadius: 2,
           boxShadow: 3,
-          overflow: "auto",
+          overflow: "hidden",
         }}
       >
         <Typography
@@ -454,7 +455,15 @@ const Cricket: React.FC = () => {
           ))}
         </Stepper>
 
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", mb: 2 }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            mb: 2,
+            minHeight: 0,
+          }}
+        >
           {renderStepContent(activeStep)}
         </Box>
 

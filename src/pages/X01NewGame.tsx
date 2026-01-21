@@ -4,8 +4,6 @@ import {
   Typography,
   FormControlLabel,
   Switch,
-  Tabs,
-  Tab,
   Chip,
   Card,
   CardContent,
@@ -47,9 +45,27 @@ function TabPanel(props: TabPanelProps) {
       id={`game-setup-tabpanel-${index}`}
       aria-labelledby={`game-setup-tab-${index}`}
       {...other}
-      style={{ padding: "16px 0" }}
+      style={{
+        height: "100%",
+        display: value !== index ? "none" : "flex",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+      }}
     >
-      {value === index && <Box>{children}</Box>}
+      {value === index && (
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            py: 2,
+            minHeight: 0,
+          }}
+        >
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
@@ -144,10 +160,6 @@ const X01NewGame: React.FC = () => {
     setSelectedPlayers(selectedIds.map((id) => id.toString()));
   };
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
   const handleCustomValueChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -209,7 +221,13 @@ const X01NewGame: React.FC = () => {
   return (
     <Box sx={{ p: 1, height: "100%" }}>
       <Paper
-        sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column" }}
+        sx={{
+          p: 2,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
       >
         <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
           New X01 Game
@@ -237,162 +255,165 @@ const X01NewGame: React.FC = () => {
           </Step>
         </Stepper>
 
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
-        >
-          <Tab label="Game Settings" />
-          <Tab label="Players" />
-        </Tabs>
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <TabPanel value={tabValue} index={0}>
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <Box sx={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+                <Card variant="outlined" sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Game Type
+                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ mb: 2, flexWrap: "wrap" }}
+                    >
+                      {gameTypeOptions.map((option) => (
+                        <Chip
+                          key={option.value}
+                          label={option.label}
+                          onClick={() => selectGameType(option.value)}
+                          color={
+                            (isCustom && option.value === "custom") ||
+                            (!isCustom && gameType === option.value)
+                              ? "primary"
+                              : "default"
+                          }
+                          variant={
+                            (isCustom && option.value === "custom") ||
+                            (!isCustom && gameType === option.value)
+                              ? "filled"
+                              : "outlined"
+                          }
+                          sx={{ mb: 1 }}
+                        />
+                      ))}
+                    </Stack>
 
-        <TabPanel value={tabValue} index={0}>
-          <Card variant="outlined" sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Game Type
-              </Typography>
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{ mb: 2, flexWrap: "wrap" }}
+                    {isCustom && (
+                      <TextField
+                        fullWidth
+                        label="Custom X01 Value"
+                        variant="outlined"
+                        value={customValue}
+                        onChange={handleCustomValueChange}
+                        placeholder="Enter a custom value"
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">01</InputAdornment>
+                          ),
+                        }}
+                        helperText="Enter a number (e.g. 301, 501, 701, 901, etc.)"
+                      />
+                    )}
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <Typography variant="h6" gutterBottom>
+                      Game Rules
+                    </Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Number of Legs"
+                        type="number"
+                        value={numberOfLegs}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (value > 0) {
+                            setNumberOfLegs(value);
+                          }
+                        }}
+                        inputProps={{ min: 1 }}
+                        sx={{ mb: 2 }}
+                      />
+
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={gameSettings.isDoubleOut}
+                            onChange={(e) =>
+                              updateGameSettings({
+                                isDoubleOut: e.target.checked,
+                              })
+                            }
+                          />
+                        }
+                        label="Double Out"
+                      />
+
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={gameSettings.isDoubleIn}
+                            onChange={(e) =>
+                              updateGameSettings({
+                                isDoubleIn: e.target.checked,
+                              })
+                            }
+                          />
+                        }
+                        label="Double In"
+                      />
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Box>
+
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => setTabValue(1)}
+                sx={{ mt: 1 }}
               >
-                {gameTypeOptions.map((option) => (
-                  <Chip
-                    key={option.value}
-                    label={option.label}
-                    onClick={() => selectGameType(option.value)}
-                    color={
-                      (isCustom && option.value === "custom") ||
-                      (!isCustom && gameType === option.value)
-                        ? "primary"
-                        : "default"
-                    }
-                    variant={
-                      (isCustom && option.value === "custom") ||
-                      (!isCustom && gameType === option.value)
-                        ? "filled"
-                        : "outlined"
-                    }
-                    sx={{ mb: 1 }}
-                  />
-                ))}
-              </Stack>
+                Next: Select Players
+              </Button>
+            </Box>
+          </TabPanel>
 
-              {isCustom && (
-                <TextField
-                  fullWidth
-                  label="Custom X01 Value"
-                  variant="outlined"
-                  value={customValue}
-                  onChange={handleCustomValueChange}
-                  placeholder="Enter a custom value"
-                  sx={{ mb: 2 }}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">01</InputAdornment>
-                    ),
-                  }}
-                  helperText="Enter a number (e.g. 301, 501, 701, 901, etc.)"
-                />
-              )}
-
-              <Divider sx={{ my: 2 }} />
-
+          <TabPanel value={tabValue} index={1}>
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
               <Typography variant="h6" gutterBottom>
-                Game Rules
+                Select Players
               </Typography>
-              <Stack spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Number of Legs"
-                  type="number"
-                  value={numberOfLegs}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (value > 0) {
-                      setNumberOfLegs(value);
-                    }
-                  }}
-                  inputProps={{ min: 1 }}
-                  sx={{ mb: 2 }}
+
+              <Box sx={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+                <PlayerSelector
+                  players={players}
+                  selectedPlayerIds={selectedPlayers.map((id) => parseInt(id))}
+                  onSelectionChange={handlePlayersChange}
+                  minPlayers={1}
+                  maxPlayers={4}
                 />
+              </Box>
 
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={gameSettings.isDoubleOut}
-                      onChange={(e) =>
-                        updateGameSettings({ isDoubleOut: e.target.checked })
-                      }
-                    />
-                  }
-                  label="Double Out"
-                />
+            <Box sx={{ mt: 3, display: "flex", gap: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setTabValue(0)}
+                sx={{ flex: 1 }}
+              >
+                Back to Game Settings
+              </Button>
 
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={gameSettings.isDoubleIn}
-                      onChange={(e) =>
-                        updateGameSettings({ isDoubleIn: e.target.checked })
-                      }
-                    />
-                  }
-                  label="Double In"
-                />
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Button
-            variant="outlined"
-            fullWidth
-            onClick={() => setTabValue(1)}
-            sx={{ mt: 1 }}
-          >
-            Next: Select Players
-          </Button>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          <Typography variant="h6" gutterBottom>
-            Select Players
-          </Typography>
-
-          <PlayerSelector
-            players={players}
-            selectedPlayerIds={selectedPlayers.map((id) => parseInt(id))}
-            onSelectionChange={handlePlayersChange}
-            minPlayers={1}
-            maxPlayers={4}
-          />
-
-          <Box sx={{ mt: 3 }}>
-            <VibrationButton
-              variant="contained"
-              size="large"
-              onClick={handleStartGame}
-              disabled={
-                selectedPlayers.length === 0 || (isCustom && !customValue)
-              }
-              fullWidth
-              vibrationPattern={100}
-            >
-              Start Game
-            </VibrationButton>
-
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => setTabValue(0)}
-              sx={{ mt: 1 }}
-            >
-              Back to Game Settings
-            </Button>
-          </Box>
-        </TabPanel>
+              <VibrationButton
+                variant="contained"
+                size="large"
+                onClick={handleStartGame}
+                disabled={
+                  selectedPlayers.length === 0 || (isCustom && !customValue)
+                }
+                vibrationPattern={100}
+                sx={{ flex: 1 }}
+              >
+                Start Game
+              </VibrationButton>
+            </Box>
+            </Box>
+          </TabPanel>
+        </Box>
       </Paper>
 
       {/* Exit Confirmation Dialog */}
