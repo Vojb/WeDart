@@ -137,10 +137,14 @@ export const useCricketStore = create<CricketStoreState>()(
 
         // Create a new game with the selected settings
         set((state) => {
-          // Find the selected players from the cached players
-          const selectedPlayers = cachedPlayers.filter((player) =>
-            playerIds.includes(player.id)
-          );
+          // Find the selected players from the cached players in selection order
+          const selectedPlayers = playerIds
+            .map((playerId) =>
+              cachedPlayers.find((player) => player.id === playerId)
+            )
+            .filter(
+              (player): player is { id: number; name: string } => Boolean(player)
+            );
 
           console.log("Selected players:", selectedPlayers);
 
@@ -443,7 +447,7 @@ export const useCricketStore = create<CricketStoreState>()(
                 rounds: legRounds,
               };
 
-              const legsToWin = Math.ceil(newGame.totalLegs / 2);
+              const legsToWin = newGame.totalLegs;
               const hasMatchWinner = updatedLegsWon[winnerId] >= legsToWin;
 
               newGame.completedLegs = [...newGame.completedLegs, completedLeg];

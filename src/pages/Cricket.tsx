@@ -100,10 +100,10 @@ const Cricket: React.FC = () => {
 
     console.log("Starting Cricket game with players:", selectedPlayerIds);
 
-    // Filter and prepare selected players
-    const selectedPlayers = players.filter((player) =>
-      selectedPlayerIds.includes(player.id)
-    );
+    // Filter and prepare selected players in the selected order
+    const selectedPlayers = selectedPlayerIds
+      .map((playerId) => players.find((player) => player.id === playerId))
+      .filter((player): player is (typeof players)[number] => Boolean(player));
 
     console.log("Selected players:", selectedPlayers);
 

@@ -542,7 +542,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
                 hiddenNumbers: newGame.hiddenNumbers,
               };
 
-              const legsToWin = Math.ceil(newGame.totalLegs / 2);
+              const legsToWin = newGame.totalLegs;
               const hasMatchWinner = updatedLegsWon[winnerId] >= legsToWin;
 
               newGame.completedLegs = [...newGame.completedLegs, completedLeg];

@@ -17,10 +17,13 @@ interface ScoreRingProps {
   player: CricketPlayer;
   color: string;
   isCurrent: boolean;
+  mprValue?: number;
 }
 
-const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent }) => {
+const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent, mprValue }) => {
   const theme = useTheme();
+  const ringSize = { xs: 76, sm: 88 };
+  const innerRingSize = { xs: 58, sm: 68 };
   const ringTrackColor = useMemo(
     () => alpha(theme.palette.text.primary, 0.12),
     [theme.palette.text.primary]
@@ -60,40 +63,57 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent }) => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <Box
-        component={motion.div}
         sx={{
-          width: { xs: 76, sm: 88 },
-          height: { xs: 76, sm: 88 },
-          borderRadius: "50%",
+          width: ringSize,
+          height: ringSize,
+          minWidth: ringSize,
+          minHeight: ringSize,
+          flexShrink: 0,
+          aspectRatio: "1 / 1",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: `0 0 0 6px ${alpha(color, 0.12)}, 0 10px 22px ${alpha(
-            theme.palette.common.black,
-            0.18
-          )}`,
-          position: "relative",
-          border: isCurrent
-            ? `2px solid ${alpha(color, 0.85)}`
-            : `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-        }}
-        style={{
-          background: ringBackground,
         }}
       >
         <Box
+          component={motion.div}
           sx={{
-            width: { xs: 58, sm: 68 },
-            height: { xs: 58, sm: 68 },
+            width: "100%",
+            height: "100%",
             borderRadius: "50%",
-            backgroundColor: theme.palette.background.paper,
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            gap: 0.2,
+            boxShadow: `0 0 0 6px ${alpha(color, 0.12)}, 0 10px 22px ${alpha(
+              theme.palette.common.black,
+              0.18
+            )}`,
+            position: "relative",
+            border: isCurrent
+              ? `2px solid ${alpha(color, 0.85)}`
+              : `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+          }}
+          style={{
+            background: ringBackground,
           }}
         >
+          <Box
+            sx={{
+              width: innerRingSize,
+              height: innerRingSize,
+              minWidth: innerRingSize,
+              minHeight: innerRingSize,
+              flexShrink: 0,
+              aspectRatio: "1 / 1",
+              borderRadius: "50%",
+              backgroundColor: theme.palette.background.paper,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 0.2,
+            }}
+          >
           <Typography
             variant="h4"
             sx={{
@@ -110,7 +130,20 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent }) => {
               startWhen={true}
             />
           </Typography>
-       
+          {typeof mprValue === "number" && (
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: "0.45rem", sm: "0.6rem" },
+                letterSpacing: 0.5,
+                color: alpha(color, 0.85),
+              }}
+            >
+              MPR {mprValue.toFixed(1)}
+            </Typography>
+          )}
+          </Box>
         </Box>
       </Box>
     </Box>
@@ -125,167 +158,127 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
   avgMarksPerRoundByPlayer,
 }) => {
   const theme = useTheme();
-  const firstToLegs = Math.ceil(totalLegs / 2);
+  const firstToLegs = totalLegs;
   const leftPlayer = players[0];
   const rightPlayer = players[1];
   const leftMpr = avgMarksPerRoundByPlayer[leftPlayer.id] ?? 0;
   const rightMpr = avgMarksPerRoundByPlayer[rightPlayer.id] ?? 0;
+  const buildPlayerChipSx = (color: string, isCurrent: boolean, align: "left" | "right") => ({
+    flex: 1,
+    width: "100%",
+    maxWidth: { xs: 260, sm: 320, md: 360 },
+    px: { xs: 1, sm: 1.25 },
+    py: { xs: 0.75, sm: 0.9 },
+    borderRadius: 999,
+    backgroundImage: `linear-gradient(135deg, ${alpha(color, 0.25)} 0%, ${alpha(
+      color,
+      0.08
+    )} 70%)`,
+    border: `1px solid ${alpha(color, isCurrent ? 0.65 : 0.35)}`,
+    textAlign: align,
+    position: "relative",
+    overflow: "hidden",
+    backdropFilter: "blur(10px)",
+    boxShadow: isCurrent
+      ? `0 14px 26px ${alpha(color, 0.35)}`
+      : `0 10px 22px ${alpha(theme.palette.common.black, 0.16)}`,
+    transform: isCurrent ? "translateY(-1px)" : "none",
+    transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: 999,
+      border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`,
+      pointerEvents: "none",
+    },
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: "45%",
+      background: `linear-gradient(180deg, ${alpha(
+        theme.palette.common.white,
+        0.18
+      )}, transparent)`,
+      pointerEvents: "none",
+    },
+  });
 
   return (
   <>
       <Box
         sx={{
           display: "flex",
-          pt: 0,
-          gap: 2,
-          pb: 1,
+          alignItems: "center",
+          flexDirection: "row",
+          justifyItems: "stretch",
         }}
       >
-        <Box
-          sx={{
-            flex: 1,
-            px: 1,
-            py: 0.5,
-            borderRadius: 1,
-            backgroundColor:
-              currentPlayerIndex === 0
-                ? alpha(theme.palette.primary.main, 0.35)
-                : alpha(theme.palette.primary.main, 0.2),
-            border: `1px solid ${alpha(
-              theme.palette.primary.main,
-              currentPlayerIndex === 0 ? 0.7 : 0.4
-            )}`,
-            position: "relative",
-            boxShadow:
-              currentPlayerIndex === 0
-                ? `0 0 12px ${alpha(theme.palette.primary.main, 0.35)}`
-                : "none",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 0.6,
-              width: "100%",
-            }}
-          >
-            <Typography
+        <Box sx={{ flex:1,display: "flex",flexDirection: "column", gap:1,alignItems: "center", justifyContent: "center", width: "100%" }}>
+        <Typography
               variant="subtitle2"
               sx={{
                 fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: 0.6,
-                fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                letterSpacing: 0.7,
+                fontSize: { xs: "0.72rem", sm: "0.9rem" },
+                width: "100%",
+                maxWidth: { xs: 120, sm: 200 },
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                textAlign: "center",
               }}
             >
               {leftPlayer.name}
             </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+         
             <Box
-              sx={{
-                px: 0.75,
-                py: 0.15,
-                borderRadius: 1,
-                backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.45)}`,
-                fontSize: "0.6rem",
-                fontWeight: 700,
-                letterSpacing: 0.4,
-                color: alpha(theme.palette.text.primary, 0.85),
-                textAlign: "center",
-              }}
+              sx={buildPlayerChipSx(
+                theme.palette.primary.main,
+                currentPlayerIndex === 0,
+                "left"
+              )}
             >
-              MPR {leftMpr.toFixed(1)}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexDirection: "column",
+                  gap: { xs: 0.6, sm: 0.8 },
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 0.35,
+                    alignItems: "center",
+                  }}
+                >
+                  <ScoreRing
+                    player={leftPlayer}
+                    color={
+                      currentPlayerIndex === 0
+                        ? theme.palette.primary.main
+                        : alpha(theme.palette.primary.main, 0.65)
+                    }
+                    isCurrent={currentPlayerIndex === 0}
+                    mprValue={leftMpr}
+                  />
+                </Box>
+              </Box>
             </Box>
           </Box>
         </Box>
-        <Box
-          sx={{
-            flex: 1,
-            px: 1,
-            py: 0.5,
-            borderRadius: 1,
-            backgroundColor:
-              currentPlayerIndex === 1
-                ? alpha(theme.palette.secondary.main, 0.35)
-                : alpha(theme.palette.secondary.main, 0.2),
-            border: `1px solid ${alpha(
-              theme.palette.secondary.main,
-              currentPlayerIndex === 1 ? 0.7 : 0.4
-            )}`,
-            textAlign: "right",
-            position: "relative",
-            boxShadow:
-              currentPlayerIndex === 1
-                ? `0 0 12px ${alpha(theme.palette.secondary.main, 0.35)}`
-                : "none",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row-reverse",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 0.6,
-              width: "100%",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: 0.6,
-                fontSize: { xs: "0.75rem", sm: "0.85rem" },
-              }}
-            >
-              {rightPlayer.name}
-            </Typography>
-            <Box
-              sx={{
-                px: 0.75,
-                py: 0.15,
-                borderRadius: 1,
-                backgroundColor: alpha(theme.palette.secondary.main, 0.2),
-                border: `1px solid ${alpha(theme.palette.secondary.main, 0.45)}`,
-                fontSize: "0.6rem",
-                fontWeight: 700,
-                letterSpacing: 0.4,
-                color: alpha(theme.palette.text.primary, 0.85),
-                textAlign: "center",
-              }}
-            >
-              MPR {rightMpr.toFixed(1)}
-            </Box>
-          </Box>
-        </Box>
-      </Box>
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          alignItems: "center",
-          justifyItems: "center",
-          gap: 1,
-        }}
-      >
-        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
-          <ScoreRing
-            player={leftPlayer}
-            color={
-              currentPlayerIndex === 0
-                ? theme.palette.primary.main
-                : alpha(theme.palette.primary.main, 0.65)
-            }
-            isCurrent={currentPlayerIndex === 0}
-          />
-        </Box>
-
-        <Box sx={{ textAlign: "center", px: 1 }}>
+        <Box sx={{ textAlign: "center", px: 1,flex:0.5 }}>
           <Typography
             variant="caption"
             sx={{
@@ -322,16 +315,67 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", justifyContent: "center", width: "100%" }}>
-          <ScoreRing
-            player={rightPlayer}
-            color={
-              currentPlayerIndex === 1
-                ? theme.palette.secondary.main
-                : alpha(theme.palette.secondary.main, 0.65)
-            }
-            isCurrent={currentPlayerIndex === 1}
-          />
+        <Box sx={{ flex:1,display: "flex",gap:1, justifyContent: "center", width: "100%",flexDirection: "column", alignItems: "center" }}>
+        <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.7,
+
+                fontSize: { xs: "0.72rem", sm: "0.9rem" },
+                color: alpha(theme.palette.text.primary, 0.92),
+                width: "100%",
+                maxWidth: { xs: 120, sm: 200 },
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                textAlign: "center",
+              }}
+            >
+              {rightPlayer.name}
+            </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+           
+            <Box
+              sx={buildPlayerChipSx(
+                theme.palette.secondary.main,
+                currentPlayerIndex === 1,
+                "right"
+              )}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexDirection: "column",
+                  gap: { xs: 0.6, sm: 0.8 },
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 0.35,
+                    alignItems: "center",
+                  }}
+                >
+                  <ScoreRing
+                    player={rightPlayer}
+                    color={
+                      currentPlayerIndex === 1
+                        ? theme.palette.secondary.main
+                        : alpha(theme.palette.secondary.main, 0.65)
+                    }
+                    isCurrent={currentPlayerIndex === 1}
+                    mprValue={rightMpr}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Box>
         </Box>
       </Box>
     </>
