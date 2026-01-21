@@ -46,7 +46,11 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent }) => {
   });
   const ringBackground = useTransform(percentSpring, (value) => {
     const clamped = Math.max(0, Math.min(100, value));
-    return `conic-gradient(${ringStartColor} 0%, ${ringEndColor} ${clamped}%, ${ringTrackColor} ${clamped}%, ${ringTrackColor} 100%)`;
+    const zeroThreshold = isCurrent ? 0.01 : 0.5;
+    if (clamped <= zeroThreshold) {
+      return `conic-gradient(from 0deg, ${ringTrackColor} 0%, ${ringTrackColor} 100%)`;
+    }
+    return `conic-gradient(from 0deg, ${ringStartColor} 0%, ${ringEndColor} ${clamped}%, ${ringTrackColor} ${clamped}%, ${ringTrackColor} 100%)`;
   });
 
   useEffect(() => {
