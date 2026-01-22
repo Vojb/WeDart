@@ -329,7 +329,7 @@ const NumericInput: React.FC<NumericInputProps> = ({
               <VibrationButton
                 fullWidth
                 variant="contained"
-                color="info"
+                color="primary"
                 onClick={() => handleNumericInput(num.toString())}
                 sx={{
                   height: "100%",

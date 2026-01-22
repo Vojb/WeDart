@@ -41,6 +41,8 @@ function TabPanel(props: TabPanelProps) {
         height: "100%",
         display: value !== index ? "none" : "flex",
         flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
       }}
     >
       {value === index && (
@@ -191,58 +193,54 @@ const HalveIt: React.FC = () => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "auto",
-              minHeight: 0,
-            }}
-          >
-            <PlayerSelector
-              players={players}
-              selectedPlayerIds={selectedPlayerIds}
-              onSelectionChange={setSelectedPlayerIds}
-              minPlayers={1}
-              maxPlayers={8}
-            />
+          <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+              <PlayerSelector
+                players={players}
+                selectedPlayerIds={selectedPlayerIds}
+                onSelectionChange={setSelectedPlayerIds}
+                minPlayers={1}
+                maxPlayers={8}
+              />
+            </Box>
 
-            {error && (
-              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                {error}
-              </Typography>
-            )}
-          </Box>
+            <Box sx={{ mt: "auto" }}>
+              {error && (
+                <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                  {error}
+                </Typography>
+              )}
 
-          <Box
-            sx={{
-              mt: { xs: 1.5, sm: 2 },
-              display: "flex",
-              flexDirection: "row",
-              gap: 1,
-            }}
-          >
-            <Button
-              variant="outlined"
-              onClick={() => setTabValue(0)}
-              size="medium"
-              sx={{ flex: 1 }}
-            >
-              Back to Game Settings
-            </Button>
+              <Box
+                sx={{
+                  mt: { xs: 1.5, sm: 2 },
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: 1,
+                }}
+              >
+                <Button
+                  variant="outlined"
+                  onClick={() => setTabValue(0)}
+                  size="medium"
+                  sx={{ flex: 1 }}
+                >
+                  Back to Game Settings
+                </Button>
 
-            <VibrationButton
-              variant="contained"
-              color="primary"
-              onClick={handleStartGame}
-              disabled={selectedPlayerIds.length < 1}
-              vibrationPattern={100}
-              size="medium"
-              sx={{ flex: 1 }}
-            >
-              Start Game
-            </VibrationButton>
+                <VibrationButton
+                  variant="contained"
+                  color="primary"
+                  onClick={handleStartGame}
+                  disabled={selectedPlayerIds.length < 1}
+                  vibrationPattern={100}
+                  size="medium"
+                  sx={{ flex: 1 }}
+                >
+                  Start Game
+                </VibrationButton>
+              </Box>
+            </Box>
           </Box>
         </TabPanel>
       </Paper>

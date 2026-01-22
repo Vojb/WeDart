@@ -869,7 +869,7 @@ const DartInput: React.FC<DartInputProps> = ({ onScore, gameContext }) => {
             <VibrationButton
               key={num}
               size="small"
-              color="info"
+              color="primary"
               variant={
                 selectedNumber === num && (isHolding || showMultiplier)
                   ? "outlined"
