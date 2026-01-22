@@ -16,6 +16,7 @@ interface X01TwoPlayerScoreboardProps {
 interface ScoreRingProps {
   player: GamePlayer;
   color: string;
+  direction?: "normal" | "reverse";
 }
 
 interface CheckoutGuideProps {
@@ -81,7 +82,11 @@ const CheckoutGuide: React.FC<CheckoutGuideProps> = ({ parts, align, color }) =>
   );
 };
 
-const ScoreRing: React.FC<ScoreRingProps> = ({ player, color }) => {
+const ScoreRing: React.FC<ScoreRingProps> = ({
+  player,
+  color,
+  direction = "normal",
+}) => {
   const theme = useTheme();
   const ringTrackColor = alpha(theme.palette.text.primary, 0.12);
   const dartboardBackground = useMemo(() => {
@@ -116,6 +121,10 @@ const ScoreRing: React.FC<ScoreRingProps> = ({ player, color }) => {
   });
   const ringBackground = useTransform(percentSpring, (value) => {
     const clamped = Math.max(0, Math.min(100, value));
+    if (direction === "reverse") {
+      const start = Math.max(0, Math.min(100, 100 - clamped));
+      return `conic-gradient(from 0deg, ${ringTrackColor} 0% ${start}%, ${color} ${start}% 100%), ${dartboardBackground}`;
+    }
     return `conic-gradient(from 0deg, ${color} 0% ${clamped}%, ${ringTrackColor} ${clamped}% 100%), ${dartboardBackground}`;
   });
 
@@ -343,6 +352,7 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
                           ? theme.palette.primary.main
                           : alpha(theme.palette.primary.main, 0.65)
                       }
+                      direction="normal"
                     />
                   </Box>
                 </Box>
@@ -499,6 +509,7 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
                           ? theme.palette.secondary.main
                           : alpha(theme.palette.secondary.main, 0.65)
                       }
+                      direction="reverse"
                     />
                   </Box>
                 </Box>
