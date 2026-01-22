@@ -219,6 +219,7 @@ const HalveIt: React.FC = () => {
             sx={{
               mt: { xs: 1.5, sm: 2 },
               display: "flex",
+              flexDirection: "row",
               gap: 1,
             }}
           >
