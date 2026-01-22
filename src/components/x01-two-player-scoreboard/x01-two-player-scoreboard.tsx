@@ -21,11 +21,10 @@ interface ScoreRingProps {
 interface CheckoutGuideProps {
   parts: string[];
   align: "left" | "right";
+  color: string;
 }
 
-const CheckoutGuide: React.FC<CheckoutGuideProps> = ({ parts, align }) => {
-  const theme = useTheme();
-
+const CheckoutGuide: React.FC<CheckoutGuideProps> = ({ parts, align, color }) => {
   if (parts.length === 0) {
     return null;
   }
@@ -35,41 +34,49 @@ const CheckoutGuide: React.FC<CheckoutGuideProps> = ({ parts, align }) => {
       sx={{
         display: "flex",
         flexDirection: "column",
+        justifyContent: "center",
         alignItems: align === "left" ? "flex-start" : "flex-end",
         height: { xs: 76, sm: 88 },
         minWidth: 36,
       }}
     >
-      {parts.map((part, index) => (
-        <Box
-          key={`${part}-${index}`}
-          sx={{
-            px: 1,
-            py: 0.2,
-            mt: 1,
-            borderRadius: 1,
-            backgroundColor: alpha(theme.palette.background.paper, 0.9),
-            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-            boxShadow: `0 2px 6px ${alpha(theme.palette.common.black, 0.12)}`,
-            pointerEvents: "none",
-            textAlign: "center",
-          }}
-        >
-          <Typography
-            variant="caption"
+      {parts.map((part, index) => {
+        const translateX = align === "left" ? -12 : 12;
+        const translateXNotMiddle = align === "left" ? 0 : 0;
+        const isMiddle =  parts.length % 2 === 1 && index === Math.floor(parts.length / 2);
+      
+        return (
+          <Box
+            key={`${part}-${index}`}
             sx={{
-              fontWeight: 700,
-              fontSize: "0.6rem",
-              lineHeight: 1.1,
-              color: alpha(theme.palette.text.primary, 0.8),
-              display: "block",
+              px: 1,
+              py: 0.2,
+              mt: 1,
+              mb: 1,
+              borderRadius: 1,
+              backgroundColor: alpha(color, 0.8),
+              border: `1px solid ${alpha(color, 0.6)}`,
+              boxShadow: `0 2px 6px ${alpha(color, 0.24)}`,
+              pointerEvents: "none",
               textAlign: "center",
+              transform: isMiddle ? `translateX(${translateX}px)` : `translateX(${translateXNotMiddle}px)`,
             }}
           >
-            {part}
-          </Typography>
-        </Box>
-      ))}
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                fontSize: "0.6rem",
+                lineHeight: 1.1,
+                display: "block",
+                textAlign: "center",
+              }}
+            >
+              {part}
+            </Typography>
+          </Box>
+        );
+      })}
     </Box>
   );
 };
@@ -194,7 +201,7 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
       ? player.avgPerRound
       : player.dartsThrown > 0
         ? (player.initialScore - player.score) /
-          Math.ceil(player.dartsThrown / 3)
+        Math.ceil(player.dartsThrown / 3)
         : 0;
   const buildPlayerChipSx = (color: string, isCurrent: boolean, align: "left" | "right") => ({
     flex: 1,
@@ -260,7 +267,6 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
           justifyItems: "stretch",
         }}
       >
-
         <Box
           sx={{
             flex: 1,
@@ -272,6 +278,7 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
             width: "100%",
           }}
         >
+
           <Typography
             variant="subtitle2"
             sx={{
@@ -289,31 +296,30 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
           >
             {leftPlayer.name}
           </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 0.5,
-            }}
-          >
+          <Box sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 0.5,
+          }}>
+
             <Box
-              sx={buildPlayerChipSx(
-                theme.palette.primary.main,
-                currentPlayerIndex === 0,
-                "left"
-              )}
+              sx={{
+                position: "relative",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 0.5,
+                width: "100%",
+              }}
             >
               <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  flexDirection: "column",
-                  gap: { xs: 0.6, sm: 0.8 },
-                  width: "100%",
-                  position: "relative",
-                }}
+                sx={buildPlayerChipSx(
+                  theme.palette.primary.main,
+                  currentPlayerIndex === 0,
+                  "left"
+                )}
               >
+
                 <Box
                   sx={{
                     display: "flex",
@@ -322,7 +328,14 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
                     gap: 0.75,
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+
                     <ScoreRing
                       player={leftPlayer}
                       color={
@@ -334,9 +347,18 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
                   </Box>
                 </Box>
 
-            </Box>
+
+              </Box>
+              <Box sx={{ position: "absolute", top: 8, left: -12, bottom: 0 }}>
+                <CheckoutGuide
+                  parts={leftCheckoutParts}
+                  align="left"
+                  color={theme.palette.primary.main}
+                />
+              </Box>
 
             </Box>
+
             <Chip
               label={`Avg ${getAvgPerRound(leftPlayer).toFixed(1)}`}
               size="small"
@@ -352,7 +374,6 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
 
           </Box>
         </Box>
-        <CheckoutGuide parts={leftCheckoutParts} align="left" />
 
         <Box sx={{ textAlign: "center", px: 1, flex: 0.5 }}>
           <Typography
@@ -401,7 +422,6 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
             {gameType}
           </Typography>
         </Box>
-        <CheckoutGuide parts={rightCheckoutParts} align="right" />
 
         <Box
           sx={{
@@ -441,28 +461,53 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
             }}
           >
             <Box
-              sx={buildPlayerChipSx(
-                theme.palette.secondary.main,
-                currentPlayerIndex === 1,
-                "right"
-              )}
+              sx={{
+                position: "relative",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 0.5,
+                width: "100%",
+              }}
             >
               <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexDirection: "row",
-                  gap: 0.75,
-                }}
+                sx={buildPlayerChipSx(
+                  theme.palette.secondary.main,
+                  currentPlayerIndex === 1,
+                  "right"
+                )}
               >
-                <ScoreRing
-                  player={rightPlayer}
-                  color={
-                    currentPlayerIndex === 1
-                      ? theme.palette.secondary.main
-                      : alpha(theme.palette.secondary.main, 0.65)
-                  }
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    gap: 0.75,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ScoreRing
+                      player={rightPlayer}
+                      color={
+                        currentPlayerIndex === 1
+                          ? theme.palette.secondary.main
+                          : alpha(theme.palette.secondary.main, 0.65)
+                      }
+                    />
+                  </Box>
+                </Box>
+              </Box>
+              <Box sx={{ position: "absolute", top: 8, right: -12, bottom: 0 }}>
+                <CheckoutGuide
+                  parts={rightCheckoutParts}
+                  align="right"
+                  color={theme.palette.secondary.main}
                 />
               </Box>
             </Box>
@@ -479,9 +524,7 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
               }}
             />
           </Box>
-          
         </Box>
-
       </Box>
     </Paper>
   );
