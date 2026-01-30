@@ -19,7 +19,10 @@ import {
 import { Undo, EmojiEvents, ExitToApp } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWarmupStore } from "../store/useWarmupStore";
-import { useHistoryStore } from "../store/useHistoryStore";
+import {
+  useHistoryStore,
+  WarmupCompletedGame,
+} from "../store/useHistoryStore";
 import { useStore } from "../store/useStore";
 import { v4 as uuidv4 } from "uuid";
 import VibrationButton from "../components/VibrationButton";
@@ -75,9 +78,9 @@ const WarmupGame: React.FC = () => {
       (Date.now() - gameStartTimeRef.current) / 1000,
     );
 
-    const completedGame = {
+    const completedGame: WarmupCompletedGame = {
       id: uuidv4(),
-      gameType: "warmup" as const,
+      gameType: "warmup",
       timestamp: Date.now(),
       dartCount: currentGame.dartCount,
       duration: gameDuration,

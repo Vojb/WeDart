@@ -20,11 +20,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
   ListItemText,
-  ListItemSecondaryAction,
-  Divider,
   Stepper,
   Step,
   StepLabel,
@@ -170,7 +166,11 @@ const Warmup: React.FC = () => {
 
   const handleLoadConfig = (config: WarmupConfig) => {
     setLoadedConfig(config);
-    setDartCount(config.dartCount);
+    setDartCount(
+      config.dartCount === 33 || config.dartCount === 66 || config.dartCount === 99
+        ? config.dartCount
+        : 33,
+    );
     setCustomTargets(config.targets);
     setTargetMode("custom");
     setError(null);

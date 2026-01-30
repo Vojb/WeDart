@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 // Define game types enum
 export type X01GameType = "301" | "501" | "701" | (string & {});
-export type GameType = X01GameType | "cricket" | "halveit";
+export type GameType = X01GameType | "cricket" | "halveit" | "warmup";
 
 // Define the base completed game interface with common properties
 export interface BaseCompletedGame {
@@ -92,11 +92,30 @@ export interface HalveItCompletedRound {
   totalScore?: number; // For target-score rounds
 }
 
+// Warmup specific game properties
+export interface WarmupCompletedGame extends BaseCompletedGame {
+  gameType: "warmup";
+  dartCount: number;
+  players: WarmupCompletedGamePlayer[];
+}
+
+// Warmup player stats (finalScore = hit percentage)
+export interface WarmupCompletedGamePlayer extends BaseCompletedGamePlayer {
+  finalScore: number; // hit percentage
+  rounds: {
+    roundNumber: number;
+    target: number | "Bull";
+    hits: number;
+    attempts: number;
+  }[];
+}
+
 // Union type for all game types
 export type CompletedGame =
   | X01CompletedGame
   | CricketCompletedGame
-  | HalveItCompletedGame;
+  | HalveItCompletedGame
+  | WarmupCompletedGame;
 
 // Type guard functions to check game types
 export function isX01Game(game: CompletedGame): game is X01CompletedGame {
@@ -117,6 +136,12 @@ export function isHalveItGame(
   game: CompletedGame
 ): game is HalveItCompletedGame {
   return game.gameType === "halveit";
+}
+
+export function isWarmupGame(
+  game: CompletedGame
+): game is WarmupCompletedGame {
+  return game.gameType === "warmup";
 }
 
 interface HistoryState {

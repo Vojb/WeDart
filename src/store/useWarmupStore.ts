@@ -74,13 +74,12 @@ export const useWarmupStore = create<WarmupStoreState>()(
 
       startGame: (dartCount, targets, playerIds, players) => {
         const sortedTargets = [...targets].sort((a, b) => a.order - b.order);
-        const totalRounds = Math.ceil(dartCount / 3);
-        
+
         // Use provided players or fall back to cached players
         const playerSource = players || cachedPlayers;
-        
+
         const warmupPlayers: WarmupPlayer[] = playerIds
-          .map((playerId) => {
+          .map((playerId): WarmupPlayer | null => {
             const player = playerSource.find((p) => p.id === playerId);
             if (!player) {
               console.error(`Player with ID ${playerId} not found`);
@@ -89,7 +88,7 @@ export const useWarmupStore = create<WarmupStoreState>()(
             return {
               id: player.id,
               name: player.name,
-              rounds: [],
+              rounds: [] as WarmupRound[],
               totalHits: 0,
               totalAttempts: 0,
               hitPercentage: 0,
