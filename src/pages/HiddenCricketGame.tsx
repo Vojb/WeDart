@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -32,6 +32,7 @@ import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
+import CricketShiftedScoreboard from "../components/cricket-shifted-scoreboard/cricket-shifted-scoreboard";
 import { motion, Variants } from "framer-motion";
 import MultiplierSelector from "../components/multiplier-selector/multiplier-selector";
 import HiddenCricketTwoPlayersLayout from "../components/hidden-cricket-two-players-layout/hidden-cricket-two-players-layout";
@@ -57,8 +58,11 @@ const HiddenCricketGame: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGame, setIsValidGame] = useState(true);
   const [lastClickTime, setLastClickTime] = useState<number>(Date.now());
+  const [isShifted, setIsShifted] = useState(false);
   const [showMultiplierSelector, setShowMultiplierSelector] = useState(false);
-  const [selectedNumber, setSelectedNumber] = useState<number | string | null>(null);
+  const [selectedNumber, setSelectedNumber] = useState<number | string | null>(
+    null,
+  );
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const autoAdvanceTimerRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
@@ -67,7 +71,26 @@ const HiddenCricketGame: React.FC = () => {
 
   // Numbers 1-20 and Bull for button input (in order)
   const allNumbers = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
     "Bull",
   ];
 
@@ -228,6 +251,33 @@ const HiddenCricketGame: React.FC = () => {
     }
   }, [isLoading, currentGame, navigate]);
 
+  const avgMarksPerRoundByPlayer = useMemo(() => {
+    if (!currentGame) return {};
+    return currentGame.players.reduce(
+      (acc, player) => {
+        const playerRounds = currentGame.rounds.filter(
+          (round) => round.playerId === player.id,
+        );
+        const allRounds = [...playerRounds];
+        if (
+          currentGame.currentRound &&
+          currentGame.currentRound.playerId === player.id
+        ) {
+          allRounds.push(currentGame.currentRound);
+        }
+        const totalMarks = allRounds.reduce(
+          (sum, round) => sum + round.darts.length,
+          0,
+        );
+        const avgMarksPerRound =
+          allRounds.length > 0 ? totalMarks / allRounds.length : 0;
+        acc[player.id] = avgMarksPerRound;
+        return acc;
+      },
+      {} as Record<number, number>,
+    );
+  }, [currentGame]);
+
   // Handle back button and navigation attempts
   useEffect(() => {
     // Function to handle the back button press
@@ -276,8 +326,7 @@ const HiddenCricketGame: React.FC = () => {
   }
 
   // Safely access currentPlayer now that we've validated in the effect
-  const currentPlayer =
-    currentGame?.players?.[currentGame.currentPlayerIndex];
+  const currentPlayer = currentGame?.players?.[currentGame.currentPlayerIndex];
 
   const handleNumberClick = (number: number | string) => {
     if (!currentGame || currentGame.isGameFinished) return;
@@ -412,7 +461,7 @@ const HiddenCricketGame: React.FC = () => {
     // Start a new game with the same players and settings
     if (currentGame?.players && currentGame.players.length > 0) {
       setHiddenCricketPlayers(
-        currentGame.players.map((p) => ({ id: p.id, name: p.name }))
+        currentGame.players.map((p) => ({ id: p.id, name: p.name })),
       );
       endGame();
       setTimeout(() => {
@@ -457,7 +506,9 @@ const HiddenCricketGame: React.FC = () => {
       >
         <Box
           sx={{
-            fontSize: isInputExpanded ? "clamp(0.75rem, 60%, 1.5rem)" : "clamp(1rem, 60%, 2rem)",
+            fontSize: isInputExpanded
+              ? "clamp(0.75rem, 60%, 1.5rem)"
+              : "clamp(1rem, 60%, 2rem)",
             width: "1.2em",
             height: "1.2em",
             maxWidth: "100%",
@@ -478,55 +529,55 @@ const HiddenCricketGame: React.FC = () => {
               display: "block",
             }}
           >
-          {/* First hit - Slash (/) */}
-          {hits >= 1 && (
-            <motion.line
-              key={`slash-${hits}`}
-              x1={center - lineLength / 2}
-              y1={center - lineLength / 2}
-              x2={center + lineLength / 2}
-              y2={center + lineLength / 2}
-              stroke={primaryColor}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              initial={hits === 1 ? { pathLength: 0 } : { pathLength: 1 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.3, delay: 0 }}
-            />
-          )}
-
-          {/* Second hit - Cross (X) - adds backslash (\) */}
-          {hits >= 2 && (
-            <motion.line
-              key={`backslash-${hits}`}
-              x1={center + lineLength / 2}
-              y1={center - lineLength / 2}
-              x2={center - lineLength / 2}
-              y2={center + lineLength / 2}
-              stroke={primaryColor}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              initial={hits === 2 ? { pathLength: 0 } : { pathLength: 1 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 0.3, delay: hits === 2 ? 0.1 : 0 }}
-            />
-          )}
-
-          {/* Third hit - Circle with cross - add ring but keep cross visible */}
-          {hits >= 3 && (
-            <motion.svg>
-              <motion.circle
-                className="circle-path"
-                cx="50"
-                cy="50"
-                r="80"
-                stroke={"red"}
-                variants={draw}
-                custom={1}
-                style={shape}
+            {/* First hit - Slash (/) */}
+            {hits >= 1 && (
+              <motion.line
+                key={`slash-${hits}`}
+                x1={center - lineLength / 2}
+                y1={center - lineLength / 2}
+                x2={center + lineLength / 2}
+                y2={center + lineLength / 2}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                initial={hits === 1 ? { pathLength: 0 } : { pathLength: 1 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3, delay: 0 }}
               />
-            </motion.svg>
-          )}
+            )}
+
+            {/* Second hit - Cross (X) - adds backslash (\) */}
+            {hits >= 2 && (
+              <motion.line
+                key={`backslash-${hits}`}
+                x1={center + lineLength / 2}
+                y1={center - lineLength / 2}
+                x2={center - lineLength / 2}
+                y2={center + lineLength / 2}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                initial={hits === 2 ? { pathLength: 0 } : { pathLength: 1 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3, delay: hits === 2 ? 0.1 : 0 }}
+              />
+            )}
+
+            {/* Third hit - Circle with cross - add ring but keep cross visible */}
+            {hits >= 3 && (
+              <motion.svg>
+                <motion.circle
+                  className="circle-path"
+                  cx="50"
+                  cy="50"
+                  r="80"
+                  stroke={"red"}
+                  variants={draw}
+                  custom={1}
+                  style={shape}
+                />
+              </motion.svg>
+            )}
           </motion.svg>
         </Box>
       </Box>
@@ -557,7 +608,9 @@ const HiddenCricketGame: React.FC = () => {
       >
         <Box
           sx={{
-            fontSize: isInputExpanded ? "clamp(0.75rem, 60%, 1.5rem)" : "clamp(1rem, 60%, 2rem)",
+            fontSize: isInputExpanded
+              ? "clamp(0.75rem, 60%, 1.5rem)"
+              : "clamp(1rem, 60%, 2rem)",
             width: "1.2em",
             height: "1.2em",
             maxWidth: "100%",
@@ -578,45 +631,45 @@ const HiddenCricketGame: React.FC = () => {
               display: "block",
             }}
           >
-          {/* Cross lines */}
-          <motion.line
-            x1={center - lineLength / 2}
-            y1={center - lineLength / 2}
-            x2={center + lineLength / 2}
-            y2={center + lineLength / 2}
-            stroke={primaryColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            initial={false}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.3 }}
-          />
-          <motion.line
-            x1={center + lineLength / 2}
-            y1={center - lineLength / 2}
-            x2={center - lineLength / 2}
-            y2={center + lineLength / 2}
-            stroke={primaryColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            initial={false}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.3 }}
-          />
+            {/* Cross lines */}
+            <motion.line
+              x1={center - lineLength / 2}
+              y1={center - lineLength / 2}
+              x2={center + lineLength / 2}
+              y2={center + lineLength / 2}
+              stroke={primaryColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              initial={false}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.3 }}
+            />
+            <motion.line
+              x1={center + lineLength / 2}
+              y1={center - lineLength / 2}
+              x2={center - lineLength / 2}
+              y2={center + lineLength / 2}
+              stroke={primaryColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              initial={false}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.3 }}
+            />
 
-          {/* Circle ring */}
-          <motion.circle
-            className="circle-path"
-            cx={center}
-            cy={center}
-            stroke={primaryColor}
-            strokeWidth={strokeWidth}
-            fill="none"
-            r={circleRadius}
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.3 }}
-          />
+            {/* Circle ring */}
+            <motion.circle
+              className="circle-path"
+              cx={center}
+              cy={center}
+              stroke={primaryColor}
+              strokeWidth={strokeWidth}
+              fill="none"
+              r={circleRadius}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.3 }}
+            />
           </motion.svg>
         </Box>
       </Box>
@@ -624,13 +677,9 @@ const HiddenCricketGame: React.FC = () => {
   };
 
   // Ensure safe access to players data
-  const hasPlayers =
-    currentGame?.players && currentGame.players.length > 0;
-  const hasWinner =
-    hasPlayers && currentGame.players.some((p) => p.isWinner);
-  const winner = hasWinner
-    ? currentGame.players.find((p) => p.isWinner)
-    : null;
+  const hasPlayers = currentGame?.players && currentGame.players.length > 0;
+  const hasWinner = hasPlayers && currentGame.players.some((p) => p.isWinner);
+  const winner = hasWinner ? currentGame.players.find((p) => p.isWinner) : null;
 
   // Return loading UI if player is missing
   if (!currentPlayer) {
@@ -684,7 +733,9 @@ const HiddenCricketGame: React.FC = () => {
   const hasCurrentPlayerClosedAllNonBull = () => {
     if (!currentGame || !currentPlayer) return false;
     if (!currentGame.lastBull) return false;
-    const nonBullTargets = currentPlayer.targets.filter((t) => t.number !== "Bull");
+    const nonBullTargets = currentPlayer.targets.filter(
+      (t) => t.number !== "Bull",
+    );
     return nonBullTargets.every((t) => t.closed);
   };
 
@@ -693,15 +744,15 @@ const HiddenCricketGame: React.FC = () => {
     // Bull always goes to the bottom
     if (a === "Bull") return 1;
     if (b === "Bull") return -1;
-    
+
     // For non-Bull numbers, separate found and unfound
     const aFound = hasAnyPlayerHitNumber(a);
     const bFound = hasAnyPlayerHitNumber(b);
-    
+
     // Found numbers come first
     if (aFound && !bFound) return -1;
     if (!aFound && bFound) return 1;
-    
+
     // Within the same group (both found or both unfound), sort by value
     return Number(b) - Number(a);
   });
@@ -796,10 +847,7 @@ const HiddenCricketGame: React.FC = () => {
           </List>
         </DialogContent>
         <DialogActions>
-          <VibrationButton
-            onClick={handleReturnToSetup}
-            vibrationPattern={50}
-          >
+          <VibrationButton onClick={handleReturnToSetup} vibrationPattern={50}>
             Return to Setup
           </VibrationButton>
           <VibrationButton
@@ -863,7 +911,21 @@ const HiddenCricketGame: React.FC = () => {
             borderColor: "divider",
           }}
         >
-          {currentGame.players.length === 2 ? (
+          {isShifted ? (
+            <CricketShiftedScoreboard
+              players={currentGame.players as any}
+              currentPlayerIndex={currentGame.currentPlayerIndex}
+              avgMarksPerRoundByPlayer={avgMarksPerRoundByPlayer}
+              legsWon={currentGame.legsWon}
+              totalLegs={currentGame.totalLegs}
+              onDoubleClick={() => setIsShifted(false)}
+            />
+          ) : (
+            <Box
+              sx={{ cursor: "pointer" }}
+              onDoubleClick={() => setIsShifted(true)}
+            >
+              {currentGame.players.length === 2 ? (
             <Box
               sx={{
                 display: "grid",
@@ -876,10 +938,7 @@ const HiddenCricketGame: React.FC = () => {
                 sx={{
                   backgroundColor:
                     currentGame.players[0]?.id === currentPlayer?.id
-                      ? alpha(
-                          theme.palette.primary.main,
-                          0.06
-                        )
+                      ? alpha(theme.palette.primary.main, 0.06)
                       : "transparent",
                   borderRadius: 1,
                   transition: "background-color 0.3s ease",
@@ -888,23 +947,8 @@ const HiddenCricketGame: React.FC = () => {
                 {(() => {
                   const player = currentGame.players[0];
                   const playerIndex = 0;
-                  const playerRounds = currentGame.rounds.filter(
-                    (round) => round.playerId === player.id
-                  );
-                  const allRounds = [...playerRounds];
-                  if (
-                    currentGame.currentRound &&
-                    currentGame.currentRound.playerId === player.id
-                  ) {
-                    allRounds.push(currentGame.currentRound);
-                  }
-                  const totalMarks = allRounds.reduce(
-                    (sum, round) => sum + round.darts.length,
-                    0
-                  );
                   const avgMarksPerRound =
-                    allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-
+                    avgMarksPerRoundByPlayer[player.id] ?? 0;
                   return (
                     <CricketPlayerBox
                       player={player as any}
@@ -924,10 +968,7 @@ const HiddenCricketGame: React.FC = () => {
                 sx={{
                   backgroundColor:
                     currentGame.players[1]?.id === currentPlayer?.id
-                      ? alpha(
-                          theme.palette.secondary.main,
-                          0.06
-                        )
+                      ? alpha(theme.palette.secondary.main, 0.06)
                       : "transparent",
                   borderRadius: 1,
                   transition: "background-color 0.3s ease",
@@ -936,23 +977,8 @@ const HiddenCricketGame: React.FC = () => {
                 {(() => {
                   const player = currentGame.players[1];
                   const playerIndex = 1;
-                  const playerRounds = currentGame.rounds.filter(
-                    (round) => round.playerId === player.id
-                  );
-                  const allRounds = [...playerRounds];
-                  if (
-                    currentGame.currentRound &&
-                    currentGame.currentRound.playerId === player.id
-                  ) {
-                    allRounds.push(currentGame.currentRound);
-                  }
-                  const totalMarks = allRounds.reduce(
-                    (sum, round) => sum + round.darts.length,
-                    0
-                  );
                   const avgMarksPerRound =
-                    allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-
+                    avgMarksPerRoundByPlayer[player.id] ?? 0;
                   return (
                     <CricketPlayerBox
                       player={player as any}
@@ -964,7 +990,7 @@ const HiddenCricketGame: React.FC = () => {
                 })()}
               </Box>
             </Box>
-          ) : (
+              ) : (
             <Box
               sx={{
                 display: "grid",
@@ -978,23 +1004,8 @@ const HiddenCricketGame: React.FC = () => {
                     ? theme.palette.primary.main
                     : theme.palette.secondary.main;
                 const isCurrentPlayer = player.id === currentPlayer?.id;
-                const playerRounds = currentGame.rounds.filter(
-                  (round) => round.playerId === player.id
-                );
-                const allRounds = [...playerRounds];
-                if (
-                  currentGame.currentRound &&
-                  currentGame.currentRound.playerId === player.id
-                ) {
-                  allRounds.push(currentGame.currentRound);
-                }
-                const totalMarks = allRounds.reduce(
-                  (sum, round) => sum + round.darts.length,
-                  0
-                );
                 const avgMarksPerRound =
-                  allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-
+                  avgMarksPerRoundByPlayer[player.id] ?? 0;
                 return (
                   <Box
                     key={player.id}
@@ -1011,12 +1022,14 @@ const HiddenCricketGame: React.FC = () => {
                       isCurrentPlayer={isCurrentPlayer}
                       avgMarksPerRound={avgMarksPerRound}
                       playerIndex={playerIndex}
-                    />
+                      />
                   </Box>
                 );
               })}
               {/* Empty column to match grid layout */}
               <Box />
+            </Box>
+              )}
             </Box>
           )}
         </Paper>
@@ -1044,7 +1057,9 @@ const HiddenCricketGame: React.FC = () => {
               renderClosedMark={renderClosedMark}
               getNumberDisplayText={getNumberDisplayText}
               isNumberClosedByAll={isNumberClosedByAll}
-              hasCurrentPlayerClosedAllNonBull={hasCurrentPlayerClosedAllNonBull}
+              hasCurrentPlayerClosedAllNonBull={
+                hasCurrentPlayerClosedAllNonBull
+              }
               lastBull={currentGame.lastBull}
               isInputExpanded={isInputExpanded}
               hiddenNumbersSorted={hiddenNumbersSorted}
@@ -1059,7 +1074,9 @@ const HiddenCricketGame: React.FC = () => {
               renderClosedMark={renderClosedMark}
               getNumberDisplayText={getNumberDisplayText}
               isNumberClosedByAll={isNumberClosedByAll}
-              hasCurrentPlayerClosedAllNonBull={hasCurrentPlayerClosedAllNonBull}
+              hasCurrentPlayerClosedAllNonBull={
+                hasCurrentPlayerClosedAllNonBull
+              }
               lastBull={currentGame.lastBull}
               isInputExpanded={isInputExpanded}
               hiddenNumbersSorted={hiddenNumbersSorted}
@@ -1094,17 +1111,20 @@ const HiddenCricketGame: React.FC = () => {
             <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ 
+              sx={{
                 fontWeight: 600,
-                fontSize: { xs: "0.75rem", sm: "0.875rem" }
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
               }}
             >
               Select Number
             </Typography>
-            <IconButton size="small" onClick={(e) => {
-              e.stopPropagation();
-              setIsInputExpanded(!isInputExpanded);
-            }}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsInputExpanded(!isInputExpanded);
+              }}
+            >
               {isInputExpanded ? <ExpandLess /> : <ExpandMore />}
             </IconButton>
           </Box>
@@ -1122,10 +1142,11 @@ const HiddenCricketGame: React.FC = () => {
             <Box sx={{ p: 1 }}>
               <Grid container spacing={0.5}>
                 {allNumbers.map((number) => {
-                  const currentRoundDarts = currentGame.currentRound?.darts.length || 0;
+                  const currentRoundDarts =
+                    currentGame.currentRound?.darts.length || 0;
                   const isTurnComplete = currentRoundDarts >= 3;
                   const isClosedByAll = isNumberClosedByAll(number);
-                  
+
                   return (
                     <Grid item xs={3} sm={2} md={2} key={number}>
                       <VibrationButton
@@ -1140,8 +1161,12 @@ const HiddenCricketGame: React.FC = () => {
                           color: isClosedByAll ? "error.main" : "inherit",
                           borderColor: isClosedByAll ? "error.main" : "inherit",
                           "&:hover": {
-                            borderColor: isClosedByAll ? "error.dark" : "inherit",
-                            backgroundColor: isClosedByAll ? "error.light" : "inherit",
+                            borderColor: isClosedByAll
+                              ? "error.dark"
+                              : "inherit",
+                            backgroundColor: isClosedByAll
+                              ? "error.light"
+                              : "inherit",
                           },
                         }}
                       >
@@ -1251,7 +1276,10 @@ const HiddenCricketGame: React.FC = () => {
                       acc[key].totalPoints += dart.points;
                       return acc;
                     },
-                    {} as Record<string, { count: number; totalPoints: number }>
+                    {} as Record<
+                      string,
+                      { count: number; totalPoints: number }
+                    >,
                   );
 
                   return Object.entries(groupedDarts).map(
@@ -1279,8 +1307,8 @@ const HiddenCricketGame: React.FC = () => {
                           {targetNumber === "Miss"
                             ? `Miss${data.count > 1 ? ` (${data.count})` : ""}`
                             : data.count > 1
-                            ? `${data.count}x${targetNumber}`
-                            : targetNumber}
+                              ? `${data.count}x${targetNumber}`
+                              : targetNumber}
                         </Typography>
                         {data.totalPoints > 0 && (
                           <Typography
@@ -1295,7 +1323,7 @@ const HiddenCricketGame: React.FC = () => {
                           </Typography>
                         )}
                       </Box>
-                    )
+                    ),
                   );
                 })()
               ) : (
@@ -1378,4 +1406,3 @@ const HiddenCricketGame: React.FC = () => {
 };
 
 export default HiddenCricketGame;
-
