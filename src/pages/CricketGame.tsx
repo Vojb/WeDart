@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   Box,
   Paper,
@@ -56,8 +62,20 @@ const CricketGame: React.FC = () => {
   const [progress, setProgress] = useState<number>(0);
   const progressStartTimeRef = useRef<number>(Date.now());
 
-  // Cricket numbers in order
-  const cricketNumbers = [20, 19, 18, 17, 16, 15, "Bull"];
+  // Cricket targets in order (from game; Osha includes Triple and Double)
+  const cricketNumbers = useMemo(
+    () =>
+      currentGame?.players?.[0]?.targets?.map((t) => t.number) ?? [
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        "Bull",
+      ],
+    [currentGame?.players],
+  );
 
   // Auto-advance timer: configurable duration after last click (only starts after first click)
   useEffect(() => {
@@ -75,7 +93,8 @@ const CricketGame: React.FC = () => {
 
     // Only start timer if the current player has made at least one click
     // Check if currentRound has any darts
-    const hasMadeClicks = currentGame.currentRound && currentGame.currentRound.darts.length > 0;
+    const hasMadeClicks =
+      currentGame.currentRound && currentGame.currentRound.darts.length > 0;
 
     if (!hasMadeClicks) {
       // Clear timer and progress if player hasn't clicked yet
@@ -129,12 +148,12 @@ const CricketGame: React.FC = () => {
     strokeWidth: 10,
     strokeLinecap: "round",
     fill: "transparent",
-  }
+  };
 
   const draw: Variants = {
     hidden: { pathLength: 0, opacity: 0 },
     visible: (i: number) => {
-      const delay = i * 0.5
+      const delay = i * 0.5;
       return {
         pathLength: 1,
         opacity: 1,
@@ -142,15 +161,16 @@ const CricketGame: React.FC = () => {
           pathLength: { delay, type: "spring", duration: 1.5, bounce: 0 },
           opacity: { delay, duration: 0.01 },
         },
-      }
+      };
     },
-  }
+  };
   // Reset progress when player changes (new turn starts)
   useEffect(() => {
     if (!currentGame || currentGame.isGameFinished) return;
 
     // Only reset if current round is empty (new turn just started)
-    const isNewTurn = currentGame.currentRound && currentGame.currentRound.darts.length === 0;
+    const isNewTurn =
+      currentGame.currentRound && currentGame.currentRound.darts.length === 0;
 
     if (isNewTurn) {
       // Clear timer and progress when a new turn starts
@@ -162,7 +182,11 @@ const CricketGame: React.FC = () => {
       }
       setProgress(0);
     }
-  }, [currentGame?.currentPlayerIndex, currentGame?.currentRound?.darts.length, currentGame?.isGameFinished]);
+  }, [
+    currentGame?.currentPlayerIndex,
+    currentGame?.currentRound?.darts.length,
+    currentGame?.isGameFinished,
+  ]);
 
   // If no game is in progress, redirect to setup
   useEffect(() => {
@@ -238,17 +262,23 @@ const CricketGame: React.FC = () => {
 
   const currentPlayer = useMemo(
     () => currentGame?.players?.[currentGame.currentPlayerIndex],
-    [currentGame?.players, currentGame?.currentPlayerIndex]
+    [currentGame?.players, currentGame?.currentPlayerIndex],
   );
   const playerColors = useMemo(() => {
     if (!currentGame) return [];
     return currentGame.players.map((_, index) =>
-      index % 2 === 0 ? theme.palette.primary.main : theme.palette.secondary.main
+      index % 2 === 0
+        ? theme.palette.primary.main
+        : theme.palette.secondary.main,
     );
   }, [currentGame, theme.palette.primary.main, theme.palette.secondary.main]);
   const playerRoundStats = useMemo(() => {
-    if (!currentGame) return new Map<number, { totalMarks: number; roundsCount: number }>();
-    const stats = new Map<number, { totalMarks: number; roundsCount: number }>();
+    if (!currentGame)
+      return new Map<number, { totalMarks: number; roundsCount: number }>();
+    const stats = new Map<
+      number,
+      { totalMarks: number; roundsCount: number }
+    >();
     currentGame.players.forEach((player) => {
       stats.set(player.id, { totalMarks: 0, roundsCount: 0 });
     });
@@ -273,16 +303,24 @@ const CricketGame: React.FC = () => {
       if (!stats || stats.roundsCount === 0) return 0;
       return stats.totalMarks / stats.roundsCount;
     },
-    [playerRoundStats]
+    [playerRoundStats],
   );
   const currentPlayerColor = useMemo(() => {
     if (!currentGame) return theme.palette.primary.main;
     return currentGame.currentPlayerIndex % 2 === 0
       ? theme.palette.primary.main
       : theme.palette.secondary.main;
-  }, [currentGame?.currentPlayerIndex, theme.palette.primary.main, theme.palette.secondary.main]);
+  }, [
+    currentGame?.currentPlayerIndex,
+    theme.palette.primary.main,
+    theme.palette.secondary.main,
+  ]);
   const groupedDarts = useMemo(() => {
-    if (!currentGame?.currentRound || currentGame.currentRound.darts.length === 0) return [];
+    if (
+      !currentGame?.currentRound ||
+      currentGame.currentRound.darts.length === 0
+    )
+      return [];
     const grouped = currentGame.currentRound.darts.reduce(
       (acc, dart) => {
         const key = String(dart.targetNumber);
@@ -293,7 +331,7 @@ const CricketGame: React.FC = () => {
         acc[key].totalPoints += dart.points;
         return acc;
       },
-      {} as Record<string, { count: number; totalPoints: number }>
+      {} as Record<string, { count: number; totalPoints: number }>,
     );
     return Object.entries(grouped);
   }, [currentGame?.currentRound]);
@@ -301,7 +339,7 @@ const CricketGame: React.FC = () => {
     if (!currentGame) return {};
     const counts = currentGame.players.reduce<Record<number, number>>(
       (acc, player) => ({ ...acc, [player.id]: 0 }),
-      {}
+      {},
     );
     currentGame.rounds.forEach((round) => {
       counts[round.playerId] =
@@ -316,37 +354,43 @@ const CricketGame: React.FC = () => {
   }, [currentGame]);
   const avgMarksPerRoundByPlayer = useMemo(() => {
     if (!currentGame) return {};
-    return currentGame.players.reduce((acc, player) => {
-      const playerRounds = currentGame.rounds.filter(
-        (round) => round.playerId === player.id
-      );
-      const allRounds = [...playerRounds];
-      if (
-        currentGame.currentRound &&
-        currentGame.currentRound.playerId === player.id
-      ) {
-        allRounds.push(currentGame.currentRound);
-      }
-      const totalMarks = allRounds.reduce(
-        (sum, round) => sum + round.darts.length,
-        0
-      );
-      const avgMarksPerRound =
-        allRounds.length > 0 ? totalMarks / allRounds.length : 0;
-      acc[player.id] = avgMarksPerRound;
-      return acc;
-    }, {} as Record<number, number>);
+    return currentGame.players.reduce(
+      (acc, player) => {
+        const playerRounds = currentGame.rounds.filter(
+          (round) => round.playerId === player.id,
+        );
+        const allRounds = [...playerRounds];
+        if (
+          currentGame.currentRound &&
+          currentGame.currentRound.playerId === player.id
+        ) {
+          allRounds.push(currentGame.currentRound);
+        }
+        const totalMarks = allRounds.reduce(
+          (sum, round) => sum + round.darts.length,
+          0,
+        );
+        const avgMarksPerRound =
+          allRounds.length > 0 ? totalMarks / allRounds.length : 0;
+        acc[player.id] = avgMarksPerRound;
+        return acc;
+      },
+      {} as Record<number, number>,
+    );
   }, [currentGame]);
 
-  const handleHit = useCallback((number: number | string) => {
-    if (!currentGame || currentGame.isGameFinished) return;
-    // Always use multiplier 1 (single hit per click)
-    recordHit(number, 1);
-    // Vibrate on hit
-    vibrateDevice(50);
-    // Update last click time to reset auto-advance timer
-    setLastClickTime(Date.now());
-  }, [currentGame, recordHit]);
+  const handleHit = useCallback(
+    (number: number | string) => {
+      if (!currentGame || currentGame.isGameFinished) return;
+      // Always use multiplier 1 (single hit per click)
+      recordHit(number, 1);
+      // Vibrate on hit
+      vibrateDevice(50);
+      // Update last click time to reset auto-advance timer
+      setLastClickTime(Date.now());
+    },
+    [currentGame, recordHit],
+  );
 
   const handleUndo = useCallback(() => {
     if (!currentGame) return;
@@ -384,7 +428,7 @@ const CricketGame: React.FC = () => {
     // Start a new game with the same players and settings
     if (currentGame?.players && currentGame.players.length > 0) {
       setCricketPlayers(
-        currentGame.players.map((p) => ({ id: p.id, name: p.name }))
+        currentGame.players.map((p) => ({ id: p.id, name: p.name })),
       );
       endGame();
       setTimeout(() => {
@@ -405,39 +449,124 @@ const CricketGame: React.FC = () => {
   }, [endGame, navigate]);
 
   // Function to render marks (0-3) for a player's target with animation
-  const renderMarks = useCallback((hits: number, color?: string) => {
-    if (hits === 0) return null;
+  const renderMarks = useCallback(
+    (hits: number, color?: string) => {
+      if (hits === 0) return null;
 
-    const viewBoxSize = 48;
-    const center = viewBoxSize / 2;
-    const lineLength = 36;
-    const strokeWidth = 4;
-    const primaryColor = color || theme.palette.primary.main;
+      const viewBoxSize = 48;
+      const center = viewBoxSize / 2;
+      const lineLength = 36;
+      const strokeWidth = 4;
+      const primaryColor = color || theme.palette.primary.main;
 
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          position: "relative",
-          width: { xs: 32, sm: 40, md: 48 },
-          height: { xs: 32, sm: 40, md: 48 },
-          margin: "0 auto",
-        }}
-      >
-        <motion.svg
-          viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            position: "relative",
+            width: { xs: 32, sm: 40, md: 48 },
+            height: { xs: 32, sm: 40, md: 48 },
+            margin: "0 auto",
           }}
         >
-          {/* First hit - Slash (/) */}
-          {hits >= 1 && (
+          <motion.svg
+            viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            {/* First hit - Slash (/) */}
+            {hits >= 1 && (
+              <motion.line
+                key={`slash-${hits}`}
+                x1={center - lineLength / 2}
+                y1={center - lineLength / 2}
+                x2={center + lineLength / 2}
+                y2={center + lineLength / 2}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                initial={hits === 1 ? { pathLength: 0 } : { pathLength: 1 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3, delay: 0 }}
+              />
+            )}
+
+            {/* Second hit - Cross (X) - adds backslash (\) */}
+            {hits >= 2 && (
+              <motion.line
+                key={`backslash-${hits}`}
+                x1={center + lineLength / 2}
+                y1={center - lineLength / 2}
+                x2={center - lineLength / 2}
+                y2={center + lineLength / 2}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                initial={hits === 2 ? { pathLength: 0 } : { pathLength: 1 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3, delay: hits === 2 ? 0.1 : 0 }}
+              />
+            )}
+
+            {/* Third hit - Circle with cross - add ring but keep cross visible */}
+            {hits >= 3 && (
+              <motion.svg>
+                <motion.circle
+                  className="circle-path"
+                  cx="50"
+                  cy="50"
+                  r="80"
+                  stroke={"red"}
+                  variants={draw}
+                  custom={1}
+                  style={shape}
+                />
+              </motion.svg>
+            )}
+          </motion.svg>
+        </Box>
+      );
+    },
+    [draw, shape, theme.palette.primary.main],
+  );
+
+  // Function to render closed mark (ring with cross)
+  const renderClosedMark = useCallback(
+    (color?: string) => {
+      const viewBoxSize = 48;
+      const center = viewBoxSize / 2;
+      const lineLength = 36;
+      const circleRadius = 18;
+      const strokeWidth = 4;
+      const primaryColor = color || theme.palette.primary.main;
+
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            position: "relative",
+            width: { xs: 32, sm: 40, md: 48 },
+            height: { xs: 32, sm: 40, md: 48 },
+            margin: "0 auto",
+          }}
+        >
+          <motion.svg
+            viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            {/* Cross lines */}
             <motion.line
-              key={`slash-${hits}`}
               x1={center - lineLength / 2}
               y1={center - lineLength / 2}
               x2={center + lineLength / 2}
@@ -445,16 +574,11 @@ const CricketGame: React.FC = () => {
               stroke={primaryColor}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              initial={hits === 1 ? { pathLength: 0 } : { pathLength: 1 }}
+              initial={false}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.3, delay: 0 }}
+              transition={{ duration: 0.3 }}
             />
-          )}
-
-          {/* Second hit - Cross (X) - adds backslash (\) */}
-          {hits >= 2 && (
             <motion.line
-              key={`backslash-${hits}`}
               x1={center + lineLength / 2}
               y1={center - lineLength / 2}
               x2={center - lineLength / 2}
@@ -462,105 +586,30 @@ const CricketGame: React.FC = () => {
               stroke={primaryColor}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              initial={hits === 2 ? { pathLength: 0 } : { pathLength: 1 }}
+              initial={false}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.3, delay: hits === 2 ? 0.1 : 0 }}
+              transition={{ duration: 0.3 }}
             />
-          )}
 
-          {/* Third hit - Circle with cross - add ring but keep cross visible */}
-          {hits >= 3 && (
-            <motion.svg>
-              <motion.circle
-                className="circle-path"
-                cx="50"
-                cy="50"
-                r="80"
-                stroke={"red"}
-                variants={draw}
-                custom={1}
-                style={shape}
-              />
-            </motion.svg>
-          )}
-        </motion.svg>
-
-      </Box>
-    );
-  }, [draw, shape, theme.palette.primary.main]);
-
-  // Function to render closed mark (ring with cross)
-  const renderClosedMark = useCallback((color?: string) => {
-    const viewBoxSize = 48;
-    const center = viewBoxSize / 2;
-    const lineLength = 36;
-    const circleRadius = 18;
-    const strokeWidth = 4;
-    const primaryColor = color || theme.palette.primary.main;
-
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          position: "relative",
-          width: { xs: 32, sm: 40, md: 48 },
-          height: { xs: 32, sm: 40, md: 48 },
-          margin: "0 auto",
-        }}
-      >
-        <motion.svg
-          viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-          style={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-          }}
-        >
-          {/* Cross lines */}
-          <motion.line
-            x1={center - lineLength / 2}
-            y1={center - lineLength / 2}
-            x2={center + lineLength / 2}
-            y2={center + lineLength / 2}
-            stroke={primaryColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            initial={false}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.3 }}
-          />
-          <motion.line
-            x1={center + lineLength / 2}
-            y1={center - lineLength / 2}
-            x2={center - lineLength / 2}
-            y2={center + lineLength / 2}
-            stroke={primaryColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            initial={false}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.3 }}
-          />
-
-          {/* Circle ring */}
-          <motion.circle
-                className="circle-path"
-                cx={center}
-                cy={center}
-                stroke={primaryColor}
-                strokeWidth={strokeWidth}
-                fill="none"
-                r={circleRadius}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.3 }}
-              />
-        </motion.svg>
-      </Box>
-    );
-  }, [theme.palette.primary.main]);
+            {/* Circle ring */}
+            <motion.circle
+              className="circle-path"
+              cx={center}
+              cy={center}
+              stroke={primaryColor}
+              strokeWidth={strokeWidth}
+              fill="none"
+              r={circleRadius}
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.3 }}
+            />
+          </motion.svg>
+        </Box>
+      );
+    },
+    [theme.palette.primary.main],
+  );
 
   // Display loading state
   if (isLoading) {
@@ -644,7 +693,7 @@ const CricketGame: React.FC = () => {
         open={dialogOpen}
         maxWidth="sm"
         fullWidth
-        onClose={() => { }} // Prevent closing by clicking outside
+        onClose={() => {}} // Prevent closing by clicking outside
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
           <EmojiEvents color="primary" sx={{ mr: 1 }} />
@@ -700,7 +749,8 @@ const CricketGame: React.FC = () => {
                           display="block"
                         >
                           Closed numbers:{" "}
-                          {player.targets.filter((t) => t.closed).length} of 7
+                          {player.targets.filter((t) => t.closed).length} of{" "}
+                          {player.targets.length}
                         </Typography>
                       </Box>
                     }
@@ -814,66 +864,86 @@ const CricketGame: React.FC = () => {
                     return (
                       <>
                         {/* First half of players */}
-                        {currentGame.players.slice(0, firstHalf).map((player, playerIndex) => {
-                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
-                          const isCurrentPlayer = player.id === currentPlayer?.id;
-                          const avgMarksPerRound = getAvgMarksPerRound(player.id);
+                        {currentGame.players
+                          .slice(0, firstHalf)
+                          .map((player, playerIndex) => {
+                            const playerColor =
+                              playerColors[playerIndex] ||
+                              theme.palette.primary.main;
+                            const isCurrentPlayer =
+                              player.id === currentPlayer?.id;
+                            const avgMarksPerRound = getAvgMarksPerRound(
+                              player.id,
+                            );
 
-                          return (
-                            <Box
-                              key={player.id}
-                              sx={{
-                                backgroundColor: isCurrentPlayer
-                                  ? alpha(playerColor, 0.06)
-                                  : "transparent",
-                                borderRadius: 1,
-                                transition: "background-color 0.3s ease",
-                              }}
-                            >
-                              <CricketPlayerBox
-                                player={player}
-                                isCurrentPlayer={isCurrentPlayer}
-                                avgMarksPerRound={avgMarksPerRound}
-                                playerIndex={playerIndex}
-                              />
-                            </Box>
-                          );
-                        })}
+                            return (
+                              <Box
+                                key={player.id}
+                                sx={{
+                                  backgroundColor: isCurrentPlayer
+                                    ? alpha(playerColor, 0.06)
+                                    : "transparent",
+                                  borderRadius: 1,
+                                  transition: "background-color 0.3s ease",
+                                }}
+                              >
+                                <CricketPlayerBox
+                                  player={player}
+                                  isCurrentPlayer={isCurrentPlayer}
+                                  avgMarksPerRound={avgMarksPerRound}
+                                  playerIndex={playerIndex}
+                                />
+                              </Box>
+                            );
+                          })}
 
                         {/* Number label column header */}
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
                           <Typography variant="body2" fontWeight="bold">
                             Number
                           </Typography>
                         </Box>
 
                         {/* Second half of players */}
-                        {currentGame.players.slice(firstHalf).map((player, index) => {
-                          const playerIndex = index + firstHalf;
-                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
-                          const isCurrentPlayer = player.id === currentPlayer?.id;
-                          const avgMarksPerRound = getAvgMarksPerRound(player.id);
+                        {currentGame.players
+                          .slice(firstHalf)
+                          .map((player, index) => {
+                            const playerIndex = index + firstHalf;
+                            const playerColor =
+                              playerColors[playerIndex] ||
+                              theme.palette.primary.main;
+                            const isCurrentPlayer =
+                              player.id === currentPlayer?.id;
+                            const avgMarksPerRound = getAvgMarksPerRound(
+                              player.id,
+                            );
 
-                          return (
-                            <Box
-                              key={player.id}
-                              sx={{
-                                backgroundColor: isCurrentPlayer
-                                  ? alpha(playerColor, 0.06)
-                                  : "transparent",
-                                borderRadius: 1,
-                                transition: "background-color 0.3s ease",
-                              }}
-                            >
-                              <CricketPlayerBox
-                                player={player}
-                                isCurrentPlayer={isCurrentPlayer}
-                                avgMarksPerRound={avgMarksPerRound}
-                                playerIndex={playerIndex}
-                              />
-                            </Box>
-                          );
-                        })}
+                            return (
+                              <Box
+                                key={player.id}
+                                sx={{
+                                  backgroundColor: isCurrentPlayer
+                                    ? alpha(playerColor, 0.06)
+                                    : "transparent",
+                                  borderRadius: 1,
+                                  transition: "background-color 0.3s ease",
+                                }}
+                              >
+                                <CricketPlayerBox
+                                  player={player}
+                                  isCurrentPlayer={isCurrentPlayer}
+                                  avgMarksPerRound={avgMarksPerRound}
+                                  playerIndex={playerIndex}
+                                />
+                              </Box>
+                            );
+                          })}
                       </>
                     );
                   }
@@ -882,7 +952,9 @@ const CricketGame: React.FC = () => {
                   return (
                     <>
                       {currentGame.players.map((player, playerIndex) => {
-                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+                        const playerColor =
+                          playerColors[playerIndex] ||
+                          theme.palette.primary.main;
                         const isCurrentPlayer = player.id === currentPlayer?.id;
                         const avgMarksPerRound = getAvgMarksPerRound(player.id);
 
@@ -908,7 +980,13 @@ const CricketGame: React.FC = () => {
                       })}
 
                       {/* Number label column header - positioned last */}
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
                         <Typography variant="body2" fontWeight="bold">
                           Number
                         </Typography>
@@ -972,19 +1050,184 @@ const CricketGame: React.FC = () => {
                     minHeight: 0,
                   }}
                 >
-                {(() => {
-                  const playerCount = currentGame.players.length;
+                  {(() => {
+                    const playerCount = currentGame.players.length;
 
-                  // For 1-2 players, split in half with number in middle
-                  if (playerCount <= 2) {
-                    const firstHalfCount = Math.ceil(playerCount / 2);
+                    // For 1-2 players, split in half with number in middle
+                    if (playerCount <= 2) {
+                      const firstHalfCount = Math.ceil(playerCount / 2);
+                      return (
+                        <>
+                          {/* First half of players */}
+                          {currentGame.players
+                            .slice(0, firstHalfCount)
+                            .map((player, playerIndex) => {
+                              const playerColor =
+                                playerColors[playerIndex] ||
+                                theme.palette.primary.main;
+                              const target = player.targets.find(
+                                (t) => t.number === number,
+                              );
+                              const isCurrentPlayer =
+                                player.id === currentPlayer?.id;
+                              const isClosed = target?.closed || false;
+                              const isClickable = isCurrentPlayer && canClick;
+
+                              return (
+                                <Box
+                                  key={`${player.id}-${number}`}
+                                  sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    cursor: isClickable ? "pointer" : "default",
+                                    backgroundColor: isCurrentPlayer
+                                      ? alpha(playerColor, 0.06)
+                                      : "transparent",
+                                    transition: "all 0.2s ease",
+                                    "&:hover": isClickable
+                                      ? {
+                                          backgroundColor: alpha(
+                                            playerColor,
+                                            0.15,
+                                          ),
+                                          transform: "scale(1.02)",
+                                        }
+                                      : {},
+                                  }}
+                                  onClick={() =>
+                                    isClickable && handleHit(number)
+                                  }
+                                >
+                                  {target && (
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        gap: 0.25,
+                                      }}
+                                    >
+                                      {isClosed
+                                        ? renderClosedMark(playerColor)
+                                        : renderMarks(target.hits, playerColor)}
+                                    </Box>
+                                  )}
+                                </Box>
+                              );
+                            })}
+
+                          {/* Number Label - positioned between players */}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: canClick ? "pointer" : "default",
+                              transition: "all 0.2s ease",
+                              "&:hover": canClick
+                                ? {
+                                    backgroundColor: (theme) =>
+                                      alpha(theme.palette.primary.main, 0.15),
+                                    transform: "scale(1.05)",
+                                  }
+                                : {},
+                            }}
+                            onClick={() => canClick && handleHit(number)}
+                          >
+                            <Typography
+                              variant="h5"
+                              component="div"
+                              sx={{
+                                fontWeight: "bold",
+                                fontSize: {
+                                  xs: "1.2rem",
+                                  sm: "1.5rem",
+                                  md: "2rem",
+                                },
+                              }}
+                            >
+                              {number}
+                            </Typography>
+                          </Box>
+
+                          {/* Second half of players */}
+                          {currentGame.players
+                            .slice(firstHalfCount)
+                            .map((player, index) => {
+                              const playerIndex = index + firstHalfCount;
+                              const playerColor =
+                                playerColors[playerIndex] ||
+                                theme.palette.primary.main;
+                              const target = player.targets.find(
+                                (t) => t.number === number,
+                              );
+                              const isCurrentPlayer =
+                                player.id === currentPlayer?.id;
+                              const isClosed = target?.closed || false;
+                              const isClickable = isCurrentPlayer && canClick;
+
+                              return (
+                                <Box
+                                  key={`${player.id}-${number}`}
+                                  sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    cursor: isClickable ? "pointer" : "default",
+                                    backgroundColor: isCurrentPlayer
+                                      ? alpha(playerColor, 0.06)
+                                      : "transparent",
+                                    transition: "all 0.2s ease",
+                                    "&:hover": isClickable
+                                      ? {
+                                          backgroundColor: alpha(
+                                            playerColor,
+                                            0.15,
+                                          ),
+                                          transform: "scale(1.02)",
+                                        }
+                                      : {},
+                                  }}
+                                  onClick={() =>
+                                    isClickable && handleHit(number)
+                                  }
+                                >
+                                  {target && (
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        gap: 0.25,
+                                      }}
+                                    >
+                                      {isClosed
+                                        ? renderClosedMark(playerColor)
+                                        : renderMarks(target.hits, playerColor)}
+                                    </Box>
+                                  )}
+                                </Box>
+                              );
+                            })}
+                        </>
+                      );
+                    }
+
+                    // For 3+ players, all players first, then number
                     return (
                       <>
-                        {/* First half of players */}
-                        {currentGame.players.slice(0, firstHalfCount).map((player, playerIndex) => {
-                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
-                          const target = player.targets.find((t) => t.number === number);
-                          const isCurrentPlayer = player.id === currentPlayer?.id;
+                        {currentGame.players.map((player, playerIndex) => {
+                          const playerColor =
+                            playerColors[playerIndex] ||
+                            theme.palette.primary.main;
+                          const target = player.targets.find(
+                            (t) => t.number === number,
+                          );
+                          const isCurrentPlayer =
+                            player.id === currentPlayer?.id;
                           const isClosed = target?.closed || false;
                           const isClickable = isCurrentPlayer && canClick;
 
@@ -1003,27 +1246,32 @@ const CricketGame: React.FC = () => {
                                 transition: "all 0.2s ease",
                                 "&:hover": isClickable
                                   ? {
-                                    backgroundColor: alpha(playerColor, 0.15),
-                                    transform: "scale(1.02)",
-                                  }
+                                      backgroundColor: alpha(playerColor, 0.15),
+                                      transform: "scale(1.02)",
+                                    }
                                   : {},
                               }}
                               onClick={() => isClickable && handleHit(number)}
                             >
                               {target && (
-                                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
-                                  {isClosed ? (
-                                    renderClosedMark(playerColor)
-                                  ) : (
-                                    renderMarks(target.hits, playerColor)
-                                  )}
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: 0.25,
+                                  }}
+                                >
+                                  {isClosed
+                                    ? renderClosedMark(playerColor)
+                                    : renderMarks(target.hits, playerColor)}
                                 </Box>
                               )}
                             </Box>
                           );
                         })}
 
-                        {/* Number Label - positioned between players */}
+                        {/* Number Label - positioned last */}
                         <Box
                           sx={{
                             display: "flex",
@@ -1033,10 +1281,10 @@ const CricketGame: React.FC = () => {
                             transition: "all 0.2s ease",
                             "&:hover": canClick
                               ? {
-                                backgroundColor: (theme) =>
-                                  alpha(theme.palette.primary.main, 0.15),
-                                transform: "scale(1.05)",
-                              }
+                                  backgroundColor: (theme) =>
+                                    alpha(theme.palette.primary.main, 0.15),
+                                  transform: "scale(1.05)",
+                                }
                               : {},
                           }}
                           onClick={() => canClick && handleHit(number)}
@@ -1046,138 +1294,19 @@ const CricketGame: React.FC = () => {
                             component="div"
                             sx={{
                               fontWeight: "bold",
-                              fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2rem" },
+                              fontSize: {
+                                xs: "1.2rem",
+                                sm: "1.5rem",
+                                md: "2rem",
+                              },
                             }}
                           >
                             {number}
                           </Typography>
                         </Box>
-
-                        {/* Second half of players */}
-                        {currentGame.players.slice(firstHalfCount).map((player, index) => {
-                          const playerIndex = index + firstHalfCount;
-                          const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
-                          const target = player.targets.find((t) => t.number === number);
-                          const isCurrentPlayer = player.id === currentPlayer?.id;
-                          const isClosed = target?.closed || false;
-                          const isClickable = isCurrentPlayer && canClick;
-
-                          return (
-                            <Box
-                              key={`${player.id}-${number}`}
-                              sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                cursor: isClickable ? "pointer" : "default",
-                                backgroundColor: isCurrentPlayer
-                                  ? alpha(playerColor, 0.06)
-                                  : "transparent",
-                                transition: "all 0.2s ease",
-                                "&:hover": isClickable
-                                  ? {
-                                    backgroundColor: alpha(playerColor, 0.15),
-                                    transform: "scale(1.02)",
-                                  }
-                                  : {},
-                              }}
-                              onClick={() => isClickable && handleHit(number)}
-                            >
-                              {target && (
-                                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
-                                  {isClosed ? (
-                                    renderClosedMark(playerColor)
-                                  ) : (
-                                    renderMarks(target.hits, playerColor)
-                                  )}
-
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
                       </>
                     );
-                  }
-
-                  // For 3+ players, all players first, then number
-                  return (
-                    <>
-                      {currentGame.players.map((player, playerIndex) => {
-                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
-                        const target = player.targets.find((t) => t.number === number);
-                        const isCurrentPlayer = player.id === currentPlayer?.id;
-                        const isClosed = target?.closed || false;
-                        const isClickable = isCurrentPlayer && canClick;
-
-                        return (
-                          <Box
-                            key={`${player.id}-${number}`}
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              cursor: isClickable ? "pointer" : "default",
-                              backgroundColor: isCurrentPlayer
-                                ? alpha(playerColor, 0.06)
-                                : "transparent",
-                              transition: "all 0.2s ease",
-                              "&:hover": isClickable
-                                ? {
-                                  backgroundColor: alpha(playerColor, 0.15),
-                                  transform: "scale(1.02)",
-                                }
-                                : {},
-                            }}
-                            onClick={() => isClickable && handleHit(number)}
-                          >
-                            {target && (
-                              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
-                                {isClosed ? (
-                                  renderClosedMark(playerColor)
-                                ) : (
-                                  renderMarks(target.hits, playerColor)
-                                )}
-                              </Box>
-                            )}
-                          </Box>
-                        );
-                      })}
-
-                      {/* Number Label - positioned last */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: canClick ? "pointer" : "default",
-                          transition: "all 0.2s ease",
-                          "&:hover": canClick
-                            ? {
-                              backgroundColor: (theme) =>
-                                alpha(theme.palette.primary.main, 0.15),
-                              transform: "scale(1.05)",
-                            }
-                            : {},
-                        }}
-                        onClick={() => canClick && handleHit(number)}
-                      >
-                        <Typography
-                          variant="h5"
-                          component="div"
-                          sx={{
-                            fontWeight: "bold",
-                            fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2rem" },
-                          }}
-                        >
-                          {number}
-                        </Typography>
-                      </Box>
-                    </>
-                  );
-                })()}
+                  })()}
                 </Box>
               </Box>
             );
@@ -1214,38 +1343,46 @@ const CricketGame: React.FC = () => {
                   return (
                     <>
                       {/* First half of players - total score */}
-                      {currentGame.players.slice(0, firstHalfCount).map((player, playerIndex) => {
-                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
-                        return (
-                          <Box
-                            key={`score-${player.id}`}
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              p: { xs: 1, sm: 2, md: 3 },
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
-                              component="div"
+                      {currentGame.players
+                        .slice(0, firstHalfCount)
+                        .map((player, playerIndex) => {
+                          const playerColor =
+                            playerColors[playerIndex] ||
+                            theme.palette.primary.main;
+                          return (
+                            <Box
+                              key={`score-${player.id}`}
                               sx={{
-                                fontWeight: 700,
-                                color: playerColor,
-                                fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                p: { xs: 1, sm: 2, md: 3 },
                               }}
                             >
-                              <CountUp
-                                to={player.totalScore}
-                                duration={0.5}
-                                delay={0}
-                                animateOnChange={true}
-                                startWhen={true}
-                              />
-                            </Typography>
-                          </Box>
-                        );
-                      })}
+                              <Typography
+                                variant="h6"
+                                component="div"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: playerColor,
+                                  fontSize: {
+                                    xs: "2rem",
+                                    sm: "3rem",
+                                    md: "4rem",
+                                  },
+                                }}
+                              >
+                                <CountUp
+                                  to={player.totalScore}
+                                  duration={0.5}
+                                  delay={0}
+                                  animateOnChange={true}
+                                  startWhen={true}
+                                />
+                              </Typography>
+                            </Box>
+                          );
+                        })}
 
                       {/* Score label */}
                       <Box
@@ -1268,39 +1405,47 @@ const CricketGame: React.FC = () => {
                       </Box>
 
                       {/* Second half of players - total score */}
-                      {currentGame.players.slice(firstHalfCount).map((player, index) => {
-                        const playerIndex = index + firstHalfCount;
-                        const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
-                        return (
-                          <Box
-                            key={`score-${player.id}`}
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              p: { xs: 1, sm: 2, md: 3 },
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
-                              component="div"
+                      {currentGame.players
+                        .slice(firstHalfCount)
+                        .map((player, index) => {
+                          const playerIndex = index + firstHalfCount;
+                          const playerColor =
+                            playerColors[playerIndex] ||
+                            theme.palette.primary.main;
+                          return (
+                            <Box
+                              key={`score-${player.id}`}
                               sx={{
-                                fontWeight: 700,
-                                color: playerColor,
-                                fontSize: { xs: "2rem", sm: "3rem", md: "4rem" },
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                p: { xs: 1, sm: 2, md: 3 },
                               }}
                             >
-                              <CountUp
-                                to={player.totalScore}
-                                duration={0.5}
-                                delay={0}
-                                animateOnChange={true}
-                                startWhen={true}
-                              />
-                            </Typography>
-                          </Box>
-                        );
-                      })}
+                              <Typography
+                                variant="h6"
+                                component="div"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: playerColor,
+                                  fontSize: {
+                                    xs: "2rem",
+                                    sm: "3rem",
+                                    md: "4rem",
+                                  },
+                                }}
+                              >
+                                <CountUp
+                                  to={player.totalScore}
+                                  duration={0.5}
+                                  delay={0}
+                                  animateOnChange={true}
+                                  startWhen={true}
+                                />
+                              </Typography>
+                            </Box>
+                          );
+                        })}
                     </>
                   );
                 }
@@ -1309,7 +1454,8 @@ const CricketGame: React.FC = () => {
                 return (
                   <>
                     {currentGame.players.map((player, playerIndex) => {
-                      const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+                      const playerColor =
+                        playerColors[playerIndex] || theme.palette.primary.main;
                       return (
                         <Box
                           key={`score-${player.id}`}
@@ -1325,7 +1471,11 @@ const CricketGame: React.FC = () => {
                             sx={{
                               fontWeight: 700,
                               color: playerColor,
-                              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
+                              fontSize: {
+                                xs: "1.25rem",
+                                sm: "1.5rem",
+                                md: "1.75rem",
+                              },
                             }}
                           >
                             <CountUp
@@ -1372,76 +1522,103 @@ const CricketGame: React.FC = () => {
             p: 2,
             borderRadius: 0,
             borderTop: 1,
-            borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: "row", gap: 2,
+            borderColor: "divider",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexDirection: "row",
+            gap: 2,
           }}
         >
-          <Box sx={{ flex: 1, flexDirection: "row", flexWrap:"wrap", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
+          <Box
+            sx={{
+              flex: 1,
+              flexDirection: "row",
+              flexWrap: "wrap",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 2,
+            }}
+          >
             <IconButton onClick={handleUndo} color="info" size="small">
               <Undo />
             </IconButton>
-            <Box sx={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-            {groupedDarts.length > 0 ? (
-              groupedDarts.map(([targetNumber, data]) => (
-                <Box
-                  key={targetNumber}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    backgroundColor: alpha(currentPlayerColor, 0.1),
-                    border: `1px solid ${alpha(currentPlayerColor, 0.3)}`,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 1,
+                flexWrap: "wrap",
+              }}
+            >
+              {groupedDarts.length > 0 ? (
+                groupedDarts.map(([targetNumber, data]) => (
+                  <Box
+                    key={targetNumber}
                     sx={{
-                      fontWeight: 600,
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      backgroundColor: alpha(currentPlayerColor, 0.1),
+                      border: `1px solid ${alpha(currentPlayerColor, 0.3)}`,
                     }}
                   >
-                    {data.count > 1 ? `${data.count}x${targetNumber}` : targetNumber}
-                  </Typography>
-                  {data.totalPoints > 0 && (
                     <Typography
-                      variant="caption"
+                      variant="body2"
                       sx={{
-                        color: "secondary.main",
                         fontWeight: 600,
-                        fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                        fontSize: { xs: "0.75rem", sm: "0.875rem" },
                       }}
                     >
-                      (+{data.totalPoints})
+                      {data.count > 1
+                        ? `${data.count}x${targetNumber}`
+                        : targetNumber}
                     </Typography>
-                  )}
-                </Box>
-              ))
-            ) : (
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "text.secondary",
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                  fontStyle: "italic",
-                }}
-              >
-                No darts thrown yet
-              </Typography>
-            )}
-          </Box>
+                    {data.totalPoints > 0 && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "secondary.main",
+                          fontWeight: 600,
+                          fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                        }}
+                      >
+                        (+{data.totalPoints})
+                      </Typography>
+                    )}
+                  </Box>
+                ))
+              ) : (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    fontStyle: "italic",
+                  }}
+                >
+                  No darts thrown yet
+                </Typography>
+              )}
+            </Box>
           </Box>
 
           {/* Round Summary */}
-         
 
-          <Box >
-
+          <Box>
             <VibrationButton
-
               variant="contained"
-              color={currentPlayer && currentGame.currentPlayerIndex % 2 === 0 ? "primary" : "secondary"}
+              color={
+                currentPlayer && currentGame.currentPlayerIndex % 2 === 0
+                  ? "primary"
+                  : "secondary"
+              }
               fullWidth
               size="large"
               onClick={handleFinishTurn}
@@ -1455,19 +1632,20 @@ const CricketGame: React.FC = () => {
                 fontWeight: "bold",
                 position: "relative",
                 overflow: "hidden",
-                "&::before": !currentGame.isGameFinished && progress > 0
-                  ? {
-                    content: '""',
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    height: "100%",
-                    width: `${progress}%`,
-                    backgroundColor: (theme) =>
-                      alpha(theme.palette.common.white, 0.3),
-                    transition: "width 0.05s linear",
-                  }
-                  : {},
+                "&::before":
+                  !currentGame.isGameFinished && progress > 0
+                    ? {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        height: "100%",
+                        width: `${progress}%`,
+                        backgroundColor: (theme) =>
+                          alpha(theme.palette.common.white, 0.3),
+                        transition: "width 0.05s linear",
+                      }
+                    : {},
               }}
             >
               Next

@@ -21,6 +21,7 @@ import {
   Settings as SettingsIcon,
   SportsBar as CricketIcon,
   CallSplit as HalveItIcon,
+  FitnessCenter as WarmupIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
@@ -53,6 +54,13 @@ const Home: React.FC = () => {
       icon: <HalveItIcon />,
       path: "/halveit",
       color: "success",
+    },
+    {
+      title: "Warmup",
+      description: "Practice and improve",
+      icon: <WarmupIcon />,
+      path: "/warmup",
+      color: "info",
     },
   ];
 
@@ -101,9 +109,9 @@ const Home: React.FC = () => {
                       game.color === "primary"
                         ? theme.palette.primary.main
                         : game.color === "secondary"
-                        ? theme.palette.secondary.main
-                        : theme.palette.success.main,
-                      0.1
+                          ? theme.palette.secondary.main
+                          : theme.palette.success.main,
+                      0.1,
                     )}`,
                     "&:hover": {
                       transform: "translateY(-8px)",
@@ -112,8 +120,8 @@ const Home: React.FC = () => {
                         game.color === "primary"
                           ? theme.palette.primary.main
                           : game.color === "secondary"
-                          ? theme.palette.secondary.main
-                          : theme.palette.success.main,
+                            ? theme.palette.secondary.main
+                            : theme.palette.success.main,
                     },
                   }}
                 >
@@ -160,7 +168,9 @@ const Home: React.FC = () => {
                       </Typography>
                       <Chip
                         label="Play"
-                        color={game.color as "primary" | "secondary" | "success"}
+                        color={
+                          game.color as "primary" | "secondary" | "success"
+                        }
                         size="small"
                         sx={{ mt: 1 }}
                       />
@@ -223,10 +233,7 @@ const Home: React.FC = () => {
                         >
                           {item.title}
                         </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                        >
+                        <Typography variant="body2" color="text.secondary">
                           {item.description}
                         </Typography>
                       </Box>

@@ -32,20 +32,30 @@ const Cricket: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
 
   // First level: Cricket mode selection
-  const [cricketMode, setCricketMode] = useState<"cricket" | "hidden-cricket">("cricket");
+  const [cricketMode, setCricketMode] = useState<
+    "cricket" | "hidden-cricket" | "osha"
+  >(
+    (gameSettings.cricketVariant === "osha" ? "osha" : "cricket") as
+      | "cricket"
+      | "hidden-cricket"
+      | "osha",
+  );
 
   // Local state for form values
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
   const [gameType, setGameType] = useState<
     "standard" | "cutthroat" | "no-score"
-  >((gameSettings.gameType === "cutthroat" || gameSettings.gameType === "no-score") 
-    ? gameSettings.gameType 
-    : "standard");
+  >(
+    gameSettings.gameType === "cutthroat" ||
+      gameSettings.gameType === "no-score"
+      ? gameSettings.gameType
+      : "standard",
+  );
   const [winCondition, setWinCondition] = useState<"first-closed" | "points">(
-    gameSettings.winCondition || "points"
+    gameSettings.winCondition || "points",
   );
   const [numberOfLegs, setNumberOfLegs] = useState<number>(
-    gameSettings.defaultLegs || 1
+    gameSettings.defaultLegs || 1,
   );
 
   // Validation error state
@@ -55,7 +65,9 @@ const Cricket: React.FC = () => {
   const steps = ["Game Mode", "Game Type", "Win Condition", "Select Players"];
 
   // Handle cricket mode change
-  const handleCricketModeChange = (mode: "cricket" | "hidden-cricket") => {
+  const handleCricketModeChange = (
+    mode: "cricket" | "hidden-cricket" | "osha",
+  ) => {
     setCricketMode(mode);
     if (mode === "hidden-cricket") {
       navigate("/hidden-cricket");
@@ -123,11 +135,15 @@ const Cricket: React.FC = () => {
     setCricketPlayers(simplePlayers);
     updateCachedPlayers(simplePlayers);
 
+    const variant =
+      cricketMode === "osha" ? ("osha" as const) : ("standard" as const);
+
     // Update game settings in store
     updateGameSettings({
       gameType: gameType as "standard" | "cutthroat" | "no-score",
       winCondition,
       defaultLegs: numberOfLegs,
+      cricketVariant: variant,
     });
 
     // Start a new game
@@ -135,7 +151,8 @@ const Cricket: React.FC = () => {
       gameType as "standard" | "cutthroat" | "no-score",
       winCondition,
       selectedPlayerIds,
-      numberOfLegs
+      numberOfLegs,
+      variant,
     );
 
     // Navigate to game screen
@@ -163,7 +180,11 @@ const Cricket: React.FC = () => {
                   </FormLabel>
                   <RadioGroup
                     value={cricketMode}
-                    onChange={(e) => handleCricketModeChange(e.target.value as "cricket" | "hidden-cricket")}
+                    onChange={(e) =>
+                      handleCricketModeChange(
+                        e.target.value as "cricket" | "hidden-cricket" | "osha",
+                      )
+                    }
                   >
                     <FormControlLabel
                       value="cricket"
@@ -175,6 +196,21 @@ const Cricket: React.FC = () => {
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             Standard cricket with visible target numbers
+                          </Typography>
+                        </Box>
+                      }
+                      sx={{ mb: 0.5 }}
+                    />
+                    <FormControlLabel
+                      value="osha"
+                      control={<Radio size="small" />}
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight="medium">
+                            Osha
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Cricket with Triple and Double on the board
                           </Typography>
                         </Box>
                       }
@@ -216,10 +252,7 @@ const Cricket: React.FC = () => {
                   "&:last-child": { pb: { xs: 1.5, sm: 2 } },
                 }}
               >
-                <FormControl
-                  component="fieldset"
-                  sx={{ width: "100%" }}
-                >
+                <FormControl component="fieldset" sx={{ width: "100%" }}>
                   <FormLabel
                     component="legend"
                     sx={{ mb: 0.5, fontWeight: "medium", fontSize: "0.9rem" }}
@@ -498,11 +531,7 @@ const Cricket: React.FC = () => {
               Start Game
             </VibrationButton>
           ) : (
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              size="medium"
-            >
+            <Button variant="contained" onClick={handleNext} size="medium">
               Next
             </Button>
           )}

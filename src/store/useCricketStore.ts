@@ -43,6 +43,7 @@ interface GameSettings {
   winCondition: "first-closed" | "points";
   isHalfIt?: boolean;
   defaultLegs: number;
+  cricketVariant?: CricketVariant;
 }
 
 interface CricketGameState {
@@ -51,6 +52,7 @@ interface CricketGameState {
   isGameFinished: boolean;
   gameType: "standard" | "cutthroat" | "no-score";
   winCondition: "first-closed" | "points"; // Win by closing all numbers first or by points
+  cricketVariant: CricketVariant;
   // Add round history
   rounds: CricketRound[];
   currentRound: CricketRound | null;
@@ -77,7 +79,8 @@ interface CricketStoreState {
     gameType: CricketGameState["gameType"],
     winCondition: CricketGameState["winCondition"],
     playerIds: number[],
-    totalLegs: number
+    totalLegs: number,
+    cricketVariant?: CricketVariant
   ) => void;
   recordHit: (targetNumber: number | string, multiplier: number) => void;
   undoLastHit: () => void;
@@ -91,9 +94,11 @@ interface CricketStoreState {
   setCricketPlayers: (players: { id: number; name: string }[]) => void;
 }
 
-// Default array of cricket targets
-const createDefaultTargets = (): CricketTarget[] => {
-  return [
+export type CricketVariant = "standard" | "osha";
+
+// Default array of cricket targets (Osha adds Triple and Double; Bull stays last)
+const createDefaultTargets = (variant: CricketVariant = "standard"): CricketTarget[] => {
+  const standard: CricketTarget[] = [
     { number: 20, hits: 0, closed: false, points: 0 },
     { number: 19, hits: 0, closed: false, points: 0 },
     { number: 18, hits: 0, closed: false, points: 0 },
@@ -102,6 +107,20 @@ const createDefaultTargets = (): CricketTarget[] => {
     { number: 15, hits: 0, closed: false, points: 0 },
     { number: "Bull", hits: 0, closed: false, points: 0 },
   ];
+  if (variant === "osha") {
+    return [
+      { number: 20, hits: 0, closed: false, points: 0 },
+      { number: 19, hits: 0, closed: false, points: 0 },
+      { number: 18, hits: 0, closed: false, points: 0 },
+      { number: 17, hits: 0, closed: false, points: 0 },
+      { number: 16, hits: 0, closed: false, points: 0 },
+      { number: 15, hits: 0, closed: false, points: 0 },
+      { number: "Triple", hits: 0, closed: false, points: 0 },
+      { number: "Double", hits: 0, closed: false, points: 0 },
+      { number: "Bull", hits: 0, closed: false, points: 0 },
+    ];
+  }
+  return standard;
 };
 
 // Reference to main store players to avoid circular dependencies
@@ -124,6 +143,7 @@ export const useCricketStore = create<CricketStoreState>()(
         gameType: "standard",
         winCondition: "points",
         defaultLegs: 3,
+        cricketVariant: "standard",
       },
       updateGameSettings: (settings) =>
         set((state) => ({
@@ -131,7 +151,7 @@ export const useCricketStore = create<CricketStoreState>()(
         })),
 
       currentGame: null,
-      startGame: (gameType, winCondition, playerIds, totalLegs) => {
+      startGame: (gameType, winCondition, playerIds, totalLegs, cricketVariant = "standard") => {
         console.log("Starting game with player IDs:", playerIds);
         console.log("Cached players:", cachedPlayers);
 
@@ -167,7 +187,7 @@ export const useCricketStore = create<CricketStoreState>()(
               name: player.name,
               totalScore: 0,
               dartsThrown: 0,
-              targets: createDefaultTargets(),
+              targets: createDefaultTargets(cricketVariant),
               isWinner: false,
               currentDartIndex: 0,
             })
@@ -193,6 +213,7 @@ export const useCricketStore = create<CricketStoreState>()(
               isGameFinished: false,
               gameType,
               winCondition,
+              cricketVariant,
               rounds: [],
               currentRound: initialRound,
               totalLegs,
@@ -295,9 +316,13 @@ export const useCricketStore = create<CricketStoreState>()(
                 );
 
                 if (someOpponentNotClosed) {
-                  // Calculate point value
+                  // Calculate point value (Bull, Triple, Double = 25)
                   const pointValue =
-                    targetNumber === "Bull" ? 25 : Number(targetNumber);
+                    targetNumber === "Bull" ||
+                    targetNumber === "Triple" ||
+                    targetNumber === "Double"
+                      ? 25
+                      : Number(targetNumber);
 
                   // For standard cricket, add points if target was already closed OR if this throw closes it with extra hits
                   if (
@@ -467,7 +492,7 @@ export const useCricketStore = create<CricketStoreState>()(
                   ...player,
                   totalScore: 0,
                   dartsThrown: 0,
-                  targets: createDefaultTargets(),
+                  targets: createDefaultTargets(newGame.cricketVariant),
                   isWinner: false,
                   currentDartIndex: 0,
                 }));

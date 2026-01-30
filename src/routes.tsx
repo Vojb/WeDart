@@ -15,6 +15,8 @@ import HiddenCricket from "./pages/HiddenCricket";
 import HiddenCricketGame from "./pages/HiddenCricketGame";
 import HalveIt from "./pages/HalveIt";
 import HalveItGame from "./pages/HalveItGame";
+import Warmup from "./pages/Warmup";
+import WarmupGame from "./pages/WarmupGame";
 import { Box } from "@mui/material";
 
 // Create a layout route component that applies the layout to all children
@@ -63,6 +65,10 @@ export const router = createHashRouter([
       {
         path: "halveit",
         element: <HalveIt />,
+      },
+      {
+        path: "warmup",
+        element: <Warmup />,
       },
       {
         path: "history",
@@ -124,6 +130,16 @@ export const router = createHashRouter([
       {
         index: true,
         element: <HalveItGame />,
+      },
+    ],
+  },
+  {
+    path: "/warmup/game",
+    element: <GameLayoutRoute />,
+    children: [
+      {
+        index: true,
+        element: <WarmupGame />,
       },
     ],
   },
