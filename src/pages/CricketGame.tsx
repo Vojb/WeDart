@@ -81,6 +81,12 @@ const CricketGame: React.FC = () => {
     [currentGame?.players],
   );
 
+  const formatCricketTargetLabel = (n: number | string): string => {
+    if (n === "Double") return "D";
+    if (n === "Triple") return "T";
+    return String(n);
+  };
+
   // Auto-advance timer: configurable duration after last click (only starts after first click)
   useEffect(() => {
     if (!currentGame || currentGame.isGameFinished) {
@@ -1154,7 +1160,7 @@ const CricketGame: React.FC = () => {
                                 fontSize: numberLabelFontSize,
                               }}
                             >
-                              {number}
+                              {formatCricketTargetLabel(number)}
                             </Typography>
                           </Box>
 
@@ -1303,7 +1309,7 @@ const CricketGame: React.FC = () => {
                               fontSize: numberLabelFontSize,
                             }}
                           >
-                            {number}
+                            {formatCricketTargetLabel(number)}
                           </Typography>
                         </Box>
                       </>
@@ -1579,8 +1585,8 @@ const CricketGame: React.FC = () => {
                       }}
                     >
                       {data.count > 1
-                        ? `${data.count}x${targetNumber}`
-                        : targetNumber}
+                        ? `${data.count}x${formatCricketTargetLabel(targetNumber)}`
+                        : formatCricketTargetLabel(targetNumber)}
                     </Typography>
                     {data.totalPoints > 0 && (
                       <Typography
