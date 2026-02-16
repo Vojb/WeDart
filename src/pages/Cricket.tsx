@@ -17,7 +17,9 @@ import {
   Step,
   StepLabel,
   TextField,
+  IconButton,
 } from "@mui/material";
+import { Add as AddIcon, Remove as RemoveIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
@@ -383,19 +385,49 @@ const Cricket: React.FC = () => {
                   "&:last-child": { pb: { xs: 1.5, sm: 2 } },
                 }}
               >
-                <TextField
-                  fullWidth
-                  label="Number of Legs"
-                  type="number"
-                  value={numberOfLegs}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (value > 0) {
-                      setNumberOfLegs(value);
-                    }
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 0,
+                    width: "100%",
                   }}
-                  inputProps={{ min: 1 }}
-                />
+                >
+                  <IconButton
+                    aria-label="Decrease legs"
+                    onClick={() =>
+                      setNumberOfLegs((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={numberOfLegs <= 1}
+                    sx={{ mt: 1 }}
+                  >
+                    <RemoveIcon />
+                  </IconButton>
+                  <TextField
+                    fullWidth
+                    label="Number of Legs"
+                    type="number"
+                    value={numberOfLegs}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value > 0) {
+                        setNumberOfLegs(value);
+                      }
+                    }}
+                    inputProps={{ min: 1 }}
+                    sx={{
+                      flex: 1,
+                      "& .MuiInputBase-root": { borderRadius: 0 },
+                    }}
+                  />
+                  <IconButton
+                    aria-label="Increase legs"
+                    onClick={() => setNumberOfLegs((prev) => prev + 1)}
+                    sx={{ mt: 1 }}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                </Box>
               </CardContent>
             </Card>
             {error && (
