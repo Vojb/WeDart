@@ -47,10 +47,12 @@ interface GameState {
   totalLegs: number;
   currentLeg: number;
   legsWon: Record<number, number>;
+  /** Completed legs only (includes match-winning leg). Used for match totals & best/worst leg. */
+  matchLegStats?: LegStats[];
   viewMode?: X01ViewMode;
 }
 
-interface LegStats {
+export interface LegStats {
   legNumber: number;
   winnerId: number;
   players: Array<{
@@ -223,6 +225,32 @@ const inferDartNotationsFromScore = (score: number): string[] => {
   return result;
 };
 
+/** One checkout “attempt” per visit starting at ≤170 remaining; success when leg is finished next. */
+const recalcCheckoutStatsFromScores = (
+  initialScore: number,
+  scores: Array<{ score: number }>,
+): { checkoutAttempts: number; checkoutSuccess: number } => {
+  let running = initialScore;
+  let attempts = 0;
+  let success = 0;
+  for (const s of scores) {
+    if (running <= 170 && running > 0) {
+      attempts += 1;
+    }
+    if (s.score === 0) {
+      continue;
+    }
+    running -= s.score;
+    if (running === 0) {
+      success += 1;
+    }
+    if (running < 0) {
+      running += s.score;
+    }
+  }
+  return { checkoutAttempts: attempts, checkoutSuccess: success };
+};
+
 const buildLegStats = (game: GameState, winnerId: number): LegStats => ({
   legNumber: game.currentLeg,
   winnerId,
@@ -330,6 +358,7 @@ export const useX01Store = create<X01StoreState>()(
             totalLegs,
             currentLeg: 1,
             legsWon: playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}),
+            matchLegStats: [],
             viewMode: viewMode,
           };
 
@@ -413,6 +442,10 @@ export const useX01Store = create<X01StoreState>()(
             }
 
             if (isBust) {
+              const remStart = player.score;
+              if (remStart <= 170 && remStart > 0) {
+                player.checkoutAttempts += 1;
+              }
               player.scores = [...player.scores, { score: 0, darts: dartsUsed }];
               player.dartsThrown += dartsUsed;
               player.lastRoundScore = 0;
@@ -428,6 +461,11 @@ export const useX01Store = create<X01StoreState>()(
                 lastDartNotations: [],
                 history: [...state.history, previousEntry].slice(-MAX_HISTORY),
               };
+            }
+
+            const remStart = player.score;
+            if (remStart <= 170 && remStart > 0) {
+              player.checkoutAttempts += 1;
             }
 
             player.score = newPlayerScore;
@@ -453,7 +491,13 @@ export const useX01Store = create<X01StoreState>()(
               (!newGame.isDoubleOut || lastDartMultiplier === 2);
 
             if (hasWon) {
+              player.checkoutSuccess += 1;
+              newGame.players[playerIndex] = player;
               const legStats = buildLegStats(newGame, player.id);
+              newGame.matchLegStats = [
+                ...(newGame.matchLegStats ?? []),
+                legStats,
+              ];
               const updatedLegsWon = { ...newGame.legsWon };
               updatedLegsWon[player.id] =
                 (updatedLegsWon[player.id] || 0) + 1;
@@ -519,6 +563,7 @@ export const useX01Store = create<X01StoreState>()(
 
           const newGame = clone(state.currentGame);
           const legStats = buildLegStats(newGame, winnerId);
+          newGame.matchLegStats = [...(newGame.matchLegStats ?? []), legStats];
           const updatedLegsWon = { ...newGame.legsWon };
           updatedLegsWon[winnerId] = (updatedLegsWon[winnerId] || 0) + 1;
 
@@ -584,6 +629,8 @@ export const useX01Store = create<X01StoreState>()(
             newDartsThrown > 0 ? totalScored / newDartsThrown : 0;
           const avgPerRound = rounds > 0 ? totalScored / rounds : 0;
           const lastRoundScore = scores.length > 0 ? scores[scores.length - 1].score : 0;
+          const { checkoutAttempts, checkoutSuccess } =
+            recalcCheckoutStatsFromScores(player.initialScore, scores);
           const newPlayer: GamePlayer = {
             ...player,
             scores,
@@ -592,6 +639,8 @@ export const useX01Store = create<X01StoreState>()(
             rounds100Plus,
             rounds140Plus,
             rounds180,
+            checkoutAttempts,
+            checkoutSuccess,
             avgPerDart,
             avgPerRound,
             lastRoundScore,

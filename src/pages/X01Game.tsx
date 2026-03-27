@@ -29,6 +29,7 @@ import {
   ArrowBack,
   Mic,
   Cancel,
+  BarChart,
 } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
@@ -42,7 +43,10 @@ import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import X01PlayerBox from "../components/x01-player-box/x01-player-box";
 import X01TwoPlayerScoreboard from "../components/x01-two-player-scoreboard/x01-two-player-scoreboard";
-import X01CleanView from "../components/x01-clean-view/x01-clean-view";
+import X01CleanView, {
+  buildX01CleanMatchStats,
+  X01CleanMatchStatsDialogContent,
+} from "../components/x01-clean-view/x01-clean-view";
 import VoiceInput from "../components/VoiceInput";
 import VibrationButton from "../components/VibrationButton";
 
@@ -84,6 +88,7 @@ const X01Game: React.FC = () => {
   const gameSavedToHistoryRef = useRef<boolean>(false);
   // Add new state for leg won dialog
   const [legWonDialogOpen, setLegWonDialogOpen] = useState(false);
+  const [cleanStatsDialogOpen, setCleanStatsDialogOpen] = useState(false);
   // Countdown state for auto-submit
   const [countdown, setCountdown] = useState<number | null>(null);
   const [progress, setProgress] = useState<number>(0);
@@ -595,9 +600,23 @@ const X01Game: React.FC = () => {
     const [cp1, cp2] = sortedPlayersForClean;
     const legs1 = currentGame.legsWon[cp1.id] ?? 0;
     const legs2 = currentGame.legsWon[cp2.id] ?? 0;
+    const cleanMatchStats = buildX01CleanMatchStats(
+      currentGame.matchLegStats ?? [],
+      sortedPlayersForClean,
+      currentGame.isGameFinished,
+    );
     return (
       <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, p: 0.5, flexShrink: 0 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            p: 0.5,
+            flexShrink: 0,
+            width: "100%",
+          }}
+        >
           <IconButton size="small" onClick={() => setLeaveDialogOpen(true)} aria-label="back to setup">
             <ArrowBack />
           </IconButton>
@@ -618,9 +637,13 @@ const X01Game: React.FC = () => {
           <Typography variant="body2" component="span" fontWeight={600}>
             {cp2.name}
           </Typography>
-          {countdown !== null && countdown > 0 && (
+          {countdown !== null && countdown > 0 ? (
             <>
-              <LinearProgress variant="determinate" value={progress} sx={{ flex: 1, height: 6, borderRadius: 1 }} />
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{ flex: 1, minWidth: 0, height: 6, borderRadius: 1 }}
+              />
               <VibrationButton
                 variant="contained"
                 color="error"
@@ -632,13 +655,23 @@ const X01Game: React.FC = () => {
                 Cancel
               </VibrationButton>
             </>
+          ) : (
+            <Box sx={{ flex: 1, minWidth: 0 }} />
           )}
+          <IconButton
+            size="small"
+            onClick={() => setCleanStatsDialogOpen(true)}
+            aria-label="match statistics"
+          >
+            <BarChart />
+          </IconButton>
         </Box>
         <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           <X01CleanView
             players={sortedPlayersForClean}
             currentPlayerIndex={currentGame.currentPlayerIndex}
             currentPlayerScore={getCurrentPlayer()?.score}
+            isDoubleOut={currentGame.isDoubleOut}
             onScore={handleScore}
             onReplaceScore={replaceScore}
             scoreInputDisabled={countdown !== null && countdown > 0}
@@ -674,6 +707,21 @@ const X01Game: React.FC = () => {
           <DialogActions>
             <Button onClick={handleCancelLeave}>Cancel</Button>
             <Button onClick={handleReturnToSetup} color="error">Leave Game</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog
+          open={cleanStatsDialogOpen}
+          onClose={() => setCleanStatsDialogOpen(false)}
+          aria-labelledby="clean-match-stats-dialog-title"
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle id="clean-match-stats-dialog-title">Match statistics</DialogTitle>
+          <DialogContent>
+            <X01CleanMatchStatsDialogContent stats={cleanMatchStats} />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setCleanStatsDialogOpen(false)}>Close</Button>
           </DialogActions>
         </Dialog>
         <Dialog open={legWonDialogOpen} onClose={() => setLegWonDialogOpen(false)} aria-labelledby="leg-won-dialog-title" maxWidth="md" fullWidth>
