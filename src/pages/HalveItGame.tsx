@@ -24,7 +24,7 @@ import {
   Cancel,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useHalveItStore } from "../store/useHalveItStore";
+import { useHalveItStore, type HalveItRound } from "../store/useHalveItStore";
 import { useHistoryStore } from "../store/useHistoryStore";
 import { useStore } from "../store/useStore";
 import { v4 as uuidv4 } from "uuid";
@@ -611,21 +611,26 @@ const HalveItGame: React.FC = () => {
     }
   };
 
-  const getRoundLabel = () => {
-    if (currentRound.roundType === "number" || currentRound.roundType === "bull") {
-      return `Round ${currentRound.roundNumber}: ${currentRound.target}`;
-    } else if (currentRound.roundType === "target-score") {
-      return `Round ${currentRound.roundNumber}: Target Score ${currentRound.target}`;
-    } else {
-      const typeLabel =
-        currentRound.roundType === "scoring"
-          ? "Scoring"
-          : currentRound.roundType === "double"
-          ? "Double"
-          : "Treble";
-      return `Round ${currentRound.roundNumber}: ${typeLabel}`;
+  const getRoundLabelForRound = (round: HalveItRound) => {
+    if (round.roundType === "number" || round.roundType === "bull") {
+      return `Round ${round.roundNumber}: ${round.target}`;
     }
+    if (round.roundType === "target-score") {
+      return `Round ${round.roundNumber}: Target Score ${round.target}`;
+    }
+    const typeLabel =
+      round.roundType === "scoring"
+        ? "Scoring"
+        : round.roundType === "double"
+        ? "Double"
+        : "Treble";
+    return `Round ${round.roundNumber}: ${typeLabel}`;
   };
+
+  const nextRound =
+    currentGame.currentRoundIndex < currentGame.rounds.length - 1
+      ? currentGame.rounds[currentGame.currentRoundIndex + 1]
+      : null;
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -748,11 +753,66 @@ const HalveItGame: React.FC = () => {
             overflow: "hidden",
           }}
         >
-          <Box sx={{ mb: 0.5 }}>
-            <Typography variant="h6" align="center" fontWeight="bold">
-              {getRoundLabel()}
-
+          <Box
+            sx={{
+              mb: 0.5,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 1.5,
+            }}
+          >
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{
+                fontSize: { xs: "1.1rem", sm: "1.5rem" },
+                textAlign: "left",
+                flex: "1 1 0",
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {getRoundLabelForRound(currentRound)}
             </Typography>
+            <Box
+              sx={{
+                flex: "1 1 0",
+                minWidth: 0,
+                textAlign: "right",
+              }}
+            >
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{
+                  display: "block",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  mb: 0.25,
+                }}
+              >
+                Next round
+              </Typography>
+              <Typography
+                variant="h5"
+                fontWeight="bold"
+                sx={{
+                  fontSize: { xs: "1.05rem", sm: "1.35rem" },
+                  lineHeight: 1.25,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  color: nextRound ? "text.primary" : "text.secondary",
+                }}
+              >
+                {nextRound
+                  ? getRoundLabelForRound(nextRound)
+                  : "Final round"}
+              </Typography>
+            </Box>
           </Box>
 
           {/* Player Headers */}
@@ -804,15 +864,16 @@ const HalveItGame: React.FC = () => {
                   }}
                 >
                   <Typography
-                    variant="body2"
+                    variant="subtitle1"
                     sx={{
-                      fontWeight: isCurrentPlayer ? "bold" : "normal",
+                      fontWeight: isCurrentPlayer ? 700 : 600,
                       mb: 0.5,
+                      lineHeight: 1.2,
                       fontSize: hasScrollablePlayers
-                        ? "0.75rem"
+                        ? "1.1rem"
                         : hasManyPlayers
-                        ? "0.85rem"
-                        : undefined,
+                        ? "1.25rem"
+                        : { xs: "1.4rem", sm: "1.65rem" },
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -821,10 +882,18 @@ const HalveItGame: React.FC = () => {
                     {player.name}
                   </Typography>
                   <Typography
-                    variant={hasScrollablePlayers ? "h6" : hasManyPlayers ? "h5" : "h4"}
+                    variant={
+                      hasScrollablePlayers ? "h4" : hasManyPlayers ? "h3" : "h2"
+                    }
                     sx={{
                       fontWeight: "bold",
                       color: theme.palette.info.main,
+                      fontSize: hasScrollablePlayers
+                        ? "1.65rem"
+                        : hasManyPlayers
+                        ? "2rem"
+                        : { xs: "2.65rem", sm: "3.25rem" },
+                      lineHeight: 1.15,
                     }}
                   >
                     <CountUp

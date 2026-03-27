@@ -31,27 +31,60 @@ const HitCounterInput: React.FC<HitCounterInputProps> = ({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", p: 2 }}>
       <Paper sx={{ p: 3, mb: 2, textAlign: "center" }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography
+          variant="h1"
+          gutterBottom
+          sx={{
+            fontWeight: "bold",
+            fontSize: { xs: "3.5rem", sm: "4.25rem" },
+            lineHeight: 1.08,
+            my: 0.5,
+          }}
+        >
           {target}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="h6"
+          color="text.secondary"
+          fontWeight={500}
+          sx={{ fontSize: { xs: "1.15rem", sm: "1.35rem" } }}
+        >
           Select number of hits
         </Typography>
         {previewData && (
           <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              gutterBottom
+              sx={{ fontSize: "1.1rem" }}
+            >
               Current: {previewData.currentScore}
             </Typography>
             {previewData.isHalved ? (
-              <Typography variant="body1" color="error">
-                Score Halved! {previewData.pointsGained > 0 ? "+" : ""}{previewData.pointsGained}
+              <Typography
+                variant="h5"
+                color="error"
+                fontWeight={600}
+                sx={{ fontSize: { xs: "1.15rem", sm: "1.3rem" } }}
+              >
+                Score Halved! {previewData.pointsGained > 0 ? "+" : ""}
+                {previewData.pointsGained}
               </Typography>
             ) : (
-              <Typography variant="body1" color="success.main">
+              <Typography
+                variant="h5"
+                color="success.main"
+                fontWeight={600}
+                sx={{ fontSize: { xs: "1.15rem", sm: "1.3rem" } }}
+              >
                 +{previewData.pointsGained} points
               </Typography>
             )}
-            <Typography variant="h6" sx={{ fontWeight: "bold", mt: 1 }}>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: "bold", mt: 1, fontSize: { xs: "1.4rem", sm: "1.6rem" } }}
+            >
               New Total: {previewData.newScore}
             </Typography>
           </Box>
@@ -68,7 +101,7 @@ const HitCounterInput: React.FC<HitCounterInputProps> = ({
               onClick={() => handleNumberClick(num)}
               disabled={num > maxHits || disabled}
               vibrationPattern={100}
-              sx={{ height: "100%" }}
+              sx={{ height: "100%", fontSize: "1.55rem", fontWeight: 700 }}
             >
               {num}
             </VibrationButton>
