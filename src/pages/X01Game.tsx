@@ -42,6 +42,7 @@ import DartInput from "../components/DartInput";
 import DartInputErrorBoundary from "../components/DartInputErrorBoundary";
 import X01PlayerBox from "../components/x01-player-box/x01-player-box";
 import X01TwoPlayerScoreboard from "../components/x01-two-player-scoreboard/x01-two-player-scoreboard";
+import X01CleanView from "../components/x01-clean-view/x01-clean-view";
 import VoiceInput from "../components/VoiceInput";
 import VibrationButton from "../components/VibrationButton";
 
@@ -55,6 +56,7 @@ const X01Game: React.FC = () => {
   const {
     currentGame,
     recordScore,
+    replaceScore,
     undoLastScore,
     endGame,
     startGame,
@@ -319,6 +321,18 @@ const X01Game: React.FC = () => {
 
   if (!currentGame) return null;
 
+  const isCleanMode =
+    currentGame.players.length === 2 && currentGame.viewMode === "clean";
+  const sortedPlayersForClean = isCleanMode
+    ? (currentGame.players
+        .slice()
+        .sort(
+          (a, b) =>
+            (currentGame.playerPositions[a.id] || 0) -
+            (currentGame.playerPositions[b.id] || 0)
+        ) as [typeof currentGame.players[0], typeof currentGame.players[0]])
+    : null;
+
   // Find the winner (player with score of exactly 0)
   const winner = currentGame.players.find((p) => p.score === 0);
 
@@ -576,6 +590,143 @@ const X01Game: React.FC = () => {
       }
     }
   };
+
+  if (isCleanMode && sortedPlayersForClean) {
+    const [cp1, cp2] = sortedPlayersForClean;
+    const legs1 = currentGame.legsWon[cp1.id] ?? 0;
+    const legs2 = currentGame.legsWon[cp2.id] ?? 0;
+    return (
+      <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, p: 0.5, flexShrink: 0 }}>
+          <IconButton size="small" onClick={() => setLeaveDialogOpen(true)} aria-label="back to setup">
+            <ArrowBack />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={handleUndo}
+            disabled={countdown !== null && countdown > 0}
+            aria-label="undo"
+          >
+            <Undo />
+          </IconButton>
+          <Typography variant="body2" component="span" fontWeight={600} sx={{ ml: 0.5 }}>
+            {cp1.name}
+          </Typography>
+          <Typography variant="body2" component="span" fontWeight={700}>
+            {legs1} – {legs2}
+          </Typography>
+          <Typography variant="body2" component="span" fontWeight={600}>
+            {cp2.name}
+          </Typography>
+          {countdown !== null && countdown > 0 && (
+            <>
+              <LinearProgress variant="determinate" value={progress} sx={{ flex: 1, height: 6, borderRadius: 1 }} />
+              <VibrationButton
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={handleCancelCountdown}
+                startIcon={<Cancel />}
+                vibrationPattern={[50, 100, 50]}
+              >
+                Cancel
+              </VibrationButton>
+            </>
+          )}
+        </Box>
+        <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <X01CleanView
+            players={sortedPlayersForClean}
+            currentPlayerIndex={currentGame.currentPlayerIndex}
+            currentPlayerScore={getCurrentPlayer()?.score}
+            onScore={handleScore}
+            onReplaceScore={replaceScore}
+            scoreInputDisabled={countdown !== null && countdown > 0}
+          />
+        </Box>
+        {/* Same dialogs as main view */}
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} aria-labelledby="game-finished-dialog-title">
+          <DialogTitle id="game-finished-dialog-title">Game Finished!</DialogTitle>
+          <DialogContent>
+            {winner && (
+              <Typography variant="h5" color="primary" gutterBottom>
+                {winner.name} won the match!
+              </Typography>
+            )}
+            <Typography variant="body1" gutterBottom>Final Score:</Typography>
+            {playerStats.map((player) => (
+              <Typography key={player.id} variant="body2">
+                {player.name}: {player.pointsScored} points (Avg: {player.avgPerDart})
+                {currentGame.legsWon[player.id] > 0 && ` - ${currentGame.legsWon[player.id]} legs won`}
+              </Typography>
+            ))}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleReturnToSetup}>Return to Setup</Button>
+            <Button onClick={handleNewGame} variant="contained" color="primary">Play Again</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={leaveDialogOpen} onClose={handleCancelLeave} aria-labelledby="leave-dialog-title">
+          <DialogTitle id="leave-dialog-title">Leave Game?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>Are you sure you want to leave? Your current game progress will be lost.</DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCancelLeave}>Cancel</Button>
+            <Button onClick={handleReturnToSetup} color="error">Leave Game</Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={legWonDialogOpen} onClose={() => setLegWonDialogOpen(false)} aria-labelledby="leg-won-dialog-title" maxWidth="md" fullWidth>
+          <DialogTitle id="leg-won-dialog-title">Leg {lastLegStats?.legNumber} Complete!</DialogTitle>
+          <DialogContent>
+            {lastLegStats && (
+              <>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  {currentGame.players.find((p) => p.id === lastLegStats.winnerId)?.name} won the leg!
+                </Typography>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>Leg Statistics:</Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Player</TableCell>
+                        <TableCell align="right">Darts</TableCell>
+                        <TableCell align="right">Avg/Dart</TableCell>
+                        <TableCell align="right">Avg/Round</TableCell>
+                        <TableCell align="right">100+</TableCell>
+                        <TableCell align="right">140+</TableCell>
+                        <TableCell align="right">180</TableCell>
+                        <TableCell align="right">Checkout</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {lastLegStats.players.map((player: { id: number; name: string; dartsThrown: number; avgPerDart: number; avgPerRound: number; rounds100Plus: number; rounds140Plus: number; rounds180: number; checkoutAttempts: number; checkoutSuccess: number; scores: Array<{ score: number; darts: number }> }) => (
+                        <TableRow key={player.id} sx={{ backgroundColor: player.id === lastLegStats.winnerId ? (theme) => alpha(theme.palette.primary.main, 0.1) : "transparent" }}>
+                          <TableCell component="th" scope="row" sx={{ fontWeight: player.id === lastLegStats.winnerId ? "bold" : "normal" }}>{player.name}{player.id === lastLegStats.winnerId && " 🏆"}</TableCell>
+                          <TableCell align="right">{player.dartsThrown}</TableCell>
+                          <TableCell align="right">{player.avgPerDart.toFixed(1)}</TableCell>
+                          <TableCell align="right">{player.avgPerRound.toFixed(1)}</TableCell>
+                          <TableCell align="right">{player.rounds100Plus}</TableCell>
+                          <TableCell align="right">{player.rounds140Plus}</TableCell>
+                          <TableCell align="right">{player.rounds180}</TableCell>
+                          <TableCell align="right">{player.checkoutAttempts > 0 ? `${player.checkoutSuccess}/${player.checkoutAttempts}` : "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <Divider sx={{ my: 2 }} />
+                <DialogActions>
+                  <Button onClick={() => setLegWonDialogOpen(false)}>Continue</Button>
+                </DialogActions>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>

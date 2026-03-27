@@ -33,6 +33,8 @@ export interface GamePlayer extends Player {
   dartHits: Record<string, number>; // Track the frequency of each dart hit (format: "T20", "D16", etc.)
 }
 
+export type X01ViewMode = "standard" | "clean";
+
 interface GameState {
   gameType: string;
   players: GamePlayer[];
@@ -45,6 +47,7 @@ interface GameState {
   totalLegs: number;
   currentLeg: number;
   legsWon: Record<number, number>;
+  viewMode?: X01ViewMode;
 }
 
 interface LegStats {
@@ -91,12 +94,18 @@ interface X01StoreState {
     gameType: GameState["gameType"],
     playerIds: number[],
     totalLegs: number,
-    startingPlayerIndex?: number
+    startingPlayerIndex?: number,
+    viewMode?: X01ViewMode
   ) => void;
   recordScore: (
     score: number,
     dartsUsed: number,
     lastDartMultiplier?: number
+  ) => void;
+  replaceScore: (
+    playerIndex: number,
+    roundIndex: number,
+    newScore: number
   ) => void;
   undoLastScore: () => void;
   endGame: () => void;
@@ -281,7 +290,7 @@ export const useX01Store = create<X01StoreState>()(
       lastDartNotations: [],
       history: [],
 
-      startGame: (gameType, playerIds, totalLegs, startingPlayerIndex = 0) => {
+      startGame: (gameType, playerIds, totalLegs, startingPlayerIndex = 0, viewMode = "standard") => {
         set((state) => {
           const selectedPlayers = playerIds
             .map((id) => cachedPlayers.find((player) => player.id === id))
@@ -321,6 +330,7 @@ export const useX01Store = create<X01StoreState>()(
             totalLegs,
             currentLeg: 1,
             legsWon: playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}),
+            viewMode: viewMode,
           };
 
           return {
@@ -540,6 +550,57 @@ export const useX01Store = create<X01StoreState>()(
             currentGame: newGame,
             lastLegStats: legStats,
             history: [...state.history, previousEntry].slice(-MAX_HISTORY),
+          };
+        });
+      },
+
+      replaceScore: (playerIndex, roundIndex, newScore) => {
+        set((state) => {
+          if (!state.currentGame || state.currentGame.isGameFinished)
+            return state;
+          const game = state.currentGame;
+          if (playerIndex < 0 || playerIndex >= game.players.length)
+            return state;
+          const player = game.players[playerIndex];
+          const scores = [...player.scores];
+          if (roundIndex < 0 || roundIndex > scores.length) return state;
+          const dartsUsed = 3;
+          if (roundIndex === scores.length) {
+            return state;
+          }
+          scores[roundIndex] = { score: newScore, darts: dartsUsed };
+          const totalScored = scores.reduce((sum, s) => sum + s.score, 0);
+          const newPlayerScore = player.initialScore - totalScored;
+          const newDartsThrown = scores.reduce((sum, s) => sum + s.darts, 0);
+          const rounds100Plus = scores.filter(
+            (s) => s.score >= 100 && s.score < 140
+          ).length;
+          const rounds140Plus = scores.filter(
+            (s) => s.score >= 140 && s.score < 180
+          ).length;
+          const rounds180 = scores.filter((s) => s.score === 180).length;
+          const rounds = Math.ceil(newDartsThrown / 3);
+          const avgPerDart =
+            newDartsThrown > 0 ? totalScored / newDartsThrown : 0;
+          const avgPerRound = rounds > 0 ? totalScored / rounds : 0;
+          const lastRoundScore = scores.length > 0 ? scores[scores.length - 1].score : 0;
+          const newPlayer: GamePlayer = {
+            ...player,
+            scores,
+            score: newPlayerScore,
+            dartsThrown: newDartsThrown,
+            rounds100Plus,
+            rounds140Plus,
+            rounds180,
+            avgPerDart,
+            avgPerRound,
+            lastRoundScore,
+          };
+          const newPlayers = [...game.players];
+          newPlayers[playerIndex] = newPlayer;
+          return {
+            ...state,
+            currentGame: { ...game, players: newPlayers },
           };
         });
       },

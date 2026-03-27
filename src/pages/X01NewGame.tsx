@@ -85,6 +85,7 @@ const X01NewGame: React.FC = () => {
   const [isCustom, setIsCustom] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [numberOfLegs, setNumberOfLegs] = useState(gameSettings.defaultLegs);
+  const [cleanMode, setCleanMode] = useState(false);
 
   // Update X01Store with players from main store
   useEffect(() => {
@@ -196,8 +197,9 @@ const X01NewGame: React.FC = () => {
     // Convert strings back to numbers while maintaining order
     const orderedPlayerIds = selectedPlayers.map((id) => parseInt(id));
 
-    // Start game with ordered player IDs and number of legs
-    startGame(finalGameType, orderedPlayerIds, numberOfLegs);
+    // Start game with ordered player IDs and number of legs; Clean mode only for 2 players
+    const viewMode = selectedPlayers.length === 2 && cleanMode ? "clean" : "standard";
+    startGame(finalGameType, orderedPlayerIds, numberOfLegs, 0, viewMode);
     navigate("/x01/game");
   };
 
@@ -408,6 +410,18 @@ const X01NewGame: React.FC = () => {
                   minPlayers={1}
                   maxPlayers={4}
                 />
+                {selectedPlayers.length === 2 && (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={cleanMode}
+                        onChange={(e) => setCleanMode(e.target.checked)}
+                      />
+                    }
+                    label="Clean mode (simple 2-player view)"
+                    sx={{ mt: 2, display: "block" }}
+                  />
+                )}
               </Box>
 
             <Box sx={{ mt: 3, display: "flex", gap: 1 }}>
