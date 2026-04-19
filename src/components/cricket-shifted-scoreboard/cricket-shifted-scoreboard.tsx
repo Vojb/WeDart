@@ -52,7 +52,7 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
       >
         <Typography
           sx={{
-            fontSize: { xs: "1rem", sm: "1.35rem" },
+            fontSize: { xs: "0.8rem", sm: "1.05rem" },
             fontWeight: isCurrent ? 700 : 600,
             lineHeight: 1.2,
             textTransform: "uppercase",
@@ -60,12 +60,15 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
             textAlign: "center",
           }}
         >
-          {player.name}
+          {player.name}{" "}
+          <Box component="span" sx={{ fontWeight: 600, opacity: 0.92 }}>
+            ({mpr.toFixed(1)})
+          </Box>
         </Typography>
         <Typography
           component="div"
           sx={{
-            fontSize: { xs: "2.25rem", sm: "3rem", md: "3.25rem" },
+            fontSize: { xs: "3.25rem", sm: "4.15rem", md: "4.55rem" },
             fontWeight: 700,
             color,
             lineHeight: 1.1,
@@ -78,16 +81,6 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
             animateOnChange={true}
             startWhen={true}
           />
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: { xs: "0.85rem", sm: "1rem" },
-            fontWeight: 600,
-            color: alpha(theme.palette.text.primary, 0.9),
-            lineHeight: 1.2,
-          }}
-        >
-          MPR {mpr.toFixed(1)}
         </Typography>
       </Box>
     );

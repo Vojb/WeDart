@@ -10,7 +10,7 @@ interface HiddenCricketMultiPlayersLayoutProps {
   currentRound: HiddenCricketRound | null;
   renderMarks: (hits: number, color?: string) => React.ReactNode;
   renderClosedMark: (color?: string) => React.ReactNode;
-  getNumberDisplayText: (number: number | string) => string;
+  getNumberDisplayText: (number: number | string) => React.ReactNode;
   isNumberClosedByAll: (number: number | string) => boolean;
   hasCurrentPlayerClosedAllNonBull: () => boolean;
   lastBull: boolean;
@@ -215,7 +215,7 @@ const HiddenCricketMultiPlayersLayout: React.FC<HiddenCricketMultiPlayersLayoutP
                 sx={{
                   fontWeight: 700,
                   color: playerColor,
-                  fontSize: { xs: "1rem", sm: "1.5rem", md: "1.75rem" },
+                  fontSize: { xs: "1.35rem", sm: "2rem", md: "2.35rem" },
                 }}
               >
                 <CountUp

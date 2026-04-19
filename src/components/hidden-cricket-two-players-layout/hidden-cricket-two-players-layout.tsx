@@ -10,7 +10,7 @@ interface HiddenCricketTwoPlayersLayoutProps {
   currentRound: HiddenCricketRound | null;
   renderMarks: (hits: number, color?: string) => React.ReactNode;
   renderClosedMark: (color?: string) => React.ReactNode;
-  getNumberDisplayText: (number: number | string) => string;
+  getNumberDisplayText: (number: number | string) => React.ReactNode;
   isNumberClosedByAll: (number: number | string) => boolean;
   hasCurrentPlayerClosedAllNonBull: () => boolean;
   lastBull: boolean;
@@ -261,7 +261,7 @@ const HiddenCricketTwoPlayersLayout: React.FC<HiddenCricketTwoPlayersLayoutProps
                 players[0] && 0 % 2 === 0
                   ? theme.palette.primary.main
                   : theme.palette.secondary.main,
-              fontSize: { xs: "1rem", sm: "1.5rem", md: "1.75rem" },
+              fontSize: { xs: "1.35rem", sm: "2rem", md: "2.35rem" },
             }}
           >
             <CountUp
@@ -295,7 +295,7 @@ const HiddenCricketTwoPlayersLayout: React.FC<HiddenCricketTwoPlayersLayoutProps
                 players[1] && 1 % 2 === 0
                   ? theme.palette.primary.main
                   : theme.palette.secondary.main,
-              fontSize: { xs: "1rem", sm: "1.5rem", md: "1.75rem" },
+              fontSize: { xs: "1.35rem", sm: "2rem", md: "2.35rem" },
             }}
           >
             <CountUp

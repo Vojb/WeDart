@@ -1,5 +1,5 @@
 import { useInView, useMotionValue, useSpring } from 'framer-motion';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 interface CountUpProps {
   to: number;
@@ -31,12 +31,14 @@ const CountUp: React.FC<CountUpProps> = ({
   const ref = useRef<HTMLSpanElement>(null);
   const initialValue = animateOnChange ? to : (direction === 'down' ? to : from);
   const motionValue = useMotionValue(initialValue);
-  const damping = 20 + 40 * (1 / duration);
-  const stiffness = 100 * (1 / duration);
-  const springValue = useSpring(motionValue, {
-    damping,
-    stiffness,
-  });
+  const springConfig = useMemo(
+    () => ({
+      damping: 20 + 40 * (1 / duration),
+      stiffness: 100 * (1 / duration),
+    }),
+    [duration],
+  );
+  const springValue = useSpring(motionValue, springConfig);
   const isInView = useInView(ref, { once: !animateOnChange, margin: '0px' });
   const previousToRef = useRef<number>(to);
   const hasInitializedRef = useRef<boolean>(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   Paper,
@@ -14,7 +14,6 @@ import {
   ListItemText,
   alpha,
   CircularProgress,
-  LinearProgress,
   useTheme,
   Grid,
 } from "@mui/material";
@@ -22,7 +21,6 @@ import {
   Undo,
   EmojiEvents,
   ExitToApp,
-  NavigateNext,
   ExpandMore,
   ExpandLess,
 } from "@mui/icons-material";
@@ -33,10 +31,12 @@ import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
 import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
 import CricketShiftedScoreboard from "../components/cricket-shifted-scoreboard/cricket-shifted-scoreboard";
+import CricketAutoAdvanceNextButton from "../components/cricket-auto-advance-next-button/cricket-auto-advance-next-button";
 import { motion, Variants } from "framer-motion";
 import MultiplierSelector from "../components/multiplier-selector/multiplier-selector";
 import HiddenCricketTwoPlayersLayout from "../components/hidden-cricket-two-players-layout/hidden-cricket-two-players-layout";
 import HiddenCricketMultiPlayersLayout from "../components/hidden-cricket-multi-players-layout/hidden-cricket-multi-players-layout";
+import BullSymbol from "../components/bull-symbol/bull-symbol";
 
 const HiddenCricketGame: React.FC = () => {
   const navigate = useNavigate();
@@ -64,10 +64,6 @@ const HiddenCricketGame: React.FC = () => {
     null,
   );
   const [isInputExpanded, setIsInputExpanded] = useState(true);
-  const autoAdvanceTimerRef = useRef<number | null>(null);
-  const progressIntervalRef = useRef<number | null>(null);
-  const [progress, setProgress] = useState<number>(0);
-  const progressStartTimeRef = useRef<number>(Date.now());
 
   // Numbers 1-20 and Bull for button input (in order)
   const allNumbers = [
@@ -94,116 +90,32 @@ const HiddenCricketGame: React.FC = () => {
     "Bull",
   ];
 
-  // Auto-advance timer: only starts after 3rd dart is thrown
-  useEffect(() => {
-    if (!currentGame || currentGame.isGameFinished) {
-      // Clear timer if game is finished
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      setProgress(0);
-      return;
-    }
+  const shape: React.CSSProperties = useMemo(
+    () => ({
+      strokeWidth: 10,
+      strokeLinecap: "round",
+      fill: "transparent",
+    }),
+    [],
+  );
 
-    // Only start timer if the current player has thrown 3 darts
-    const currentRoundDarts = currentGame.currentRound?.darts.length || 0;
-    const hasThrownAllDarts = currentRoundDarts >= 3;
-
-    if (!hasThrownAllDarts) {
-      // Clear timer and progress if player hasn't thrown all 3 darts yet
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      setProgress(0);
-      return;
-    }
-
-    // Clear existing timer and interval
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current);
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-
-    // Reset progress
-    setProgress(0);
-    progressStartTimeRef.current = Date.now();
-
-    // Set new timer
-    const durationMs = countdownDuration * 1000;
-    autoAdvanceTimerRef.current = setTimeout(() => {
-      finishTurn();
-    }, durationMs);
-
-    // Update progress every 50ms for smooth animation
-    progressIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / durationMs) * 100, 100);
-      setProgress(newProgress);
-    }, 50);
-
-    // Cleanup
-    return () => {
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-    };
-  }, [lastClickTime, currentGame, finishTurn, countdownDuration]);
-
-  const shape: React.CSSProperties = {
-    strokeWidth: 10,
-    strokeLinecap: "round",
-    fill: "transparent",
-  };
-
-  const draw: Variants = {
-    hidden: { pathLength: 0, opacity: 0 },
-    visible: (i: number) => {
-      const delay = i * 0.5;
-      return {
-        pathLength: 1,
-        opacity: 1,
-        transition: {
-          pathLength: { delay, type: "spring", duration: 1.5, bounce: 0 },
-          opacity: { delay, duration: 0.01 },
-        },
-      };
-    },
-  };
-
-  // Reset progress when player changes (new turn starts)
-  useEffect(() => {
-    if (!currentGame || currentGame.isGameFinished) return;
-
-    // Only reset if current round is empty (new turn just started)
-    const isNewTurn =
-      currentGame.currentRound && currentGame.currentRound.darts.length === 0;
-
-    if (isNewTurn) {
-      // Clear timer and progress when a new turn starts
-      if (autoAdvanceTimerRef.current) {
-        clearTimeout(autoAdvanceTimerRef.current);
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      setProgress(0);
-    }
-  }, [
-    currentGame?.currentPlayerIndex,
-    currentGame?.currentRound?.darts.length,
-    currentGame?.isGameFinished,
-  ]);
+  const draw: Variants = useMemo(
+    () => ({
+      hidden: { pathLength: 0, opacity: 0 },
+      visible: (i: number) => {
+        const delay = i * 0.5;
+        return {
+          pathLength: 1,
+          opacity: 1,
+          transition: {
+            pathLength: { delay, type: "spring", duration: 1.5, bounce: 0 },
+            opacity: { delay, duration: 0.01 },
+          },
+        };
+      },
+    }),
+    [],
+  );
 
   // If no game is in progress, redirect to setup
   useEffect(() => {
@@ -303,6 +215,12 @@ const HiddenCricketGame: React.FC = () => {
       window.removeEventListener("popstate", handleBackButton);
     };
   }, [currentGame, location.pathname]);
+
+  const handleFinishTurn = useCallback(() => {
+    if (!currentGame) return;
+    finishTurn();
+    setLastClickTime(Date.now());
+  }, [currentGame, finishTurn]);
 
   // Display loading state
   if (isLoading) {
@@ -433,19 +351,11 @@ const HiddenCricketGame: React.FC = () => {
     setLastClickTime(Date.now());
   };
 
-  const handleFinishTurn = () => {
-    if (!currentGame) return;
-    // Clear auto-advance timer and progress interval
-    if (autoAdvanceTimerRef.current) {
-      clearTimeout(autoAdvanceTimerRef.current);
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
-    setProgress(0);
-    finishTurn();
-    setLastClickTime(Date.now());
-  };
+  const currentRoundDartCount = currentGame?.currentRound?.darts.length ?? 0;
+  const shouldRunAutoAdvanceTimer =
+    !!currentGame &&
+    !currentGame.isGameFinished &&
+    currentRoundDartCount >= 3;
 
   const handleLeaveGame = () => {
     endGame();
@@ -485,10 +395,10 @@ const HiddenCricketGame: React.FC = () => {
   const renderMarks = (hits: number, color?: string) => {
     if (hits === 0) return null;
 
-    const viewBoxSize = 48;
+    const viewBoxSize = 56;
     const center = viewBoxSize / 2;
-    const lineLength = 36;
-    const strokeWidth = 4;
+    const lineLength = 42;
+    const strokeWidth = 5;
     const primaryColor = color || theme.palette.primary.main;
 
     return (
@@ -509,8 +419,8 @@ const HiddenCricketGame: React.FC = () => {
             fontSize: isInputExpanded
               ? "clamp(0.75rem, 60%, 1.5rem)"
               : "clamp(1rem, 60%, 2rem)",
-            width: "1.2em",
-            height: "1.2em",
+            width: "1.5em",
+            height: "1.5em",
             maxWidth: "100%",
             maxHeight: "100%",
             minWidth: 0,
@@ -532,7 +442,7 @@ const HiddenCricketGame: React.FC = () => {
             {/* First hit - Slash (/) */}
             {hits >= 1 && (
               <motion.line
-                key={`slash-${hits}`}
+                key="mark-slash"
                 x1={center - lineLength / 2}
                 y1={center - lineLength / 2}
                 x2={center + lineLength / 2}
@@ -549,7 +459,7 @@ const HiddenCricketGame: React.FC = () => {
             {/* Second hit - Cross (X) - adds backslash (\) */}
             {hits >= 2 && (
               <motion.line
-                key={`backslash-${hits}`}
+                key="mark-backslash"
                 x1={center + lineLength / 2}
                 y1={center - lineLength / 2}
                 x2={center - lineLength / 2}
@@ -586,11 +496,11 @@ const HiddenCricketGame: React.FC = () => {
 
   // Function to render closed mark (ring with cross)
   const renderClosedMark = (color?: string) => {
-    const viewBoxSize = 48;
+    const viewBoxSize = 56;
     const center = viewBoxSize / 2;
-    const lineLength = 36;
-    const circleRadius = 18;
-    const strokeWidth = 4;
+    const lineLength = 42;
+    const circleRadius = 21;
+    const strokeWidth = 5;
     const primaryColor = color || theme.palette.primary.main;
 
     return (
@@ -611,8 +521,8 @@ const HiddenCricketGame: React.FC = () => {
             fontSize: isInputExpanded
               ? "clamp(0.75rem, 60%, 1.5rem)"
               : "clamp(1rem, 60%, 2rem)",
-            width: "1.2em",
-            height: "1.2em",
+            width: "1.5em",
+            height: "1.5em",
             maxWidth: "100%",
             maxHeight: "100%",
             minWidth: 0,
@@ -718,15 +628,15 @@ const HiddenCricketGame: React.FC = () => {
     });
   };
 
-  // Get display text for a number (shows Bull if lastBull is enabled)
-  const getNumberDisplayText = (number: number | string): string => {
+  // Row label: revealed number, bull symbol, or "?" when hidden
+  const getNumberDisplayText = (number: number | string): React.ReactNode => {
     if (!currentGame) return "?";
-    // If lastBull is enabled and this is Bull, always show it
     if (currentGame.lastBull && number === "Bull") {
-      return "Bull";
+      return <BullSymbol />;
     }
-    // Otherwise, show number if any player has hit it, or "?" if not
-    return hasAnyPlayerHitNumber(number) ? String(number) : "?";
+    if (!hasAnyPlayerHitNumber(number)) return "?";
+    if (number === "Bull") return <BullSymbol />;
+    return String(number);
   };
 
   // Check if current player has closed all non-Bull numbers (for lastBull rule)
@@ -1170,7 +1080,11 @@ const HiddenCricketGame: React.FC = () => {
                           },
                         }}
                       >
-                        {number}
+                        {number === "Bull" ? (
+                          <BullSymbol size="1.5rem" />
+                        ) : (
+                          number
+                        )}
                       </VibrationButton>
                     </Grid>
                   );
@@ -1244,7 +1158,7 @@ const HiddenCricketGame: React.FC = () => {
                   variant="body2"
                   sx={{
                     color: "text.secondary",
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    fontSize: { xs: "1.05rem", sm: "1.2rem" },
                     fontWeight: 600,
                   }}
                 >
@@ -1289,9 +1203,9 @@ const HiddenCricketGame: React.FC = () => {
                         sx={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 0.5,
-                          px: 1,
-                          py: 0.5,
+                          gap: 0.75,
+                          px: { xs: 1.25, sm: 1.5 },
+                          py: { xs: 0.65, sm: 0.75 },
                           borderRadius: 1,
                           backgroundColor: alpha(playerColor, 0.1),
                           border: `1px solid ${alpha(playerColor, 0.3)}`,
@@ -1301,14 +1215,25 @@ const HiddenCricketGame: React.FC = () => {
                           variant="body2"
                           sx={{
                             fontWeight: 600,
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            fontSize: { xs: "1.15rem", sm: "1.35rem" },
                           }}
                         >
                           {targetNumber === "Miss"
                             ? `Miss${data.count > 1 ? ` (${data.count})` : ""}`
                             : data.count > 1
-                              ? `${data.count}x${targetNumber}`
-                              : targetNumber}
+                              ? <>
+                                  {data.count}×
+                                  {targetNumber === "Bull" ? (
+                                    <BullSymbol />
+                                  ) : (
+                                    targetNumber
+                                  )}
+                                </>
+                              : targetNumber === "Bull" ? (
+                                  <BullSymbol />
+                                ) : (
+                                  targetNumber
+                                )}
                         </Typography>
                         {data.totalPoints > 0 && (
                           <Typography
@@ -1316,7 +1241,7 @@ const HiddenCricketGame: React.FC = () => {
                             sx={{
                               color: "secondary.main",
                               fontWeight: 600,
-                              fontSize: { xs: "0.65rem", sm: "0.75rem" },
+                              fontSize: { xs: "1.05rem", sm: "1.2rem" },
                             }}
                           >
                             (+{data.totalPoints})
@@ -1331,7 +1256,7 @@ const HiddenCricketGame: React.FC = () => {
                   variant="body2"
                   sx={{
                     color: "text.secondary",
-                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    fontSize: { xs: "1.05rem", sm: "1.2rem" },
                     fontStyle: "italic",
                   }}
                 >
@@ -1342,62 +1267,22 @@ const HiddenCricketGame: React.FC = () => {
           </Box>
 
           <Box>
-            <VibrationButton
-              variant="contained"
-              color={
+            <CricketAutoAdvanceNextButton
+              isGameFinished={currentGame.isGameFinished}
+              shouldRunAutoAdvanceTimer={shouldRunAutoAdvanceTimer}
+              countdownDurationSec={countdownDuration}
+              timerResetKey={lastClickTime}
+              currentPlayerIndex={currentGame.currentPlayerIndex}
+              currentRoundDartCount={currentRoundDartCount}
+              onFinishTurn={handleFinishTurn}
+              buttonColor={
                 currentPlayer && currentGame.currentPlayerIndex % 2 === 0
                   ? "primary"
                   : "secondary"
               }
-              fullWidth
-              size="large"
-              onClick={handleFinishTurn}
               disabled={currentGame.isGameFinished}
-              vibrationPattern={100}
-              startIcon={<NavigateNext />}
-              sx={{
-                flex: 1,
-                py: 0.75,
-                fontSize: "1rem",
-                fontWeight: "bold",
-                position: "relative",
-                overflow: "hidden",
-                "&::before":
-                  !currentGame.isGameFinished && progress > 0
-                    ? {
-                        content: '""',
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        height: "100%",
-                        width: `${progress}%`,
-                        backgroundColor: (theme) =>
-                          alpha(theme.palette.common.white, 0.3),
-                        transition: "width 0.05s linear",
-                      }
-                    : {},
-              }}
-            >
-              Next
-            </VibrationButton>
-            {/* Progress bar indicator */}
-            {!currentGame.isGameFinished && progress > 0 && (
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                sx={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 4,
-                  backgroundColor: "transparent",
-                  "& .MuiLinearProgress-bar": {
-                    backgroundColor: (theme) => theme.palette.common.white,
-                  },
-                }}
-              />
-            )}
+              buttonSize="compact"
+            />
           </Box>
         </Paper>
       </Box>

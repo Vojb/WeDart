@@ -17,14 +17,12 @@ interface ScoreRingProps {
   player: CricketPlayer;
   color: string;
   isCurrent: boolean;
-  mprValue?: number;
 }
 
 const ScoreRing: React.FC<ScoreRingProps> = ({
   player,
   color,
   isCurrent,
-  mprValue,
 }) => {
   const theme = useTheme();
   const outerRingSize = { xs: 86, sm: 100 };
@@ -65,11 +63,15 @@ const ScoreRing: React.FC<ScoreRingProps> = ({
     return maxHits > 0 ? (totalHits / maxHits) * 100 : 0;
   }, [player.targets]);
   const percentMotion = useMotionValue(completionPercent);
-  const percentSpring = useSpring(percentMotion, {
-    stiffness: 160,
-    damping: 22,
-    mass: 0.9,
-  });
+  const percentSpringConfig = useMemo(
+    () => ({
+      stiffness: 160,
+      damping: 22,
+      mass: 0.9,
+    }),
+    [],
+  );
+  const percentSpring = useSpring(percentMotion, percentSpringConfig);
   const ringBackground = useTransform(percentSpring, (value) => {
     const clamped = Math.max(0, Math.min(100, value));
     const zeroThreshold = isCurrent ? 0.01 : 0.5;
@@ -152,7 +154,7 @@ const ScoreRing: React.FC<ScoreRingProps> = ({
               variant="h4"
               sx={{
                 fontWeight: 700,
-                fontSize: { xs: "1.5rem", sm: "1.85rem" },
+                fontSize: { xs: "2.35rem", sm: "2.85rem" },
                 lineHeight: 1.1,
               }}
             >
@@ -164,19 +166,6 @@ const ScoreRing: React.FC<ScoreRingProps> = ({
                 startWhen={true}
               />
             </Typography>
-            {typeof mprValue === "number" && (
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  fontSize: { xs: "0.35rem", sm: "0.5rem" },
-                  letterSpacing: 0.5,
-                  color: alpha(color, 0.85),
-                }}
-              >
-                MPR {mprValue.toFixed(1)}
-              </Typography>
-            )}
           </Box>
         </Box>
       </Box>
@@ -273,7 +262,7 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: 0.7,
-              fontSize: { xs: "0.72rem", sm: "0.9rem" },
+              fontSize: { xs: "0.62rem", sm: "0.78rem" },
               width: "100%",
               maxWidth: { xs: 120, sm: 200 },
               whiteSpace: "nowrap",
@@ -282,7 +271,10 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
               textAlign: "center",
             }}
           >
-            {leftPlayer.name}
+            {leftPlayer.name}{" "}
+            <Box component="span" sx={{ fontWeight: 700, opacity: 0.9 }}>
+              ({leftMpr.toFixed(1)})
+            </Box>
           </Typography>
           <Box
             sx={{
@@ -325,7 +317,6 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
                         : alpha(theme.palette.primary.main, 0.65)
                     }
                     isCurrent={currentPlayerIndex === 0}
-                    mprValue={leftMpr}
                   />
                 </Box>
               </Box>
@@ -388,7 +379,7 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
               textTransform: "uppercase",
               letterSpacing: 0.7,
 
-              fontSize: { xs: "0.72rem", sm: "0.9rem" },
+              fontSize: { xs: "0.62rem", sm: "0.78rem" },
               color: alpha(theme.palette.text.primary, 0.92),
               width: "100%",
               maxWidth: { xs: 120, sm: 200 },
@@ -398,7 +389,10 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
               textAlign: "center",
             }}
           >
-            {rightPlayer.name}
+            {rightPlayer.name}{" "}
+            <Box component="span" sx={{ fontWeight: 700, opacity: 0.9 }}>
+              ({rightMpr.toFixed(1)})
+            </Box>
           </Typography>
           <Box
             sx={{
@@ -441,7 +435,6 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
                         : alpha(theme.palette.secondary.main, 0.65)
                     }
                     isCurrent={currentPlayerIndex === 1}
-                    mprValue={rightMpr}
                   />
                 </Box>
               </Box>

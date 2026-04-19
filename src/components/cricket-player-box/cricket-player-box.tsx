@@ -79,19 +79,23 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
         >
           <Typography
             sx={{
-              fontSize: { xs: "1rem", sm: "1.25rem" },
+              fontSize: { xs: "0.8rem", sm: "0.95rem" },
               fontWeight: isCurrentPlayer ? 700 : 600,
               lineHeight: 1.2,
               textTransform: "uppercase",
               letterSpacing: 0.5,
+              textAlign: "center",
             }}
           >
-            {player.name}
+            {player.name}{" "}
+            <Box component="span" sx={{ fontWeight: 600, opacity: 0.9 }}>
+              ({avgMarksPerRound.toFixed(1)})
+            </Box>
           </Typography>
           <Typography
             component="div"
             sx={{
-              fontSize: { xs: "1.75rem", sm: "2.25rem", md: "2.5rem" },
+              fontSize: { xs: "2.45rem", sm: "3rem", md: "3.35rem" },
               fontWeight: 700,
               color: playerColor,
               lineHeight: 1.1,
@@ -104,16 +108,6 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
               animateOnChange={true}
               startWhen={true}
             />
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: { xs: "1rem", sm: "1.25rem" },
-              fontWeight: 600,
-              color: alpha(theme.palette.text.secondary, 0.9),
-              lineHeight: 1.2,
-            }}
-          >
-            MPR {avgMarksPerRound.toFixed(1)}
           </Typography>
         </Box>
       </Paper>
@@ -148,24 +142,17 @@ const CricketPlayerBox: React.FC<CricketPlayerBoxProps> = ({
           <Typography
             variant="body2"
             sx={{
-              fontSize: { xs: "1rem", sm: "1.25rem" },
+              fontSize: { xs: "0.85rem", sm: "1rem" },
               fontWeight: isCurrentPlayer ? 600 : 500,
               textAlign: "center",
               lineHeight: 1.3,
               transition: "all 0.3s ease",
             }}
           >
-            {player.name.toLocaleUpperCase()}
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: { xs: "0.65rem", sm: "0.75rem" },
-              fontWeight: 500,
-              color: alpha(theme.palette.text.secondary, 0.7),
-              lineHeight: 1.2,
-            }}
-          >
-            MPR: {avgMarksPerRound.toFixed(1)}
+            {player.name.toLocaleUpperCase()}{" "}
+            <Box component="span" sx={{ fontWeight: 600, opacity: 0.85 }}>
+              ({avgMarksPerRound.toFixed(1)})
+            </Box>
           </Typography>
         </Box>
         <Box />
