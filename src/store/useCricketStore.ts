@@ -82,7 +82,11 @@ interface CricketStoreState {
     totalLegs: number,
     cricketVariant?: CricketVariant
   ) => void;
-  recordHit: (targetNumber: number | string, multiplier: number) => void;
+  recordHit: (
+    targetNumber: number | string,
+    multiplier: number,
+    forPlayerId?: number
+  ) => void;
   undoLastHit: () => void;
   endGame: () => void;
   // Add function to advance to next player manually
@@ -128,8 +132,7 @@ function applyCricketDartReplay(
   players: CricketPlayer[],
   playerIndex: number,
   dart: CricketDart,
-  gameType: CricketGameState["gameType"],
-  cricketVariant: CricketVariant
+  gameType: CricketGameState["gameType"]
 ): void {
   const targetNumber = dart.targetNumber;
   const multiplier = dart.multiplier;
@@ -220,13 +223,7 @@ function replayCricketLegRounds(
     const playerIndex = players.findIndex((pl) => pl.id === round.playerId);
     if (playerIndex === -1) continue;
     for (const dart of round.darts) {
-      applyCricketDartReplay(
-        players,
-        playerIndex,
-        dart,
-        gameType,
-        cricketVariant
-      );
+      applyCricketDartReplay(players, playerIndex, dart, gameType);
     }
   }
   return players;
@@ -409,7 +406,7 @@ export const useCricketStore = create<CricketStoreState>()(
         });
       },
 
-      recordHit: (targetNumber, multiplier) => {
+      recordHit: (targetNumber, multiplier, forPlayerId) => {
         try {
           set((state) => {
             // Guard clauses
@@ -418,7 +415,35 @@ export const useCricketStore = create<CricketStoreState>()(
             // Create shallow copies to work with
             const newGame = { ...state.currentGame };
             const players = [...newGame.players];
-            const playerIndex = newGame.currentPlayerIndex;
+            let playerIndex = newGame.currentPlayerIndex;
+
+            if (forPlayerId !== undefined) {
+              const targetIdx = players.findIndex((p) => p.id === forPlayerId);
+              if (targetIdx === -1) return state;
+              if (targetIdx !== playerIndex) {
+                if (
+                  newGame.currentRound &&
+                  newGame.currentRound.darts.length > 0
+                ) {
+                  newGame.rounds = [
+                    ...newGame.rounds,
+                    { ...newGame.currentRound },
+                  ];
+                  players[playerIndex] = {
+                    ...players[playerIndex],
+                    currentDartIndex: 0,
+                  };
+                }
+                playerIndex = targetIdx;
+                newGame.currentPlayerIndex = targetIdx;
+                newGame.currentRound = {
+                  playerId: players[targetIdx].id,
+                  darts: [],
+                  totalPoints: 0,
+                };
+              }
+            }
+
             const currentPlayer = { ...players[playerIndex] };
 
             // Create or update the current round

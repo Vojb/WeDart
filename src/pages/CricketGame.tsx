@@ -8,7 +8,7 @@ import {
   Box,
   Paper,
   Typography,
-  IconButton,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,13 +21,12 @@ import {
   CircularProgress,
   useTheme,
 } from "@mui/material";
-import {
-  Undo,
-  EmojiEvents,
-  ExitToApp,
-} from "@mui/icons-material";
+import { EmojiEvents, ExitToApp } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useCricketStore } from "../store/useCricketStore";
+import {
+  useCricketStore,
+  updateCachedPlayers,
+} from "../store/useCricketStore";
 import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
@@ -38,6 +37,7 @@ import CricketAutoAdvanceNextButton from "../components/cricket-auto-advance-nex
 import BullSymbol from "../components/bull-symbol/bull-symbol";
 import CountUp from "../components/count-up/count-up";
 import { motion, Variants } from "framer-motion";
+import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
 
 const CricketGame: React.FC = () => {
   const navigate = useNavigate();
@@ -50,6 +50,7 @@ const CricketGame: React.FC = () => {
     endGame,
     setCricketPlayers,
     finishTurn,
+    startGame,
   } = useCricketStore();
   const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -127,6 +128,13 @@ const CricketGame: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [currentGame, navigate, dialogOpen]);
+
+  // Close the finished-game dialog if undo reopens the match (no longer finished)
+  useEffect(() => {
+    if (dialogOpen && currentGame && !currentGame.isGameFinished) {
+      setDialogOpen(false);
+    }
+  }, [dialogOpen, currentGame?.isGameFinished, currentGame]);
 
   // Validation effect - must be at the top level with other effects
   useEffect(() => {
@@ -259,20 +267,18 @@ const CricketGame: React.FC = () => {
   }, [currentGame?.currentRound]);
   const dartsThrownByPlayer = useMemo(() => {
     if (!currentGame) return {};
-    const counts = currentGame.players.reduce<Record<number, number>>(
-      (acc, player) => ({ ...acc, [player.id]: 0 }),
+    return currentGame.players.reduce<Record<number, number>>(
+      (acc, player) => ({
+        ...acc,
+        [player.id]: countCricketDartsThrown(player.id, {
+          isGameFinished: currentGame.isGameFinished,
+          completedLegs: currentGame.completedLegs,
+          rounds: currentGame.rounds,
+          currentRound: currentGame.currentRound,
+        }),
+      }),
       {},
     );
-    currentGame.rounds.forEach((round) => {
-      counts[round.playerId] =
-        (counts[round.playerId] ?? 0) + round.darts.length;
-    });
-    if (currentGame.currentRound) {
-      counts[currentGame.currentRound.playerId] =
-        (counts[currentGame.currentRound.playerId] ?? 0) +
-        currentGame.currentRound.darts.length;
-    }
-    return counts;
   }, [currentGame]);
   const avgMarksPerRoundByPlayer = useMemo(() => {
     if (!currentGame) return {};
@@ -302,13 +308,14 @@ const CricketGame: React.FC = () => {
   }, [currentGame]);
 
   const handleHit = useCallback(
-    (number: number | string) => {
+    (number: number | string, forPlayerId?: number) => {
       if (!currentGame || currentGame.isGameFinished) return;
-      // Always use multiplier 1 (single hit per click)
-      recordHit(number, 1);
-      // Vibrate on hit
+      const pid =
+        forPlayerId ??
+        currentGame.players[currentGame.currentPlayerIndex]?.id;
+      if (pid === undefined) return;
+      recordHit(number, 1, pid);
       vibrateDevice(50);
-      // Update last click time to reset auto-advance timer
       setLastClickTime(Date.now());
     },
     [currentGame, recordHit],
@@ -344,29 +351,39 @@ const CricketGame: React.FC = () => {
     setLeaveDialogOpen(false);
   }, []);
 
-  const handlePlayAgain = useCallback(() => {
-    // Start a new game with the same players and settings
-    if (currentGame?.players && currentGame.players.length > 0) {
-      setCricketPlayers(
-        currentGame.players.map((p) => ({ id: p.id, name: p.name })),
-      );
-      endGame();
-      setTimeout(() => {
-        navigate("/cricket");
-      }, 100);
-    } else {
-      // If there's an issue with the current game, just navigate back
-      endGame();
-      navigate("/cricket");
-    }
-  }, [currentGame?.players, endGame, navigate, setCricketPlayers]);
+  const handleRematch = useCallback(() => {
+    if (!currentGame?.players?.length) return;
+    const simplePlayers = currentGame.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+    }));
+    setCricketPlayers(simplePlayers);
+    updateCachedPlayers(simplePlayers);
+    startGame(
+      currentGame.gameType,
+      currentGame.winCondition,
+      simplePlayers.map((p) => p.id),
+      currentGame.totalLegs,
+      currentGame.cricketVariant,
+    );
+    setDialogOpen(false);
+  }, [currentGame, setCricketPlayers, startGame]);
 
   const handleReturnToSetup = useCallback(() => {
-    // End the current game and navigate back to setup
+    if (currentGame?.players && currentGame.players.length > 0) {
+      const simplePlayers = currentGame.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+      }));
+      setCricketPlayers(simplePlayers);
+      updateCachedPlayers(simplePlayers);
+    }
     endGame();
     setDialogOpen(false);
-    navigate("/cricket");
-  }, [endGame, navigate]);
+    setTimeout(() => {
+      navigate("/cricket");
+    }, 100);
+  }, [currentGame?.players, endGame, navigate, setCricketPlayers]);
 
   // Function to render marks (0-3) for a player's target with animation
   const renderMarks = useCallback(
@@ -581,17 +598,35 @@ const CricketGame: React.FC = () => {
     return currentPlayer?.targets?.find((t) => t.number === number);
   };
 
-  // Check if a number can be clicked (not closed or opponent hasn't closed it)
+  // Check if a number can be clicked for the current player (center column / legacy)
   const canClickNumber = (number: number | string) => {
     if (currentGame.isGameFinished) return false;
     const target = getCurrentPlayerTarget(number);
     if (!target) return false;
 
-    // Can click if target is not closed, or if any opponent hasn't closed it
     if (!target.closed) return true;
 
     return currentGame.players.some((p) => {
       if (p.id === currentPlayer.id) return false;
+      const otherTarget = p.targets.find((t) => t.number === number);
+      return otherTarget && !otherTarget.closed;
+    });
+  };
+
+  const canClickNumberForPlayer = (
+    number: number | string,
+    playerId: number,
+  ) => {
+    if (currentGame.isGameFinished) return false;
+    const player = currentGame.players.find((p) => p.id === playerId);
+    if (!player) return false;
+    const target = player.targets.find((t) => t.number === number);
+    if (!target) return false;
+
+    if (!target.closed) return true;
+
+    return currentGame.players.some((p) => {
+      if (p.id === playerId) return false;
       const otherTarget = p.targets.find((t) => t.number === number);
       return otherTarget && !otherTarget.closed;
     });
@@ -660,8 +695,7 @@ const CricketGame: React.FC = () => {
                           component="span"
                           display="block"
                         >
-                          Darts thrown:{" "}
-                          {dartsThrownByPlayer[player.id] ?? player.dartsThrown}
+                          Darts thrown: {dartsThrownByPlayer[player.id] ?? 0}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -679,17 +713,25 @@ const CricketGame: React.FC = () => {
               ))}
           </List>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
+          <VibrationButton
+            onClick={handleUndo}
+            variant="outlined"
+            color="info"
+            vibrationPattern={[50, 30, 50]}
+          >
+            Undo last dart
+          </VibrationButton>
           <VibrationButton onClick={handleReturnToSetup} vibrationPattern={50}>
             Return to Setup
           </VibrationButton>
           <VibrationButton
-            onClick={handlePlayAgain}
+            onClick={handleRematch}
             variant="contained"
             color="primary"
             vibrationPattern={100}
           >
-            Play Again
+            Rematch
           </VibrationButton>
         </DialogActions>
       </Dialog>
@@ -997,7 +1039,10 @@ const CricketGame: React.FC = () => {
                               const isCurrentPlayer =
                                 player.id === currentPlayer?.id;
                               const isClosed = target?.closed || false;
-                              const isClickable = isCurrentPlayer && canClick;
+                              const isClickable = canClickNumberForPlayer(
+                                number,
+                                player.id,
+                              );
 
                               return (
                                 <Box
@@ -1023,7 +1068,7 @@ const CricketGame: React.FC = () => {
                                       : {},
                                   }}
                                   onClick={() =>
-                                    isClickable && handleHit(number)
+                                    isClickable && handleHit(number, player.id)
                                   }
                                 >
                                   {target && (
@@ -1088,7 +1133,10 @@ const CricketGame: React.FC = () => {
                               const isCurrentPlayer =
                                 player.id === currentPlayer?.id;
                               const isClosed = target?.closed || false;
-                              const isClickable = isCurrentPlayer && canClick;
+                              const isClickable = canClickNumberForPlayer(
+                                number,
+                                player.id,
+                              );
 
                               return (
                                 <Box
@@ -1114,7 +1162,7 @@ const CricketGame: React.FC = () => {
                                       : {},
                                   }}
                                   onClick={() =>
-                                    isClickable && handleHit(number)
+                                    isClickable && handleHit(number, player.id)
                                   }
                                 >
                                   {target && (
@@ -1151,7 +1199,10 @@ const CricketGame: React.FC = () => {
                           const isCurrentPlayer =
                             player.id === currentPlayer?.id;
                           const isClosed = target?.closed || false;
-                          const isClickable = isCurrentPlayer && canClick;
+                          const isClickable = canClickNumberForPlayer(
+                            number,
+                            player.id,
+                          );
 
                           return (
                             <Box
@@ -1173,7 +1224,9 @@ const CricketGame: React.FC = () => {
                                     }
                                   : {},
                               }}
-                              onClick={() => isClickable && handleHit(number)}
+                              onClick={() =>
+                                isClickable && handleHit(number, player.id)
+                              }
                             >
                               {target && (
                                 <Box
@@ -1459,9 +1512,20 @@ const CricketGame: React.FC = () => {
               gap: 2,
             }}
           >
-            <IconButton onClick={handleUndo} color="info" size="small">
-              <Undo />
-            </IconButton>
+            <Button
+              variant="text"
+              color="info"
+              size="large"
+              onClick={handleUndo}
+              sx={{
+                py: 1.5,
+                fontSize: "1.2rem",
+                fontWeight: "bold",
+                flexShrink: 0,
+              }}
+            >
+              Undo
+            </Button>
             <Box
               sx={{
                 flex: 1,

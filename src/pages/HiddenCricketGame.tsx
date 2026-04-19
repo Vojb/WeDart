@@ -4,6 +4,7 @@ import {
   Paper,
   Typography,
   IconButton,
+  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,14 +19,16 @@ import {
   Grid,
 } from "@mui/material";
 import {
-  Undo,
   EmojiEvents,
   ExitToApp,
   ExpandMore,
   ExpandLess,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useHiddenCricketStore } from "../store/useHiddenCricketStore";
+import {
+  useHiddenCricketStore,
+  updateHiddenCricketCachedPlayers,
+} from "../store/useHiddenCricketStore";
 import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
@@ -37,6 +40,7 @@ import MultiplierSelector from "../components/multiplier-selector/multiplier-sel
 import HiddenCricketTwoPlayersLayout from "../components/hidden-cricket-two-players-layout/hidden-cricket-two-players-layout";
 import HiddenCricketMultiPlayersLayout from "../components/hidden-cricket-multi-players-layout/hidden-cricket-multi-players-layout";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
+import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
 
 const HiddenCricketGame: React.FC = () => {
   const navigate = useNavigate();
@@ -51,6 +55,7 @@ const HiddenCricketGame: React.FC = () => {
     setHiddenCricketPlayers,
     finishTurn,
     isHiddenNumber,
+    startGame,
   } = useHiddenCricketStore();
   const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -135,6 +140,13 @@ const HiddenCricketGame: React.FC = () => {
     return () => clearTimeout(timer);
   }, [currentGame, navigate, dialogOpen]);
 
+  // Close the finished-game dialog if undo reopens the match (no longer finished)
+  useEffect(() => {
+    if (dialogOpen && currentGame && !currentGame.isGameFinished) {
+      setDialogOpen(false);
+    }
+  }, [dialogOpen, currentGame?.isGameFinished, currentGame]);
+
   // Validation effect - must be at the top level with other effects
   useEffect(() => {
     if (!isLoading && currentGame) {
@@ -187,6 +199,22 @@ const HiddenCricketGame: React.FC = () => {
         return acc;
       },
       {} as Record<number, number>,
+    );
+  }, [currentGame]);
+
+  const dartsThrownByPlayer = useMemo(() => {
+    if (!currentGame) return {};
+    return currentGame.players.reduce<Record<number, number>>(
+      (acc, player) => ({
+        ...acc,
+        [player.id]: countCricketDartsThrown(player.id, {
+          isGameFinished: currentGame.isGameFinished,
+          completedLegs: currentGame.completedLegs,
+          rounds: currentGame.rounds,
+          currentRound: currentGame.currentRound,
+        }),
+      }),
+      {},
     );
   }, [currentGame]);
 
@@ -367,28 +395,38 @@ const HiddenCricketGame: React.FC = () => {
     setLeaveDialogOpen(false);
   };
 
-  const handlePlayAgain = () => {
-    // Start a new game with the same players and settings
-    if (currentGame?.players && currentGame.players.length > 0) {
-      setHiddenCricketPlayers(
-        currentGame.players.map((p) => ({ id: p.id, name: p.name })),
-      );
-      endGame();
-      setTimeout(() => {
-        navigate("/hidden-cricket");
-      }, 100);
-    } else {
-      // If there's an issue with the current game, just navigate back
-      endGame();
-      navigate("/hidden-cricket");
-    }
+  const handleRematch = () => {
+    if (!currentGame?.players?.length) return;
+    const simplePlayers = currentGame.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+    }));
+    setHiddenCricketPlayers(simplePlayers);
+    updateHiddenCricketCachedPlayers(simplePlayers);
+    startGame(
+      currentGame.gameType,
+      currentGame.winCondition,
+      currentGame.lastBull,
+      simplePlayers.map((p) => p.id),
+      currentGame.totalLegs,
+    );
+    setDialogOpen(false);
   };
 
   const handleReturnToSetup = () => {
-    // End the current game and navigate back to setup
+    if (currentGame?.players && currentGame.players.length > 0) {
+      const simplePlayers = currentGame.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+      }));
+      setHiddenCricketPlayers(simplePlayers);
+      updateHiddenCricketCachedPlayers(simplePlayers);
+    }
     endGame();
     setDialogOpen(false);
-    navigate("/hidden-cricket");
+    setTimeout(() => {
+      navigate("/hidden-cricket");
+    }, 100);
   };
 
   // Function to render marks (0-3) for a player's target with animation
@@ -738,7 +776,7 @@ const HiddenCricketGame: React.FC = () => {
                           component="span"
                           display="block"
                         >
-                          Darts thrown: {player.dartsThrown}
+                          Darts thrown: {dartsThrownByPlayer[player.id] ?? 0}
                         </Typography>
                         <Typography
                           variant="body2"
@@ -756,17 +794,25 @@ const HiddenCricketGame: React.FC = () => {
               ))}
           </List>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
+          <VibrationButton
+            onClick={handleUndo}
+            variant="outlined"
+            color="info"
+            vibrationPattern={[50, 30, 50]}
+          >
+            Undo last dart
+          </VibrationButton>
           <VibrationButton onClick={handleReturnToSetup} vibrationPattern={50}>
             Return to Setup
           </VibrationButton>
           <VibrationButton
-            onClick={handlePlayAgain}
+            onClick={handleRematch}
             variant="contained"
             color="primary"
             vibrationPattern={100}
           >
-            Play Again
+            Rematch
           </VibrationButton>
         </DialogActions>
       </Dialog>
@@ -1139,9 +1185,20 @@ const HiddenCricketGame: React.FC = () => {
               gap: 1,
             }}
           >
-            <IconButton onClick={handleUndo} color="info" size="small">
-              <Undo />
-            </IconButton>
+            <Button
+              variant="text"
+              color="info"
+              size="large"
+              onClick={handleUndo}
+              sx={{
+                py: 0.75,
+                fontSize: "1rem",
+                fontWeight: "bold",
+                flexShrink: 0,
+              }}
+            >
+              Undo
+            </Button>
             <Box
               sx={{
                 flex: 1,
