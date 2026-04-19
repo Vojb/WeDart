@@ -68,10 +68,10 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
         <Typography
           component="div"
           sx={{
-            fontSize: { xs: "3.25rem", sm: "4.15rem", md: "4.55rem" },
+            fontSize: { xs: "5.15rem", sm: "5.25rem", md: "5.85rem" },
             fontWeight: 700,
             color,
-            lineHeight: 1.1,
+            lineHeight: 1.05,
           }}
         >
           <CountUp
@@ -142,7 +142,7 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
         gap: 1,
         width: "100%",
         cursor: onDoubleClick ? "pointer" : undefined,
-        minHeight: { xs: 100, sm: 120 },
+        minHeight: { xs: 112, sm: 132 },
       }}
       onDoubleClick={onDoubleClick}
     >

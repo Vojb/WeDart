@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   Paper,
@@ -23,10 +18,7 @@ import {
 } from "@mui/material";
 import { EmojiEvents, ExitToApp } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  useCricketStore,
-  updateCachedPlayers,
-} from "../store/useCricketStore";
+import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
 import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
@@ -36,8 +28,15 @@ import CricketShiftedScoreboard from "../components/cricket-shifted-scoreboard/c
 import CricketAutoAdvanceNextButton from "../components/cricket-auto-advance-next-button/cricket-auto-advance-next-button";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
 import CountUp from "../components/count-up/count-up";
-import { motion, Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
+
+/** SVG user-space units; scales with cell size (CSS padding 2px on wrapper). */
+const CRICKET_MARK_VIEWBOX = 64;
+const CRICKET_MARK_CENTER = CRICKET_MARK_VIEWBOX / 2;
+const CRICKET_MARK_LINE_LENGTH = 52;
+const CRICKET_MARK_STROKE = 6;
+const CRICKET_MARK_CIRCLE_R = 24;
 
 const CricketGame: React.FC = () => {
   const navigate = useNavigate();
@@ -83,33 +82,6 @@ const CricketGame: React.FC = () => {
     if (n === "Bull") return <BullSymbol />;
     return String(n);
   };
-
-  const shape: React.CSSProperties = useMemo(
-    () => ({
-      strokeWidth: 10,
-      strokeLinecap: "round",
-      fill: "transparent",
-    }),
-    [],
-  );
-
-  const draw: Variants = useMemo(
-    () => ({
-      hidden: { pathLength: 0, opacity: 0 },
-      visible: (i: number) => {
-        const delay = i * 0.5;
-        return {
-          pathLength: 1,
-          opacity: 1,
-          transition: {
-            pathLength: { delay, type: "spring", duration: 1.5, bounce: 0 },
-            opacity: { delay, duration: 0.01 },
-          },
-        };
-      },
-    }),
-    [],
-  );
 
   // If no game is in progress, redirect to setup
   useEffect(() => {
@@ -311,8 +283,7 @@ const CricketGame: React.FC = () => {
     (number: number | string, forPlayerId?: number) => {
       if (!currentGame || currentGame.isGameFinished) return;
       const pid =
-        forPlayerId ??
-        currentGame.players[currentGame.currentPlayerIndex]?.id;
+        forPlayerId ?? currentGame.players[currentGame.currentPlayerIndex]?.id;
       if (pid === undefined) return;
       recordHit(number, 1, pid);
       vibrateDevice(50);
@@ -337,9 +308,7 @@ const CricketGame: React.FC = () => {
 
   const currentRoundDartCount = currentGame?.currentRound?.darts.length ?? 0;
   const shouldRunAutoAdvanceTimer =
-    !!currentGame &&
-    !currentGame.isGameFinished &&
-    currentRoundDartCount > 0;
+    !!currentGame && !currentGame.isGameFinished && currentRoundDartCount > 0;
 
   const handleLeaveGame = useCallback(() => {
     endGame();
@@ -385,124 +354,38 @@ const CricketGame: React.FC = () => {
     }, 100);
   }, [currentGame?.players, endGame, navigate, setCricketPlayers]);
 
-  // Function to render marks (0-3) for a player's target with animation
-  const renderMarks = useCallback(
-    (hits: number, color?: string) => {
-      if (hits === 0) return null;
+  const markBoxSx = {
+    width: "100%",
+    height: "100%",
+    flex: 1,
+    minHeight: 0,
+    p: "2px",
+    boxSizing: "border-box" as const,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative" as const,
+  };
 
-      const viewBoxSize = 56;
-      const center = viewBoxSize / 2;
-      const lineLength = 42;
-      const strokeWidth = 5;
-      const primaryColor = color || theme.palette.primary.main;
-
-      return (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            position: "relative",
-            width: { xs: 40, sm: 48, md: 56 },
-            height: { xs: 40, sm: 48, md: 56 },
-            margin: "0 auto",
-          }}
-        >
-          <motion.svg
-            viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-            }}
-          >
-            {/* First hit - Slash (/) */}
-            {hits >= 1 && (
-              <motion.line
-                key="mark-slash"
-                x1={center - lineLength / 2}
-                y1={center - lineLength / 2}
-                x2={center + lineLength / 2}
-                y2={center + lineLength / 2}
-                stroke={primaryColor}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                initial={hits === 1 ? { pathLength: 0 } : { pathLength: 1 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.3, delay: 0 }}
-              />
-            )}
-
-            {/* Second hit - Cross (X) - adds backslash (\) */}
-            {hits >= 2 && (
-              <motion.line
-                key="mark-backslash"
-                x1={center + lineLength / 2}
-                y1={center - lineLength / 2}
-                x2={center - lineLength / 2}
-                y2={center + lineLength / 2}
-                stroke={primaryColor}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                initial={hits === 2 ? { pathLength: 0 } : { pathLength: 1 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.3, delay: hits === 2 ? 0.1 : 0 }}
-              />
-            )}
-
-            {/* Third hit - Circle with cross - add ring but keep cross visible */}
-            {hits >= 3 && (
-              <motion.svg>
-                <motion.circle
-                  className="circle-path"
-                  cx="50"
-                  cy="50"
-                  r="80"
-                  stroke={"red"}
-                  variants={draw}
-                  custom={1}
-                  style={shape}
-                />
-              </motion.svg>
-            )}
-          </motion.svg>
-        </Box>
-      );
-    },
-    [draw, shape, theme.palette.primary.main],
-  );
-
-  // Function to render closed mark (ring with cross)
+  // Closed mark (ring with cross) — also used for 3 hits before target is closed
   const renderClosedMark = useCallback(
     (color?: string) => {
-      const viewBoxSize = 56;
-      const center = viewBoxSize / 2;
-      const lineLength = 42;
-      const circleRadius = 21;
-      const strokeWidth = 5;
+      const center = CRICKET_MARK_CENTER;
+      const lineLength = CRICKET_MARK_LINE_LENGTH;
+      const strokeWidth = CRICKET_MARK_STROKE;
       const primaryColor = color || theme.palette.primary.main;
 
       return (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            position: "relative",
-            width: { xs: 40, sm: 48, md: 56 },
-            height: { xs: 40, sm: 48, md: 56 },
-            margin: "0 auto",
-          }}
-        >
+        <Box sx={markBoxSx}>
           <motion.svg
-            viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+            viewBox={`0 0 ${CRICKET_MARK_VIEWBOX} ${CRICKET_MARK_VIEWBOX}`}
+            preserveAspectRatio="xMidYMid meet"
             style={{
-              position: "absolute",
               width: "100%",
               height: "100%",
+              display: "block",
             }}
           >
-            {/* Cross lines */}
             <motion.line
               x1={center - lineLength / 2}
               y1={center - lineLength / 2}
@@ -527,8 +410,6 @@ const CricketGame: React.FC = () => {
               animate={{ pathLength: 1 }}
               transition={{ duration: 0.3 }}
             />
-
-            {/* Circle ring */}
             <motion.circle
               className="circle-path"
               cx={center}
@@ -536,7 +417,7 @@ const CricketGame: React.FC = () => {
               stroke={primaryColor}
               strokeWidth={strokeWidth}
               fill="none"
-              r={circleRadius}
+              r={CRICKET_MARK_CIRCLE_R}
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={{ duration: 0.3 }}
@@ -546,6 +427,65 @@ const CricketGame: React.FC = () => {
       );
     },
     [theme.palette.primary.main],
+  );
+
+  // Marks (0–3) for a player's target with animation
+  const renderMarks = useCallback(
+    (hits: number, color?: string) => {
+      if (hits === 0) return null;
+      if (hits >= 3) return renderClosedMark(color);
+
+      const center = CRICKET_MARK_CENTER;
+      const lineLength = CRICKET_MARK_LINE_LENGTH;
+      const strokeWidth = CRICKET_MARK_STROKE;
+      const primaryColor = color || theme.palette.primary.main;
+
+      return (
+        <Box sx={markBoxSx}>
+          <motion.svg
+            viewBox={`0 0 ${CRICKET_MARK_VIEWBOX} ${CRICKET_MARK_VIEWBOX}`}
+            preserveAspectRatio="xMidYMid meet"
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "block",
+            }}
+          >
+            {hits >= 1 && (
+              <motion.line
+                key="mark-slash"
+                x1={center - lineLength / 2}
+                y1={center - lineLength / 2}
+                x2={center + lineLength / 2}
+                y2={center + lineLength / 2}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                initial={hits === 1 ? { pathLength: 0 } : { pathLength: 1 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3, delay: 0 }}
+              />
+            )}
+            {hits >= 2 && (
+              <motion.line
+                key="mark-backslash"
+                x1={center + lineLength / 2}
+                y1={center - lineLength / 2}
+                x2={center - lineLength / 2}
+                y2={center + lineLength / 2}
+                stroke={primaryColor}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                initial={hits === 2 ? { pathLength: 0 } : { pathLength: 1 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.3, delay: hits === 2 ? 0.1 : 0 }}
+              />
+            )}
+          </motion.svg>
+        </Box>
+      );
+    },
+    [renderClosedMark, theme.palette.primary.main],
   );
 
   // Display loading state
@@ -1052,6 +992,9 @@ const CricketGame: React.FC = () => {
                                     flexDirection: "column",
                                     justifyContent: "center",
                                     alignItems: "center",
+                                    alignSelf: "stretch",
+                                    minHeight: 0,
+                                    height: "100%",
                                     cursor: isClickable ? "pointer" : "default",
                                     backgroundColor: isCurrentPlayer
                                       ? alpha(playerColor, 0.06)
@@ -1076,8 +1019,12 @@ const CricketGame: React.FC = () => {
                                       sx={{
                                         display: "flex",
                                         flexDirection: "column",
-                                        alignItems: "center",
+                                        alignItems: "stretch",
+                                        justifyContent: "center",
                                         gap: 0.25,
+                                        flex: 1,
+                                        width: "100%",
+                                        minHeight: 0,
                                       }}
                                     >
                                       {isClosed
@@ -1146,6 +1093,9 @@ const CricketGame: React.FC = () => {
                                     flexDirection: "column",
                                     justifyContent: "center",
                                     alignItems: "center",
+                                    alignSelf: "stretch",
+                                    minHeight: 0,
+                                    height: "100%",
                                     cursor: isClickable ? "pointer" : "default",
                                     backgroundColor: isCurrentPlayer
                                       ? alpha(playerColor, 0.06)
@@ -1170,8 +1120,12 @@ const CricketGame: React.FC = () => {
                                       sx={{
                                         display: "flex",
                                         flexDirection: "column",
-                                        alignItems: "center",
+                                        alignItems: "stretch",
+                                        justifyContent: "center",
                                         gap: 0.25,
+                                        flex: 1,
+                                        width: "100%",
+                                        minHeight: 0,
                                       }}
                                     >
                                       {isClosed
@@ -1212,6 +1166,9 @@ const CricketGame: React.FC = () => {
                                 flexDirection: "column",
                                 justifyContent: "center",
                                 alignItems: "center",
+                                alignSelf: "stretch",
+                                minHeight: 0,
+                                height: "100%",
                                 cursor: isClickable ? "pointer" : "default",
                                 backgroundColor: isCurrentPlayer
                                   ? alpha(playerColor, 0.06)
@@ -1233,8 +1190,12 @@ const CricketGame: React.FC = () => {
                                   sx={{
                                     display: "flex",
                                     flexDirection: "column",
-                                    alignItems: "center",
+                                    alignItems: "stretch",
+                                    justifyContent: "center",
                                     gap: 0.25,
+                                    flex: 1,
+                                    width: "100%",
+                                    minHeight: 0,
                                   }}
                                 >
                                   {isClosed
@@ -1443,10 +1404,10 @@ const CricketGame: React.FC = () => {
                               fontWeight: 700,
                               color: playerColor,
                               fontSize: {
-                                    xs: "1.75rem",
-                                    sm: "2.1rem",
-                                    md: "2.45rem",
-                                  },
+                                xs: "1.75rem",
+                                sm: "2.1rem",
+                                md: "2.45rem",
+                              },
                             }}
                           >
                             <CountUp

@@ -381,9 +381,7 @@ const HiddenCricketGame: React.FC = () => {
 
   const currentRoundDartCount = currentGame?.currentRound?.darts.length ?? 0;
   const shouldRunAutoAdvanceTimer =
-    !!currentGame &&
-    !currentGame.isGameFinished &&
-    currentRoundDartCount >= 3;
+    !!currentGame && !currentGame.isGameFinished && currentRoundDartCount >= 3;
 
   const handleLeaveGame = () => {
     endGame();
@@ -882,109 +880,109 @@ const HiddenCricketGame: React.FC = () => {
               onDoubleClick={() => setIsShifted(true)}
             >
               {currentGame.players.length === 2 ? (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 60px 1fr",
-                gap: 0.5,
-              }}
-            >
-              {/* First player */}
-              <Box
-                sx={{
-                  backgroundColor:
-                    currentGame.players[0]?.id === currentPlayer?.id
-                      ? alpha(theme.palette.primary.main, 0.06)
-                      : "transparent",
-                  borderRadius: 1,
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                {(() => {
-                  const player = currentGame.players[0];
-                  const playerIndex = 0;
-                  const avgMarksPerRound =
-                    avgMarksPerRoundByPlayer[player.id] ?? 0;
-                  return (
-                    <CricketPlayerBox
-                      player={player as any}
-                      isCurrentPlayer={player.id === currentPlayer?.id}
-                      avgMarksPerRound={avgMarksPerRound}
-                      playerIndex={playerIndex}
-                    />
-                  );
-                })()}
-              </Box>
-
-              {/* Empty middle column to match grid layout */}
-              <Box />
-
-              {/* Second player */}
-              <Box
-                sx={{
-                  backgroundColor:
-                    currentGame.players[1]?.id === currentPlayer?.id
-                      ? alpha(theme.palette.secondary.main, 0.06)
-                      : "transparent",
-                  borderRadius: 1,
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                {(() => {
-                  const player = currentGame.players[1];
-                  const playerIndex = 1;
-                  const avgMarksPerRound =
-                    avgMarksPerRoundByPlayer[player.id] ?? 0;
-                  return (
-                    <CricketPlayerBox
-                      player={player as any}
-                      isCurrentPlayer={player.id === currentPlayer?.id}
-                      avgMarksPerRound={avgMarksPerRound}
-                      playerIndex={playerIndex}
-                    />
-                  );
-                })()}
-              </Box>
-            </Box>
-              ) : (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: `repeat(${currentGame.players.length}, 1fr) 60px`,
-                gap: 0.5,
-              }}
-            >
-              {currentGame.players.map((player, playerIndex) => {
-                const playerColor =
-                  playerIndex % 2 === 0
-                    ? theme.palette.primary.main
-                    : theme.palette.secondary.main;
-                const isCurrentPlayer = player.id === currentPlayer?.id;
-                const avgMarksPerRound =
-                  avgMarksPerRoundByPlayer[player.id] ?? 0;
-                return (
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 60px 1fr",
+                    gap: 0.5,
+                  }}
+                >
+                  {/* First player */}
                   <Box
-                    key={player.id}
                     sx={{
-                      backgroundColor: isCurrentPlayer
-                        ? alpha(playerColor, 0.06)
-                        : "transparent",
+                      backgroundColor:
+                        currentGame.players[0]?.id === currentPlayer?.id
+                          ? alpha(theme.palette.primary.main, 0.06)
+                          : "transparent",
                       borderRadius: 1,
                       transition: "background-color 0.3s ease",
                     }}
                   >
-                    <CricketPlayerBox
-                      player={player as any}
-                      isCurrentPlayer={isCurrentPlayer}
-                      avgMarksPerRound={avgMarksPerRound}
-                      playerIndex={playerIndex}
-                      />
+                    {(() => {
+                      const player = currentGame.players[0];
+                      const playerIndex = 0;
+                      const avgMarksPerRound =
+                        avgMarksPerRoundByPlayer[player.id] ?? 0;
+                      return (
+                        <CricketPlayerBox
+                          player={player as any}
+                          isCurrentPlayer={player.id === currentPlayer?.id}
+                          avgMarksPerRound={avgMarksPerRound}
+                          playerIndex={playerIndex}
+                        />
+                      );
+                    })()}
                   </Box>
-                );
-              })}
-              {/* Empty column to match grid layout */}
-              <Box />
-            </Box>
+
+                  {/* Empty middle column to match grid layout */}
+                  <Box />
+
+                  {/* Second player */}
+                  <Box
+                    sx={{
+                      backgroundColor:
+                        currentGame.players[1]?.id === currentPlayer?.id
+                          ? alpha(theme.palette.secondary.main, 0.06)
+                          : "transparent",
+                      borderRadius: 1,
+                      transition: "background-color 0.3s ease",
+                    }}
+                  >
+                    {(() => {
+                      const player = currentGame.players[1];
+                      const playerIndex = 1;
+                      const avgMarksPerRound =
+                        avgMarksPerRoundByPlayer[player.id] ?? 0;
+                      return (
+                        <CricketPlayerBox
+                          player={player as any}
+                          isCurrentPlayer={player.id === currentPlayer?.id}
+                          avgMarksPerRound={avgMarksPerRound}
+                          playerIndex={playerIndex}
+                        />
+                      );
+                    })()}
+                  </Box>
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: `repeat(${currentGame.players.length}, 1fr) 60px`,
+                    gap: 0.5,
+                  }}
+                >
+                  {currentGame.players.map((player, playerIndex) => {
+                    const playerColor =
+                      playerIndex % 2 === 0
+                        ? theme.palette.primary.main
+                        : theme.palette.secondary.main;
+                    const isCurrentPlayer = player.id === currentPlayer?.id;
+                    const avgMarksPerRound =
+                      avgMarksPerRoundByPlayer[player.id] ?? 0;
+                    return (
+                      <Box
+                        key={player.id}
+                        sx={{
+                          backgroundColor: isCurrentPlayer
+                            ? alpha(playerColor, 0.06)
+                            : "transparent",
+                          borderRadius: 1,
+                          transition: "background-color 0.3s ease",
+                        }}
+                      >
+                        <CricketPlayerBox
+                          player={player as any}
+                          isCurrentPlayer={isCurrentPlayer}
+                          avgMarksPerRound={avgMarksPerRound}
+                          playerIndex={playerIndex}
+                        />
+                      </Box>
+                    );
+                  })}
+                  {/* Empty column to match grid layout */}
+                  <Box />
+                </Box>
               )}
             </Box>
           )}
@@ -1275,22 +1273,22 @@ const HiddenCricketGame: React.FC = () => {
                             fontSize: { xs: "1.15rem", sm: "1.35rem" },
                           }}
                         >
-                          {targetNumber === "Miss"
-                            ? `Miss${data.count > 1 ? ` (${data.count})` : ""}`
-                            : data.count > 1
-                              ? <>
-                                  {data.count}×
-                                  {targetNumber === "Bull" ? (
-                                    <BullSymbol />
-                                  ) : (
-                                    targetNumber
-                                  )}
-                                </>
-                              : targetNumber === "Bull" ? (
-                                  <BullSymbol />
-                                ) : (
-                                  targetNumber
-                                )}
+                          {targetNumber === "Miss" ? (
+                            `Miss${data.count > 1 ? ` (${data.count})` : ""}`
+                          ) : data.count > 1 ? (
+                            <>
+                              {data.count}×
+                              {targetNumber === "Bull" ? (
+                                <BullSymbol />
+                              ) : (
+                                targetNumber
+                              )}
+                            </>
+                          ) : targetNumber === "Bull" ? (
+                            <BullSymbol />
+                          ) : (
+                            targetNumber
+                          )}
                         </Typography>
                         {data.totalPoints > 0 && (
                           <Typography

@@ -19,11 +19,7 @@ interface ScoreRingProps {
   isCurrent: boolean;
 }
 
-const ScoreRing: React.FC<ScoreRingProps> = ({
-  player,
-  color,
-  isCurrent,
-}) => {
+const ScoreRing: React.FC<ScoreRingProps> = ({ player, color, isCurrent }) => {
   const theme = useTheme();
   const outerRingSize = { xs: 86, sm: 100 };
   const ringSize = { xs: 76, sm: 88 };
