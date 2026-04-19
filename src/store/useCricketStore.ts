@@ -123,6 +123,190 @@ const createDefaultTargets = (variant: CricketVariant = "standard"): CricketTarg
   return standard;
 };
 
+/** Replay one dart (used to rebuild leg state after undoing a completed leg). */
+function applyCricketDartReplay(
+  players: CricketPlayer[],
+  playerIndex: number,
+  dart: CricketDart,
+  gameType: CricketGameState["gameType"],
+  cricketVariant: CricketVariant
+): void {
+  const targetNumber = dart.targetNumber;
+  const multiplier = dart.multiplier;
+  const currentPlayer = { ...players[playerIndex] };
+
+  currentPlayer.dartsThrown += 1;
+  currentPlayer.currentDartIndex += 1;
+
+  const targetIndex = currentPlayer.targets.findIndex(
+    (t) => t.number === targetNumber
+  );
+
+  if (targetIndex !== -1) {
+    const targets = [...currentPlayer.targets];
+    const target = { ...targets[targetIndex] };
+    const newHits = Math.min(target.hits + multiplier, 3);
+    const wasClosed = target.closed;
+    const isClosed = newHits >= 3;
+    const extraHits = target.hits + multiplier - 3;
+    const hasExtraHits = !wasClosed && isClosed && extraHits > 0;
+
+    target.hits = newHits;
+    target.closed = isClosed;
+
+    if (gameType !== "no-score") {
+      const someOpponentNotClosed = players.some(
+        (p, idx) =>
+          idx !== playerIndex && !p.targets[targetIndex].closed
+      );
+
+      if (someOpponentNotClosed) {
+        const pointValue =
+          targetNumber === "Bull" ||
+          targetNumber === "Triple" ||
+          targetNumber === "Double"
+            ? 25
+            : Number(targetNumber);
+
+        if (gameType === "standard" && (wasClosed || hasExtraHits)) {
+          const pointsToAdd = wasClosed
+            ? multiplier * pointValue
+            : extraHits * pointValue;
+          target.points += pointsToAdd;
+          currentPlayer.totalScore += pointsToAdd;
+        } else if (gameType === "cutthroat" && (wasClosed || hasExtraHits)) {
+          const pointsToAdd = wasClosed
+            ? multiplier * pointValue
+            : extraHits * pointValue;
+          players.forEach((player, idx) => {
+            if (
+              idx !== playerIndex &&
+              !player.targets[targetIndex].closed
+            ) {
+              players[idx] = {
+                ...player,
+                totalScore: player.totalScore + pointsToAdd,
+              };
+            }
+          });
+        }
+      }
+    }
+
+    targets[targetIndex] = target;
+    currentPlayer.targets = targets;
+  }
+
+  players[playerIndex] = currentPlayer;
+}
+
+function replayCricketLegRounds(
+  legRounds: CricketRound[],
+  playerTemplates: { id: number; name: string }[],
+  gameType: CricketGameState["gameType"],
+  cricketVariant: CricketVariant
+): CricketPlayer[] {
+  const players: CricketPlayer[] = playerTemplates.map((p) => ({
+    id: p.id,
+    name: p.name,
+    totalScore: 0,
+    dartsThrown: 0,
+    targets: createDefaultTargets(cricketVariant),
+    isWinner: false,
+    currentDartIndex: 0,
+  }));
+
+  for (const round of legRounds) {
+    const playerIndex = players.findIndex((pl) => pl.id === round.playerId);
+    if (playerIndex === -1) continue;
+    for (const dart of round.darts) {
+      applyCricketDartReplay(
+        players,
+        playerIndex,
+        dart,
+        gameType,
+        cricketVariant
+      );
+    }
+  }
+  return players;
+}
+
+function removeLastDartFromCricketLegRounds(
+  legRounds: CricketRound[]
+): { modifiedLegRounds: CricketRound[]; removedDart: CricketDart } | null {
+  if (legRounds.length === 0) return null;
+  const clone = legRounds.map((r) => ({
+    ...r,
+    darts: [...r.darts],
+    totalPoints: r.totalPoints,
+  }));
+  const lastRi = clone.length - 1;
+  const lastRound = clone[lastRi];
+  if (lastRound.darts.length === 0) return null;
+  const removedDart = lastRound.darts[lastRound.darts.length - 1];
+  lastRound.darts = lastRound.darts.slice(0, -1);
+  lastRound.totalPoints -= removedDart.points || 0;
+  if (lastRound.darts.length === 0) {
+    clone.pop();
+  } else {
+    clone[lastRi] = lastRound;
+  }
+  return { modifiedLegRounds: clone, removedDart };
+}
+
+function playerStillHasWonLeg(
+  currentPlayer: CricketPlayer,
+  players: CricketPlayer[],
+  gameType: CricketGameState["gameType"],
+  winCondition: CricketGameState["winCondition"]
+): boolean {
+  if (winCondition === "first-closed") {
+    return currentPlayer.targets.every((t) => t.closed);
+  }
+  const currentPlayerClosedAll = currentPlayer.targets.every((t) => t.closed);
+  if (!currentPlayerClosedAll) return false;
+  if (winCondition !== "points") return false;
+  if (gameType === "cutthroat") {
+    const lowestScore = Math.min(...players.map((p) => p.totalScore));
+    return players
+      .filter((p) => p.totalScore === lowestScore)
+      .some((p) => p.id === currentPlayer.id);
+  }
+  if (gameType === "standard") {
+    const highestScore = Math.max(...players.map((p) => p.totalScore));
+    return players
+      .filter((p) => p.totalScore === highestScore)
+      .some((p) => p.id === currentPlayer.id);
+  }
+  return currentPlayerClosedAll;
+}
+
+function maybeRevertCompletedLegAfterUndo(newGame: CricketGameState): void {
+  if (newGame.completedLegs.length === 0) return;
+  const last = newGame.completedLegs[newGame.completedLegs.length - 1];
+  const idx = newGame.players.findIndex((p) => p.id === last.winnerId);
+  if (idx === -1) return;
+  if (
+    playerStillHasWonLeg(
+      newGame.players[idx],
+      newGame.players,
+      newGame.gameType,
+      newGame.winCondition
+    )
+  ) {
+    return;
+  }
+  newGame.completedLegs = newGame.completedLegs.slice(0, -1);
+  newGame.legsWon = { ...newGame.legsWon };
+  newGame.legsWon[last.winnerId] = Math.max(
+    0,
+    (newGame.legsWon[last.winnerId] || 0) - 1
+  );
+  newGame.isGameFinished = false;
+  newGame.players = newGame.players.map((p) => ({ ...p, isWinner: false }));
+}
+
 // Reference to main store players to avoid circular dependencies
 let cachedPlayers: { id: number; name: string }[] = [];
 
@@ -487,7 +671,12 @@ export const useCricketStore = create<CricketStoreState>()(
                 newGame.rounds = legRounds;
                 newGame.isGameFinished = true;
               } else {
-                const nextPlayerIndex = (playerIndex + 1) % players.length;
+                // Next leg starts with whoever did not lead off this leg (rotate from leg starter, not from winner)
+                const legStarterIndex = players.findIndex(
+                  (p) => p.id === legRounds[0].playerId
+                );
+                const nextPlayerIndex =
+                  (legStarterIndex + 1) % players.length;
                 const resetPlayers = players.map((player) => ({
                   ...player,
                   totalScore: 0,
@@ -524,6 +713,84 @@ export const useCricketStore = create<CricketStoreState>()(
       undoLastHit: () => {
         set((state) => {
           if (!state.currentGame) return state;
+          const g = state.currentGame;
+
+          // Undo across leg boundary: next leg started but no darts thrown yet
+          if (
+            g.completedLegs.length > 0 &&
+            g.rounds.length === 0 &&
+            (!g.currentRound || g.currentRound.darts.length === 0)
+          ) {
+            const lastLeg = g.completedLegs[g.completedLegs.length - 1];
+            const removed = removeLastDartFromCricketLegRounds(lastLeg.rounds);
+            if (!removed) return state;
+
+            const { modifiedLegRounds } = removed;
+            const playerTemplates = g.players.map((p) => ({
+              id: p.id,
+              name: p.name,
+            }));
+            const replayedPlayers = replayCricketLegRounds(
+              modifiedLegRounds,
+              playerTemplates,
+              g.gameType,
+              g.cricketVariant
+            );
+
+            const legsWon = { ...g.legsWon };
+            legsWon[lastLeg.winnerId] = Math.max(
+              0,
+              (legsWon[lastLeg.winnerId] || 0) - 1
+            );
+
+            let rounds: CricketRound[];
+            let currentRound: CricketRound;
+            let currentPlayerIndex: number;
+
+            if (modifiedLegRounds.length === 0) {
+              rounds = [];
+              const starterId = lastLeg.rounds[0].playerId;
+              currentPlayerIndex = Math.max(
+                0,
+                replayedPlayers.findIndex((p) => p.id === starterId)
+              );
+              currentRound = {
+                playerId: starterId,
+                darts: [],
+                totalPoints: 0,
+              };
+            } else {
+              const lastR = modifiedLegRounds[modifiedLegRounds.length - 1];
+              rounds = modifiedLegRounds.slice(0, -1).map((r) => ({
+                ...r,
+                darts: [...r.darts],
+                totalPoints: r.totalPoints,
+              }));
+              currentRound = {
+                playerId: lastR.playerId,
+                darts: [...lastR.darts],
+                totalPoints: lastR.totalPoints,
+              };
+              currentPlayerIndex = replayedPlayers.findIndex(
+                (p) => p.id === lastR.playerId
+              );
+            }
+
+            return {
+              ...state,
+              currentGame: {
+                ...g,
+                completedLegs: g.completedLegs.slice(0, -1),
+                legsWon,
+                currentLeg: lastLeg.legNumber,
+                players: replayedPlayers,
+                rounds,
+                currentRound,
+                currentPlayerIndex,
+                isGameFinished: false,
+              },
+            };
+          }
 
           const newGame = { ...state.currentGame };
           const players = [...newGame.players];
@@ -644,6 +911,20 @@ export const useCricketStore = create<CricketStoreState>()(
               newGame.rounds.pop();
             }
           }
+
+          // Match-end state duplicates the last round in both rounds[] and currentRound
+          if (
+            isCurrentRound &&
+            newGame.rounds.length > 0 &&
+            newGame.currentRound &&
+            newGame.rounds[newGame.rounds.length - 1].playerId ===
+              newGame.currentRound.playerId
+          ) {
+            newGame.rounds = [...newGame.rounds];
+            newGame.rounds[newGame.rounds.length - 1] = { ...roundToModify! };
+          }
+
+          maybeRevertCompletedLegAfterUndo(newGame);
 
           return {
             ...state,
