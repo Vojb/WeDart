@@ -359,7 +359,7 @@ const CricketGame: React.FC = () => {
     height: "100%",
     flex: 1,
     minHeight: 0,
-    p: "2px",
+    p: "16px",
     boxSizing: "border-box" as const,
     display: "flex",
     alignItems: "center",
