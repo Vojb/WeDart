@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Button, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { CricketPlayer } from "../../store/useCricketStore";
 import CountUp from "../count-up/count-up";
@@ -11,6 +11,8 @@ interface CricketTwoPlayerScoreboardProps {
   legsWon: Record<number, number>;
   totalLegs: number;
   avgMarksPerRoundByPlayer: Record<number, number>;
+  dartsThrownByPlayer: Record<number, number>;
+  onSwitchPlayer: () => void;
 }
 
 interface ScoreRingProps {
@@ -175,6 +177,8 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
   legsWon,
   totalLegs,
   avgMarksPerRoundByPlayer,
+  dartsThrownByPlayer,
+  onSwitchPlayer,
 }) => {
   const theme = useTheme();
   const firstToLegs = totalLegs;
@@ -182,6 +186,8 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
   const rightPlayer = players[1];
   const leftMpr = avgMarksPerRoundByPlayer[leftPlayer.id] ?? 0;
   const rightMpr = avgMarksPerRoundByPlayer[rightPlayer.id] ?? 0;
+  const leftDarts = dartsThrownByPlayer[leftPlayer.id] ?? 0;
+  const rightDarts = dartsThrownByPlayer[rightPlayer.id] ?? 0;
   const buildPlayerChipSx = (
     color: string,
     isCurrent: boolean,
@@ -272,6 +278,17 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
               ({leftMpr.toFixed(1)})
             </Box>
           </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              color: alpha(theme.palette.text.primary, 0.7),
+              fontSize: { xs: "0.62rem", sm: "0.72rem" },
+              lineHeight: 1,
+            }}
+          >
+            Darts: {leftDarts}
+          </Typography>
           <Box
             sx={{
               display: "flex",
@@ -337,8 +354,8 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
             variant="h6"
             sx={{
               fontWeight: 700,
-              fontSize: { xs: "1.1rem", sm: "1.25rem" },
-              lineHeight: 1.1,
+              fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.15rem" },
+              lineHeight: 1.05,
             }}
           >
             {legsWon[leftPlayer.id] || 0} - {legsWon[rightPlayer.id] || 0}
@@ -355,6 +372,26 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
           >
             Legs
           </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            color="info"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSwitchPlayer();
+            }}
+            sx={{
+              mt: 0.75,
+              minWidth: 0,
+              px: 1,
+              py: 0.25,
+              fontSize: { xs: "0.62rem", sm: "0.7rem" },
+              lineHeight: 1.1,
+              borderRadius: 999,
+            }}
+          >
+            Switch
+          </Button>
         </Box>
 
         <Box
@@ -389,6 +426,17 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
             <Box component="span" sx={{ fontWeight: 700, opacity: 0.9 }}>
               ({rightMpr.toFixed(1)})
             </Box>
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              color: alpha(theme.palette.text.primary, 0.7),
+              fontSize: { xs: "0.62rem", sm: "0.72rem" },
+              lineHeight: 1,
+            }}
+          >
+            Darts: {rightDarts}
           </Typography>
           <Box
             sx={{

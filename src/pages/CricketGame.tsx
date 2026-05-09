@@ -22,8 +22,6 @@ import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
 import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
-import CricketPlayerBox from "../components/cricket-player-box/cricket-player-box";
-import CricketTwoPlayerScoreboard from "../components/cricket-two-player-scoreboard/cricket-two-player-scoreboard";
 import CricketShiftedScoreboard from "../components/cricket-shifted-scoreboard/cricket-shifted-scoreboard";
 import CricketAutoAdvanceNextButton from "../components/cricket-auto-advance-next-button/cricket-auto-advance-next-button";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
@@ -50,6 +48,7 @@ const CricketGame: React.FC = () => {
     endGame,
     setCricketPlayers,
     finishTurn,
+    switchPlayerWithoutAddingDarts,
     startGame,
   } = useCricketStore();
   const { countdownDuration } = useStore();
@@ -58,7 +57,6 @@ const CricketGame: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGame, setIsValidGame] = useState(true);
   const [lastClickTime, setLastClickTime] = useState<number>(Date.now());
-  const [isShifted, setIsShifted] = useState(false);
   const [oshaExtraBonusDialogOpen, setOshaExtraBonusDialogOpen] = useState(false);
 
   const numberLabelFontSize = { xs: "3.05rem", sm: "3.5rem", md: "4.1rem" };
@@ -198,39 +196,6 @@ const CricketGame: React.FC = () => {
         : theme.palette.secondary.main,
     );
   }, [currentGame, theme.palette.primary.main, theme.palette.secondary.main]);
-  const playerRoundStats = useMemo(() => {
-    if (!currentGame)
-      return new Map<number, { totalMarks: number; roundsCount: number }>();
-    const stats = new Map<
-      number,
-      { totalMarks: number; roundsCount: number }
-    >();
-    currentGame.players.forEach((player) => {
-      stats.set(player.id, { totalMarks: 0, roundsCount: 0 });
-    });
-    currentGame.rounds.forEach((round) => {
-      const stat = stats.get(round.playerId);
-      if (!stat) return;
-      stat.totalMarks += round.darts.length;
-      stat.roundsCount += 1;
-    });
-    if (currentGame.currentRound) {
-      const stat = stats.get(currentGame.currentRound.playerId);
-      if (stat) {
-        stat.totalMarks += currentGame.currentRound.darts.length;
-        stat.roundsCount += 1;
-      }
-    }
-    return stats;
-  }, [currentGame?.players, currentGame?.rounds, currentGame?.currentRound]);
-  const getAvgMarksPerRound = useCallback(
-    (playerId: number) => {
-      const stats = playerRoundStats.get(playerId);
-      if (!stats || stats.roundsCount === 0) return 0;
-      return stats.totalMarks / stats.roundsCount;
-    },
-    [playerRoundStats],
-  );
   const currentPlayerColor = useMemo(() => {
     if (!currentGame) return theme.palette.primary.main;
     return currentGame.currentPlayerIndex % 2 === 0
@@ -286,7 +251,8 @@ const CricketGame: React.FC = () => {
         const allRounds = [...playerRounds];
         if (
           currentGame.currentRound &&
-          currentGame.currentRound.playerId === player.id
+          currentGame.currentRound.playerId === player.id &&
+          currentGame.currentRound.darts.length > 0
         ) {
           allRounds.push(currentGame.currentRound);
         }
@@ -800,185 +766,15 @@ const CricketGame: React.FC = () => {
             borderColor: "divider",
           }}
         >
-          {isShifted ? (
-            <CricketShiftedScoreboard
-              players={currentGame.players}
-              currentPlayerIndex={currentGame.currentPlayerIndex}
-              avgMarksPerRoundByPlayer={avgMarksPerRoundByPlayer}
-              legsWon={currentGame.legsWon}
-              totalLegs={currentGame.totalLegs}
-              onDoubleClick={() => setIsShifted(false)}
-            />
-          ) : (
-            <Box
-              sx={{ cursor: "pointer" }}
-              onDoubleClick={() => setIsShifted(true)}
-            >
-              {(() => {
-                const playerCount = currentGame.players.length;
-                if (playerCount === 2) {
-                  return (
-                    <CricketTwoPlayerScoreboard
-                      players={currentGame.players}
-                      currentPlayerIndex={currentGame.currentPlayerIndex}
-                      legsWon={currentGame.legsWon}
-                      totalLegs={currentGame.totalLegs}
-                      avgMarksPerRoundByPlayer={avgMarksPerRoundByPlayer}
-                    />
-                  );
-                }
-
-                return (
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: (() => {
-                        const playerCount = currentGame.players.length;
-                        if (playerCount === 1) return `1fr 76px`;
-                        if (playerCount === 2) {
-                          const firstHalf = Math.ceil(playerCount / 2);
-                          const secondHalf = playerCount - firstHalf;
-                          return `repeat(${firstHalf}, 1fr) 76px repeat(${secondHalf}, 1fr)`;
-                        }
-                        return `repeat(${playerCount}, 1fr) 76px`;
-                      })(),
-                      gap: 0.5,
-                    }}
-                  >
-                    {(() => {
-                      const playerCount = currentGame.players.length;
-                      if (playerCount <= 2) {
-                        const firstHalf = Math.ceil(playerCount / 2);
-                        return (
-                          <>
-                            {currentGame.players
-                              .slice(0, firstHalf)
-                              .map((player, playerIndex) => {
-                                const playerColor =
-                                  playerColors[playerIndex] ||
-                                  theme.palette.primary.main;
-                                const isCurrentPlayer =
-                                  player.id === currentPlayer?.id;
-                                const avgMarksPerRound = getAvgMarksPerRound(
-                                  player.id,
-                                );
-                                return (
-                                  <Box
-                                    key={player.id}
-                                    sx={{
-                                      backgroundColor: isCurrentPlayer
-                                        ? alpha(playerColor, 0.06)
-                                        : "transparent",
-                                      borderRadius: 1,
-                                      transition: "background-color 0.3s ease",
-                                    }}
-                                  >
-                                    <CricketPlayerBox
-                                      player={player}
-                                      isCurrentPlayer={isCurrentPlayer}
-                                      avgMarksPerRound={avgMarksPerRound}
-                                      playerIndex={playerIndex}
-                                    />
-                                  </Box>
-                                );
-                              })}
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <Typography variant="body2" fontWeight="bold">
-                                Number
-                              </Typography>
-                            </Box>
-                            {currentGame.players
-                              .slice(firstHalf)
-                              .map((player, index) => {
-                                const playerIndex = index + firstHalf;
-                                const playerColor =
-                                  playerColors[playerIndex] ||
-                                  theme.palette.primary.main;
-                                const isCurrentPlayer =
-                                  player.id === currentPlayer?.id;
-                                const avgMarksPerRound = getAvgMarksPerRound(
-                                  player.id,
-                                );
-                                return (
-                                  <Box
-                                    key={player.id}
-                                    sx={{
-                                      backgroundColor: isCurrentPlayer
-                                        ? alpha(playerColor, 0.06)
-                                        : "transparent",
-                                      borderRadius: 1,
-                                      transition: "background-color 0.3s ease",
-                                    }}
-                                  >
-                                    <CricketPlayerBox
-                                      player={player}
-                                      isCurrentPlayer={isCurrentPlayer}
-                                      avgMarksPerRound={avgMarksPerRound}
-                                      playerIndex={playerIndex}
-                                    />
-                                  </Box>
-                                );
-                              })}
-                          </>
-                        );
-                      }
-
-                      return (
-                        <>
-                          {currentGame.players.map((player, playerIndex) => {
-                            const playerColor =
-                              playerColors[playerIndex] ||
-                              theme.palette.primary.main;
-                            const isCurrentPlayer =
-                              player.id === currentPlayer?.id;
-                            const avgMarksPerRound = getAvgMarksPerRound(
-                              player.id,
-                            );
-                            return (
-                              <Box
-                                key={player.id}
-                                sx={{
-                                  backgroundColor: isCurrentPlayer
-                                    ? alpha(playerColor, 0.06)
-                                    : "transparent",
-                                  borderRadius: 1,
-                                  transition: "background-color 0.3s ease",
-                                }}
-                              >
-                                <CricketPlayerBox
-                                  player={player}
-                                  isCurrentPlayer={isCurrentPlayer}
-                                  avgMarksPerRound={avgMarksPerRound}
-                                  playerIndex={playerIndex}
-                                />
-                              </Box>
-                            );
-                          })}
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Typography variant="body2" fontWeight="bold">
-                              Number
-                            </Typography>
-                          </Box>
-                        </>
-                      );
-                    })()}
-                  </Box>
-                );
-              })()}
-            </Box>
-          )}
+          <CricketShiftedScoreboard
+            players={currentGame.players}
+            currentPlayerIndex={currentGame.currentPlayerIndex}
+            avgMarksPerRoundByPlayer={avgMarksPerRoundByPlayer}
+            legsWon={currentGame.legsWon}
+            totalLegs={currentGame.totalLegs}
+            dartsThrownByPlayer={dartsThrownByPlayer}
+            onSwitchPlayer={switchPlayerWithoutAddingDarts}
+          />
         </Paper>
 
         {/* Full-Screen Number Grid with Player Columns */}

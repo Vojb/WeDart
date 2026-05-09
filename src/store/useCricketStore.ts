@@ -94,6 +94,7 @@ interface CricketStoreState {
   endGame: () => void;
   // Add function to advance to next player manually
   finishTurn: () => void;
+  switchPlayerWithoutAddingDarts: () => void;
 
   // Get all players (for integration with main store)
   getCricketPlayers: () => CricketPlayer[];
@@ -1084,6 +1085,42 @@ export const useCricketStore = create<CricketStoreState>()(
           }
 
           // Create a new round for the next player
+          newGame.currentRound = {
+            playerId: players[nextPlayerIndex].id,
+            darts: [],
+            totalPoints: 0,
+          };
+
+          newGame.players = players;
+
+          return {
+            ...state,
+            currentGame: newGame,
+          };
+        });
+      },
+
+      switchPlayerWithoutAddingDarts: () => {
+        set((state) => {
+          if (!state.currentGame) return state;
+
+          const newGame = { ...state.currentGame };
+          const players = [...newGame.players];
+          const playerIndex = newGame.currentPlayerIndex;
+
+          // IMPORTANT: Do NOT push an empty round, otherwise dartsThrown stat (3 darts/visit)
+          // increases even though no dart was actually thrown.
+          if (newGame.currentRound && newGame.currentRound.darts.length > 0) {
+            newGame.rounds.push({ ...newGame.currentRound });
+          }
+
+          const nextPlayerIndex = (playerIndex + 1) % players.length;
+          newGame.currentPlayerIndex = nextPlayerIndex;
+
+          if (playerIndex >= 0 && playerIndex < players.length) {
+            players[playerIndex].currentDartIndex = 0;
+          }
+
           newGame.currentRound = {
             playerId: players[nextPlayerIndex].id,
             darts: [],

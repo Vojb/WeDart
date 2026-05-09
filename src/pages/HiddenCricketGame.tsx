@@ -185,7 +185,8 @@ const HiddenCricketGame: React.FC = () => {
         const allRounds = [...playerRounds];
         if (
           currentGame.currentRound &&
-          currentGame.currentRound.playerId === player.id
+          currentGame.currentRound.playerId === player.id &&
+          currentGame.currentRound.darts.length > 0
         ) {
           allRounds.push(currentGame.currentRound);
         }
@@ -872,6 +873,8 @@ const HiddenCricketGame: React.FC = () => {
               avgMarksPerRoundByPlayer={avgMarksPerRoundByPlayer}
               legsWon={currentGame.legsWon}
               totalLegs={currentGame.totalLegs}
+              dartsThrownByPlayer={dartsThrownByPlayer}
+              onSwitchPlayer={handleFinishTurn}
               onDoubleClick={() => setIsShifted(false)}
             />
           ) : (

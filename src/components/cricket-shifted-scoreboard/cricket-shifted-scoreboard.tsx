@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, useTheme, alpha } from "@mui/material";
+import { Box, Button, Typography, useTheme, alpha } from "@mui/material";
 import { CricketPlayer } from "../../store/useCricketStore";
 import CountUp from "../count-up/count-up";
 
@@ -9,6 +9,8 @@ interface CricketShiftedScoreboardProps {
   avgMarksPerRoundByPlayer: Record<number, number>;
   legsWon?: Record<number, number>;
   totalLegs?: number;
+  dartsThrownByPlayer: Record<number, number>;
+  onSwitchPlayer: () => void;
   onDoubleClick?: () => void;
 }
 
@@ -18,6 +20,8 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
   avgMarksPerRoundByPlayer,
   legsWon = {},
   totalLegs = 0,
+  dartsThrownByPlayer,
+  onSwitchPlayer,
   onDoubleClick,
 }) => {
   const theme = useTheme();
@@ -30,6 +34,7 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
         ? theme.palette.primary.main
         : theme.palette.secondary.main;
     const mpr = avgMarksPerRoundByPlayer[player.id] ?? 0;
+    const darts = dartsThrownByPlayer[player.id] ?? 0;
     return (
       <Box
         key={player.id}
@@ -64,6 +69,17 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
           <Box component="span" sx={{ fontWeight: 600, opacity: 0.92 }}>
             ({mpr.toFixed(1)})
           </Box>
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: alpha(theme.palette.text.primary, 0.75),
+            fontSize: { xs: "0.68rem", sm: "0.78rem" },
+            letterSpacing: 0.4,
+            lineHeight: 1,
+          }}
+        >
+          Darts: {darts}
         </Typography>
         <Typography
           component="div"
@@ -112,8 +128,8 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
         <Typography
           sx={{
             fontWeight: 700,
-            fontSize: { xs: "1.1rem", sm: "1.35rem" },
-            lineHeight: 1.1,
+            fontSize: { xs: "1.6rem", sm: "1.9rem", md: "2.15rem" },
+            lineHeight: 1.05,
           }}
         >
           {legsWon[players[0].id] ?? 0} – {legsWon[players[1].id] ?? 0}
@@ -129,6 +145,26 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
         >
           Legs
         </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          color="info"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSwitchPlayer();
+          }}
+          sx={{
+            mt: 0.75,
+            minWidth: 0,
+            px: 1,
+            py: 0.25,
+            fontSize: { xs: "0.62rem", sm: "0.7rem" },
+            lineHeight: 1.1,
+            borderRadius: 999,
+          }}
+        >
+          Switch
+        </Button>
       </Box>
     ) : null;
 
