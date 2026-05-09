@@ -797,9 +797,12 @@ export const useCricketStore = create<CricketStoreState>()(
           if (playerIndex === -1) return state;
 
           const player = { ...players[playerIndex] };
+          const existingRound = g.currentRound;
+          if (!existingRound) return state;
           const currentRound: CricketRound = {
-            ...newGame.currentRound,
-            darts: [...newGame.currentRound.darts],
+            playerId: existingRound.playerId,
+            darts: [...existingRound.darts],
+            totalPoints: existingRound.totalPoints,
           };
 
           const bonusDart: CricketDart = {
