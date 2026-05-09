@@ -14,6 +14,7 @@ export interface CricketDart {
   targetNumber: number | string;
   multiplier: number;
   points: number;
+  isBonus?: boolean;
   // Store previous state for easy undo
   previousHits?: number;
   previousTargetPoints?: number;
@@ -53,6 +54,7 @@ interface CricketGameState {
   gameType: "standard" | "cutthroat" | "no-score";
   winCondition: "first-closed" | "points"; // Win by closing all numbers first or by points
   cricketVariant: CricketVariant;
+  pendingOshaExtraBonus?: { kind: "Triple" | "Double"; playerId: number } | null;
   // Add round history
   rounds: CricketRound[];
   currentRound: CricketRound | null;
@@ -87,6 +89,7 @@ interface CricketStoreState {
     multiplier: number,
     forPlayerId?: number
   ) => void;
+  awardOshaExtraBonus: (points: number) => void;
   undoLastHit: () => void;
   endGame: () => void;
   // Add function to advance to next player manually
@@ -134,6 +137,14 @@ function applyCricketDartReplay(
   dart: CricketDart,
   gameType: CricketGameState["gameType"]
 ): void {
+  if (dart.isBonus) {
+    players[playerIndex] = {
+      ...players[playerIndex],
+      totalScore: players[playerIndex].totalScore + (dart.points || 0),
+    };
+    return;
+  }
+
   const targetNumber = dart.targetNumber;
   const multiplier = dart.multiplier;
   const currentPlayer = { ...players[playerIndex] };
@@ -395,6 +406,7 @@ export const useCricketStore = create<CricketStoreState>()(
               gameType,
               winCondition,
               cricketVariant,
+              pendingOshaExtraBonus: null,
               rounds: [],
               currentRound: initialRound,
               totalLegs,
@@ -498,6 +510,9 @@ export const useCricketStore = create<CricketStoreState>()(
             currentPlayer.currentDartIndex += 1;
 
             let pointsEarned = 0;
+            let shouldPromptOshaExtraBonus:
+              | { kind: "Triple" | "Double"; playerId: number }
+              | null = null;
 
             if (targetIndex !== -1) {
               const targets = [...currentPlayer.targets];
@@ -518,13 +533,18 @@ export const useCricketStore = create<CricketStoreState>()(
 
               // Handle scoring based on game type
               if (newGame.gameType !== "no-score") {
+                const isOshaExtraBonusTarget =
+                  newGame.cricketVariant === "osha" &&
+                  (targetNumber === "Triple" || targetNumber === "Double") &&
+                  (wasClosed || hasExtraHits);
+
                 // Check if any opponent hasn't closed this number
                 const someOpponentNotClosed = players.some(
                   (p) =>
                     p.id !== currentPlayer.id && !p.targets[targetIndex].closed
                 );
 
-                if (someOpponentNotClosed) {
+                if (someOpponentNotClosed && !isOshaExtraBonusTarget) {
                   // Calculate point value (Bull, Triple, Double = 25)
                   const pointValue =
                     targetNumber === "Bull" ||
@@ -573,6 +593,15 @@ export const useCricketStore = create<CricketStoreState>()(
                     // Track points for the round history
                     pointsEarned = pointsToAdd;
                   }
+                }
+              }
+
+              if (newGame.cricketVariant === "osha" && (wasClosed || hasExtraHits)) {
+                if (targetNumber === "Triple" || targetNumber === "Double") {
+                  shouldPromptOshaExtraBonus = {
+                    kind: targetNumber,
+                    playerId: currentPlayer.id,
+                  };
                 }
               }
 
@@ -668,6 +697,14 @@ export const useCricketStore = create<CricketStoreState>()(
             // Update the game state
             newGame.players = players;
             newGame.isGameFinished = isGameFinished;
+            if (
+              shouldPromptOshaExtraBonus &&
+              !isGameFinished &&
+              (newGame.pendingOshaExtraBonus === null ||
+                newGame.pendingOshaExtraBonus === undefined)
+            ) {
+              newGame.pendingOshaExtraBonus = shouldPromptOshaExtraBonus;
+            }
 
             // Handle leg win logic
             if (isGameFinished && winnerId) {
@@ -733,6 +770,57 @@ export const useCricketStore = create<CricketStoreState>()(
           console.error("Error in recordHit:", error);
           // Don't update the state if there's an error
         }
+      },
+
+      awardOshaExtraBonus: (points) => {
+        set((state) => {
+          if (!state.currentGame) return state;
+          const g = state.currentGame;
+          if (g.cricketVariant !== "osha") return state;
+          if (g.gameType === "no-score") return state;
+          const pending = g.pendingOshaExtraBonus;
+          if (!pending) return state;
+          const pid = pending.playerId;
+          if (!g.currentRound || g.currentRound.playerId !== pid) return state;
+          if (!Number.isFinite(points) || points <= 0) return state;
+          if (points === 25) {
+            if (pending.kind !== "Double") return state;
+          } else if (points > 20) {
+            return state;
+          }
+          const multiplier = pending.kind === "Triple" ? 3 : 2;
+          const pointsAwarded = points * multiplier;
+
+          const newGame: CricketGameState = { ...g };
+          const players = [...newGame.players];
+          const playerIndex = players.findIndex((p) => p.id === pid);
+          if (playerIndex === -1) return state;
+
+          const player = { ...players[playerIndex] };
+          const currentRound: CricketRound = {
+            ...newGame.currentRound,
+            darts: [...newGame.currentRound.darts],
+          };
+
+          const bonusDart: CricketDart = {
+            targetNumber: "Bonus",
+            multiplier: 1,
+            points: pointsAwarded,
+            isBonus: true,
+            previousPlayerScore: player.totalScore,
+          };
+
+          player.totalScore += pointsAwarded;
+          currentRound.darts.push(bonusDart);
+          currentRound.totalPoints += pointsAwarded;
+
+          players[playerIndex] = player;
+          newGame.players = players;
+          newGame.currentRound = currentRound;
+          newGame.pendingOshaExtraBonus = null;
+
+          return { ...state, currentGame: newGame };
+        });
       },
 
       undoLastHit: () => {
@@ -857,15 +945,26 @@ export const useCricketStore = create<CricketStoreState>()(
           roundToModify.darts.pop();
           roundToModify.totalPoints -= lastDart.points || 0;
 
-          // Decrease darts thrown and current dart index
-          currentPlayer.dartsThrown = Math.max(
-            0,
-            currentPlayer.dartsThrown - 1
-          );
-          currentPlayer.currentDartIndex = Math.max(
-            0,
-            currentPlayer.currentDartIndex - 1
-          );
+          if (lastDart.isBonus) {
+            if (lastDart.previousPlayerScore !== undefined) {
+              currentPlayer.totalScore = lastDart.previousPlayerScore;
+            } else {
+              currentPlayer.totalScore = Math.max(
+                0,
+                currentPlayer.totalScore - (lastDart.points || 0)
+              );
+            }
+          } else {
+            // Decrease darts thrown and current dart index
+            currentPlayer.dartsThrown = Math.max(
+              0,
+              currentPlayer.dartsThrown - 1
+            );
+            currentPlayer.currentDartIndex = Math.max(
+              0,
+              currentPlayer.currentDartIndex - 1
+            );
+          }
 
           // Update targets if needed - restore previous state directly
           const targetIndex = currentPlayer.targets.findIndex(

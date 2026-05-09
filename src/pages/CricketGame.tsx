@@ -46,6 +46,7 @@ const CricketGame: React.FC = () => {
     currentGame,
     recordHit,
     undoLastHit,
+    awardOshaExtraBonus,
     endGame,
     setCricketPlayers,
     finishTurn,
@@ -58,6 +59,7 @@ const CricketGame: React.FC = () => {
   const [isValidGame, setIsValidGame] = useState(true);
   const [lastClickTime, setLastClickTime] = useState<number>(Date.now());
   const [isShifted, setIsShifted] = useState(false);
+  const [oshaExtraBonusDialogOpen, setOshaExtraBonusDialogOpen] = useState(false);
 
   const numberLabelFontSize = { xs: "3.05rem", sm: "3.5rem", md: "4.1rem" };
 
@@ -107,6 +109,28 @@ const CricketGame: React.FC = () => {
       setDialogOpen(false);
     }
   }, [dialogOpen, currentGame?.isGameFinished, currentGame]);
+
+  useEffect(() => {
+    const shouldOpen =
+      currentGame?.cricketVariant === "osha" &&
+      !!currentGame.pendingOshaExtraBonus &&
+      !currentGame.isGameFinished;
+    setOshaExtraBonusDialogOpen(shouldOpen);
+  }, [
+    currentGame?.cricketVariant,
+    currentGame?.pendingOshaExtraBonus,
+    currentGame?.isGameFinished,
+  ]);
+
+  const handleSelectOshaExtraBonusPoints = useCallback(
+    (points: number) => {
+      if (!currentGame) return;
+      awardOshaExtraBonus(points);
+      vibrateDevice(50);
+      setLastClickTime(Date.now());
+    },
+    [awardOshaExtraBonus, currentGame],
+  );
 
   // Validation effect - must be at the top level with other effects
   useEffect(() => {
@@ -705,6 +729,56 @@ const CricketGame: React.FC = () => {
           >
             Leave Game
           </VibrationButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* OSHA: Extra Double/Triple bonus dialog */}
+      <Dialog
+        open={oshaExtraBonusDialogOpen}
+        maxWidth="sm"
+        fullWidth
+        onClose={() => {}}
+      >
+        <DialogTitle>
+          {currentGame.pendingOshaExtraBonus?.kind === "Double"
+            ? "Extra Double"
+            : "Extra Triple"}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            {currentGame.pendingOshaExtraBonus?.kind === "Triple"
+              ? "Pick bonus points (1–20). Score added = 3× the number you choose."
+              : "Pick bonus points (1–20 or 25). Score added = 2× the number you choose."}
+          </Typography>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 1,
+            }}
+          >
+            {[
+              ...Array.from({ length: 20 }, (_, i) => i + 1),
+              ...(currentGame.pendingOshaExtraBonus?.kind === "Double" ? [25] : []),
+            ].map((n) => (
+              <Button
+                key={n}
+                variant="contained"
+                color={n === 25 ? "secondary" : "primary"}
+                onClick={() => handleSelectOshaExtraBonusPoints(n)}
+                sx={{ py: 2, fontSize: "1.25rem", fontWeight: 700 }}
+              >
+                {n}
+              </Button>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Typography variant="caption" sx={{ px: 2, pb: 1, color: "text.secondary" }}>
+            {currentGame.pendingOshaExtraBonus?.kind === "Triple"
+              ? "Score added = 3× the number you choose."
+              : "Score added = 2× the number you choose."}
+          </Typography>
         </DialogActions>
       </Dialog>
 
