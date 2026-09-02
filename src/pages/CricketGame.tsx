@@ -26,6 +26,7 @@ import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
 import CricketShiftedScoreboard from "../components/cricket-shifted-scoreboard/cricket-shifted-scoreboard";
 import CricketAutoAdvanceNextButton from "../components/cricket-auto-advance-next-button/cricket-auto-advance-next-button";
+import CricketBackgroundLogo from "../components/cricket-background-logo/cricket-background-logo";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
 import CountUp from "../components/count-up/count-up";
 import { motion } from "framer-motion";
@@ -824,8 +825,20 @@ const CricketGame: React.FC = () => {
           flexDirection: "column",
           height: "100%",
           overflow: "hidden",
+          position: "relative",
         }}
       >
+        <CricketBackgroundLogo />
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            overflow: "hidden",
+          }}
+        >
         {/* Top Bar - Header with Player Names and Scores */}
         <Paper
           sx={{
@@ -1515,6 +1528,7 @@ const CricketGame: React.FC = () => {
             />
           </Box>
         </Paper>
+        </Box>
       </Box>
     </Box>
   );

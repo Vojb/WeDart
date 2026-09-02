@@ -36,8 +36,14 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import InfoIcon from "@mui/icons-material/Info";
+import ImageIcon from "@mui/icons-material/Image";
+import UploadIcon from "@mui/icons-material/Upload";
 import { useNavigate } from "react-router-dom";
 import { useStore, predefinedThemes } from "../store/useStore";
+import {
+  cricketBackgroundLogoOptions,
+  CRICKET_BACKGROUND_LOGO_OPACITY,
+} from "../constants/cricketBackgroundLogos";
 import React from "react";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
@@ -280,6 +286,12 @@ const Settings: React.FC = () => {
     updateMicrophoneLastChecked,
     countdownDuration,
     setCountdownDuration,
+    cricketBackgroundLogoEnabled,
+    cricketBackgroundLogoId,
+    cricketBackgroundLogoCustomUrl,
+    setCricketBackgroundLogoEnabled,
+    setCricketBackgroundLogoId,
+    setCricketBackgroundLogoCustomUrl,
   } = useStore();
 
   // State for color values
@@ -319,6 +331,7 @@ const Settings: React.FC = () => {
     useState<boolean>(false);
   const [expandedPreview, setExpandedPreview] = useState<boolean>(false);
   const [expandedPermissions, setExpandedPermissions] = useState<boolean>(true);
+  const [expandedCricketLogo, setExpandedCricketLogo] = useState<boolean>(true);
 
   // Microphone permission state
   const [micPermissionStatus, setMicPermissionStatus] = useState<
@@ -549,6 +562,61 @@ const Settings: React.FC = () => {
     }
   };
 
+  const logoFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCricketLogoUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setSnackbarMessage("Please select an image file.");
+      setSnackbarOpen(true);
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setSnackbarMessage("Logo must be smaller than 2 MB.");
+      setSnackbarOpen(true);
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string") {
+        setCricketBackgroundLogoCustomUrl(result);
+        setCricketBackgroundLogoId("custom");
+        setCricketBackgroundLogoEnabled(true);
+        setSnackbarMessage("Custom cricket logo uploaded!");
+        setSnackbarOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const handleCricketLogoSelect = (logoId: typeof cricketBackgroundLogoId) => {
+    setCricketBackgroundLogoId(logoId);
+    if (logoId !== "none") {
+      setCricketBackgroundLogoEnabled(true);
+    } else {
+      setCricketBackgroundLogoEnabled(false);
+    }
+  };
+
+  const selectedCricketLogoPreviewSrc =
+    cricketBackgroundLogoId === "custom"
+      ? cricketBackgroundLogoCustomUrl
+      : cricketBackgroundLogoOptions.find(
+          (option) => option.id === cricketBackgroundLogoId,
+        )?.src ?? null;
+
   // Function to handle microphone toggle
   const handleMicrophoneToggle = () => {
     if (micPermissionStatus === "granted") {
@@ -749,6 +817,259 @@ const Settings: React.FC = () => {
           </Box>
 
           <Divider sx={{ my: 2 }} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Cricket Background Logo Accordion */}
+      <Accordion
+        expanded={expandedCricketLogo}
+        onChange={() => setExpandedCricketLogo(!expandedCricketLogo)}
+        sx={{ mb: 2 }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="cricket-logo-content"
+          id="cricket-logo-header"
+          sx={{
+            backgroundColor: theme.palette.mode === "dark"
+              ? "rgba(255, 255, 255, 0.05)"
+              : "rgba(0, 0, 0, 0.03)",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6">Cricket Background Logo</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Show a faint logo behind the cricket scoreboard during games. Your
+            choice is saved locally on this device.
+          </Typography>
+
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Show Logo
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={cricketBackgroundLogoEnabled}
+                    onChange={(_, checked) =>
+                      setCricketBackgroundLogoEnabled(checked)
+                    }
+                    color="primary"
+                  />
+                }
+                label=""
+              />
+              <ImageIcon
+                color={cricketBackgroundLogoEnabled ? "primary" : "disabled"}
+                sx={{ mr: 1 }}
+              />
+              <Typography>
+                {cricketBackgroundLogoEnabled
+                  ? "Background logo visible"
+                  : "Background logo hidden"}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Typography variant="subtitle1" gutterBottom>
+            Select Logo
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            {cricketBackgroundLogoOptions.map((logoOption) => (
+              <Grid item xs={6} sm={4} key={logoOption.id}>
+                <Card
+                  sx={{
+                    height: "100%",
+                    border:
+                      cricketBackgroundLogoId === logoOption.id ? 2 : 0,
+                    borderColor: "primary.main",
+                  }}
+                >
+                  <CardActionArea
+                    onClick={() => handleCricketLogoSelect(logoOption.id)}
+                    sx={{ height: "100%" }}
+                  >
+                    <CardContent>
+                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                        {cricketBackgroundLogoId === logoOption.id && (
+                          <CheckCircleIcon color="primary" />
+                        )}
+                        <Typography variant="subtitle1" component="div">
+                          {logoOption.name}
+                        </Typography>
+                      </Stack>
+                      {logoOption.src ? (
+                        <Box
+                          component="img"
+                          src={logoOption.src}
+                          alt={logoOption.name}
+                          sx={{
+                            width: 64,
+                            height: 64,
+                            objectFit: "contain",
+                            opacity: 0.9,
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 64,
+                            height: 64,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            border: "1px dashed",
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            color: "text.secondary",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          Off
+                        </Box>
+                      )}
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+            <Grid item xs={6} sm={4}>
+              <Card
+                sx={{
+                  height: "100%",
+                  border: cricketBackgroundLogoId === "custom" ? 2 : 0,
+                  borderColor: "primary.main",
+                }}
+              >
+                <CardActionArea
+                  onClick={() => {
+                    if (cricketBackgroundLogoCustomUrl) {
+                      handleCricketLogoSelect("custom");
+                    } else {
+                      logoFileInputRef.current?.click();
+                    }
+                  }}
+                  sx={{ height: "100%" }}
+                >
+                  <CardContent>
+                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                      {cricketBackgroundLogoId === "custom" && (
+                        <CheckCircleIcon color="primary" />
+                      )}
+                      <Typography variant="subtitle1" component="div">
+                        Custom
+                      </Typography>
+                    </Stack>
+                    {cricketBackgroundLogoCustomUrl ? (
+                      <Box
+                        component="img"
+                        src={cricketBackgroundLogoCustomUrl}
+                        alt="Custom logo"
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          objectFit: "contain",
+                        }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1px dashed",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                        }}
+                      >
+                        <UploadIcon color="action" />
+                      </Box>
+                    )}
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          </Grid>
+
+          <input
+            ref={logoFileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleCricketLogoUpload}
+          />
+
+          <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={() => logoFileInputRef.current?.click()}
+            >
+              Upload Custom Logo
+            </Button>
+            {cricketBackgroundLogoCustomUrl && (
+              <Button
+                variant="text"
+                color="error"
+                onClick={() => {
+                  setCricketBackgroundLogoCustomUrl(null);
+                  if (cricketBackgroundLogoId === "custom") {
+                    setCricketBackgroundLogoId("wedart");
+                  }
+                  setSnackbarMessage("Custom logo removed.");
+                  setSnackbarOpen(true);
+                }}
+              >
+                Remove Custom
+              </Button>
+            )}
+          </Stack>
+
+          {selectedCricketLogoPreviewSrc &&
+            cricketBackgroundLogoEnabled &&
+            cricketBackgroundLogoId !== "none" && (
+              <Box
+                sx={{
+                  position: "relative",
+                  height: 160,
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.default",
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    position: "absolute",
+                    top: 8,
+                    left: 8,
+                    color: "text.secondary",
+                  }}
+                >
+                  Preview (in-game opacity)
+                </Typography>
+                <Box
+                  component="img"
+                  src={selectedCricketLogoPreviewSrc}
+                  alt="Logo preview"
+                  sx={{
+                    maxWidth: 120,
+                    maxHeight: 120,
+                    opacity: CRICKET_BACKGROUND_LOGO_OPACITY,
+                  }}
+                />
+              </Box>
+            )}
         </AccordionDetails>
       </Accordion>
 

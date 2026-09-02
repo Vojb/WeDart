@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { PaletteMode } from "@mui/material";
 import { persist } from "zustand/middleware";
 import { Player } from "./useX01Store"; // Import player type from X01 store
+import { CricketBackgroundLogoId } from "../constants/cricketBackgroundLogos";
 
 // Define predefined theme options
 export interface ThemeColors {
@@ -381,6 +382,14 @@ interface StoreState {
   // Sticky activation state - tracks if user has interacted with the page
   hasUserActivation: boolean;
   setUserActivation: (activated: boolean) => void;
+
+  // Cricket background logo settings
+  cricketBackgroundLogoEnabled: boolean;
+  cricketBackgroundLogoId: CricketBackgroundLogoId;
+  cricketBackgroundLogoCustomUrl: string | null;
+  setCricketBackgroundLogoEnabled: (enabled: boolean) => void;
+  setCricketBackgroundLogoId: (logoId: CricketBackgroundLogoId) => void;
+  setCricketBackgroundLogoCustomUrl: (dataUrl: string | null) => void;
 }
 
 // Restore persist middleware for saving data in localStorage
@@ -511,6 +520,17 @@ export const useStore = create<StoreState>()(
       hasUserActivation: false,
       setUserActivation: (activated: boolean) =>
         set({ hasUserActivation: activated }),
+
+      // Cricket background logo settings
+      cricketBackgroundLogoEnabled: false,
+      cricketBackgroundLogoId: "none",
+      cricketBackgroundLogoCustomUrl: null,
+      setCricketBackgroundLogoEnabled: (enabled: boolean) =>
+        set({ cricketBackgroundLogoEnabled: enabled }),
+      setCricketBackgroundLogoId: (logoId: CricketBackgroundLogoId) =>
+        set({ cricketBackgroundLogoId: logoId }),
+      setCricketBackgroundLogoCustomUrl: (dataUrl: string | null) =>
+        set({ cricketBackgroundLogoCustomUrl: dataUrl }),
     }),
     {
       name: "wedart-main-storage",
@@ -525,6 +545,9 @@ export const useStore = create<StoreState>()(
         permissionSettings: state.permissionSettings,
         countdownDuration: state.countdownDuration,
         hasUserActivation: state.hasUserActivation,
+        cricketBackgroundLogoEnabled: state.cricketBackgroundLogoEnabled,
+        cricketBackgroundLogoId: state.cricketBackgroundLogoId,
+        cricketBackgroundLogoCustomUrl: state.cricketBackgroundLogoCustomUrl,
       }),
     }
   )

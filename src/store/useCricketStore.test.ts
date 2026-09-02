@@ -63,3 +63,94 @@ describe("useCricketStore legs", () => {
     expect(game?.lastLegWon?.winnerId).toBe(1);
   });
 });
+
+describe("useCricketStore undo", () => {
+  beforeEach(() => {
+    useCricketStore.getState().endGame();
+    updateCachedPlayers([
+      { id: 1, name: "Player 1" },
+      { id: 2, name: "Player 2" },
+    ]);
+  });
+
+  it("undoes through skipped empty turns to reach the previous dart", () => {
+    const { startGame, recordHit, finishTurn, undoLastHit } =
+      useCricketStore.getState();
+    startGame("standard", "points", [1, 2], 1);
+
+    recordHit(20, 1);
+    finishTurn();
+    finishTurn();
+
+    undoLastHit();
+
+    const game = useCricketStore.getState().currentGame;
+    expect(game?.currentPlayerIndex).toBe(0);
+    expect(game?.players[0].targets[0].hits).toBe(0);
+    expect(game?.currentRound?.playerId).toBe(1);
+    expect(game?.currentRound?.darts).toHaveLength(0);
+    expect(game?.rounds).toHaveLength(0);
+  });
+
+  it("skips trailing empty rounds when finding a dart to undo", () => {
+    const { startGame, recordHit, finishTurn, undoLastHit } =
+      useCricketStore.getState();
+    startGame("standard", "points", [1, 2], 1);
+
+    recordHit(20, 1);
+    finishTurn();
+
+    const midGame = useCricketStore.getState().currentGame!;
+    useCricketStore.setState({
+      currentGame: {
+        ...midGame,
+        rounds: [
+          ...midGame.rounds,
+          { playerId: 2, darts: [], totalPoints: 0 },
+        ],
+        currentPlayerIndex: 0,
+        currentRound: { playerId: 1, darts: [], totalPoints: 0 },
+      },
+    });
+
+    undoLastHit();
+
+    const game = useCricketStore.getState().currentGame;
+    expect(game?.players[0].targets[0].hits).toBe(0);
+    expect(game?.currentPlayerIndex).toBe(0);
+    expect(game?.rounds).toHaveLength(0);
+  });
+
+  it("returns to the correct player when undoing the last dart of a completed turn", () => {
+    const { startGame, recordHit, finishTurn, undoLastHit } =
+      useCricketStore.getState();
+    startGame("standard", "points", [1, 2], 1);
+
+    recordHit(20, 1);
+    finishTurn();
+
+    undoLastHit();
+
+    const game = useCricketStore.getState().currentGame;
+    expect(game?.currentPlayerIndex).toBe(0);
+    expect(game?.currentRound?.playerId).toBe(1);
+    expect(game?.currentRound?.darts).toHaveLength(0);
+    expect(game?.players[0].targets[0].hits).toBe(0);
+    expect(game?.rounds).toHaveLength(0);
+  });
+
+  it("restores marks and score when undoing the current dart", () => {
+    const { startGame, recordHit, undoLastHit } = useCricketStore.getState();
+    startGame("standard", "points", [1, 2], 1);
+
+    recordHit(20, 3);
+    recordHit(19, 1);
+
+    undoLastHit();
+
+    const game = useCricketStore.getState().currentGame;
+    expect(game?.currentRound?.darts).toHaveLength(1);
+    expect(game?.players[0].targets[0].hits).toBe(3);
+    expect(game?.players[0].targets[1].hits).toBe(0);
+  });
+});

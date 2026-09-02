@@ -39,6 +39,7 @@ import { motion, Variants } from "framer-motion";
 import MultiplierSelector from "../components/multiplier-selector/multiplier-selector";
 import HiddenCricketTwoPlayersLayout from "../components/hidden-cricket-two-players-layout/hidden-cricket-two-players-layout";
 import HiddenCricketMultiPlayersLayout from "../components/hidden-cricket-multi-players-layout/hidden-cricket-multi-players-layout";
+import CricketBackgroundLogo from "../components/cricket-background-logo/cricket-background-logo";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
 import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
 
@@ -855,8 +856,20 @@ const HiddenCricketGame: React.FC = () => {
           flexDirection: "column",
           height: "100%",
           overflow: "hidden",
+          position: "relative",
         }}
       >
+        <CricketBackgroundLogo />
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 1,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            overflow: "hidden",
+          }}
+        >
         {/* Top Bar - Header with Player Names */}
         <Paper
           sx={{
@@ -1343,6 +1356,7 @@ const HiddenCricketGame: React.FC = () => {
             />
           </Box>
         </Paper>
+        </Box>
       </Box>
     </Box>
   );

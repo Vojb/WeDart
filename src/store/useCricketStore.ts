@@ -266,6 +266,55 @@ function removeLastDartFromCricketLegRounds(
   return { modifiedLegRounds: clone, removedDart };
 }
 
+interface LastUndoableDart {
+  lastDart: CricketDart;
+  roundToModify: CricketRound;
+  playerIndex: number;
+  isCurrentRound: boolean;
+  roundIndex: number;
+}
+
+function findLastUndoableDart(game: CricketGameState): LastUndoableDart | null {
+  if (game.currentRound && game.currentRound.darts.length > 0) {
+    const roundToModify = {
+      ...game.currentRound,
+      darts: [...game.currentRound.darts],
+    };
+    const lastDart = roundToModify.darts[roundToModify.darts.length - 1];
+    const playerIndex = game.players.findIndex(
+      (p) => p.id === roundToModify.playerId
+    );
+    if (playerIndex === -1) return null;
+    return {
+      lastDart,
+      roundToModify,
+      playerIndex,
+      isCurrentRound: true,
+      roundIndex: game.rounds.length,
+    };
+  }
+
+  for (let roundIndex = game.rounds.length - 1; roundIndex >= 0; roundIndex--) {
+    const round = game.rounds[roundIndex];
+    if (round.darts.length === 0) continue;
+
+    const roundToModify = { ...round, darts: [...round.darts] };
+    const lastDart = roundToModify.darts[roundToModify.darts.length - 1];
+    const playerIndex = game.players.findIndex((p) => p.id === round.playerId);
+    if (playerIndex === -1) return null;
+
+    return {
+      lastDart,
+      roundToModify,
+      playerIndex,
+      isCurrentRound: false,
+      roundIndex,
+    };
+  }
+
+  return null;
+}
+
 function playerStillHasWonLeg(
   currentPlayer: CricketPlayer,
   players: CricketPlayer[],
@@ -888,7 +937,7 @@ export const useCricketStore = create<CricketStoreState>()(
             g.rounds.length === 0 &&
             (!g.currentRound || g.currentRound.darts.length === 0)
           ) {
-            const lastLeg = g.completedLegs.at(-1)!;
+            const lastLeg = g.completedLegs[g.completedLegs.length - 1];
             const removed = removeLastDartFromCricketLegRounds(lastLeg.rounds);
             if (!removed) return state;
 
@@ -956,6 +1005,7 @@ export const useCricketStore = create<CricketStoreState>()(
                 currentPlayerIndex,
                 isGameFinished: false,
                 lastLegWon: null,
+                pendingOshaExtraBonus: null,
               },
             };
           }
@@ -964,36 +1014,18 @@ export const useCricketStore = create<CricketStoreState>()(
           ensureCricketLegFields(newGame, state.gameSettings.defaultLegs);
           const players = [...newGame.players];
 
-          // Find the last dart - either in current round or last completed round
-          let lastDart: CricketDart | undefined;
-          let roundToModify: CricketRound | null = null;
-          let playerIndex = -1;
-          let isCurrentRound = false;
-
-          // Check current round first
-          if (newGame.currentRound && newGame.currentRound.darts.length > 0) {
-            roundToModify = { ...newGame.currentRound };
-            lastDart = roundToModify.darts[roundToModify.darts.length - 1];
-            playerIndex = newGame.currentPlayerIndex;
-            isCurrentRound = true;
-          }
-          // If no darts in current round, check last completed round
-          else if (newGame.rounds.length > 0) {
-            const lastRound = newGame.rounds[newGame.rounds.length - 1];
-            if (lastRound && lastRound.darts.length > 0) {
-              roundToModify = { ...lastRound };
-              lastDart = roundToModify.darts[roundToModify.darts.length - 1];
-              playerIndex = players.findIndex(
-                (p) => p.id === lastRound.playerId
-              );
-              isCurrentRound = false;
-            }
-          }
-
-          // If no dart found, nothing to undo
-          if (!lastDart || !roundToModify || playerIndex === -1) {
+          const undoTarget = findLastUndoableDart(newGame);
+          if (!undoTarget) {
             return state;
           }
+
+          const {
+            lastDart,
+            roundToModify,
+            playerIndex,
+            isCurrentRound,
+            roundIndex,
+          } = undoTarget;
 
           const currentPlayer = { ...players[playerIndex] };
 
@@ -1067,28 +1099,18 @@ export const useCricketStore = create<CricketStoreState>()(
 
           // Update round state
           if (isCurrentRound) {
-            // Update current round
             newGame.currentRound = roundToModify;
           } else {
-            // Update the last completed round
-            newGame.rounds[newGame.rounds.length - 1] = roundToModify;
-            // If round is now empty, remove it and move to previous player
+            newGame.rounds = newGame.rounds.slice(0, roundIndex);
+            newGame.currentPlayerIndex = playerIndex;
             if (roundToModify.darts.length === 0) {
-              newGame.rounds.pop();
-              const prevPlayerIndex =
-                (playerIndex - 1 + players.length) % players.length;
-              newGame.currentPlayerIndex = prevPlayerIndex;
-              // Create new empty round for previous player
               newGame.currentRound = {
-                playerId: players[prevPlayerIndex].id,
+                playerId: players[playerIndex].id,
                 darts: [],
                 totalPoints: 0,
               };
             } else {
-              // Restore the round as current round
-              newGame.currentPlayerIndex = playerIndex;
               newGame.currentRound = roundToModify;
-              newGame.rounds.pop();
             }
           }
 
@@ -1101,9 +1123,10 @@ export const useCricketStore = create<CricketStoreState>()(
               newGame.currentRound.playerId
           ) {
             newGame.rounds = [...newGame.rounds];
-            newGame.rounds[newGame.rounds.length - 1] = { ...roundToModify! };
+            newGame.rounds[newGame.rounds.length - 1] = { ...roundToModify };
           }
 
+          newGame.pendingOshaExtraBonus = null;
           maybeRevertCompletedLegAfterUndo(newGame);
 
           return {
@@ -1122,8 +1145,8 @@ export const useCricketStore = create<CricketStoreState>()(
           const players = [...newGame.players];
           const playerIndex = newGame.currentPlayerIndex;
 
-          // Save the current round
-          if (newGame.currentRound) {
+          // Save the current round (skip empty rounds — they break undo)
+          if (newGame.currentRound && newGame.currentRound.darts.length > 0) {
             newGame.rounds.push({ ...newGame.currentRound });
           }
 
