@@ -20,9 +20,9 @@ const CricketBackgroundLogo: React.FC = () => {
   const src =
     cricketBackgroundLogoId === "custom"
       ? cricketBackgroundLogoCustomUrl
-      : cricketBackgroundLogoOptions.find(
+      : (cricketBackgroundLogoOptions.find(
           (option) => option.id === cricketBackgroundLogoId,
-        )?.src ?? null;
+        )?.src ?? null);
 
   if (!src) {
     return null;
@@ -47,8 +47,8 @@ const CricketBackgroundLogo: React.FC = () => {
         alt=""
         aria-hidden
         sx={{
-          maxWidth: "min(70vw, 420px)",
-          maxHeight: "min(70vh, 420px)",
+          maxWidth: "min(95vw, 460px)",
+          maxHeight: "min(95vh, 460px)",
           width: "auto",
           height: "auto",
           opacity: CRICKET_BACKGROUND_LOGO_OPACITY,

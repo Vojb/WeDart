@@ -888,6 +888,7 @@ const HiddenCricketGame: React.FC = () => {
               totalLegs={currentGame.totalLegs}
               dartsThrownByPlayer={dartsThrownByPlayer}
               onSwitchPlayer={handleFinishTurn}
+              onExit={() => setLeaveDialogOpen(true)}
               onDoubleClick={() => setIsShifted(false)}
             />
           ) : (

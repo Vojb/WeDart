@@ -3,6 +3,15 @@ import { Box, Button, Typography, useTheme, alpha } from "@mui/material";
 import { CricketPlayer } from "../../store/useCricketStore";
 import CountUp from "../count-up/count-up";
 
+const pillButtonSx = {
+  minWidth: 0,
+  px: 1,
+  py: 0.25,
+  fontSize: { xs: "0.62rem", sm: "0.7rem" },
+  lineHeight: 1.1,
+  borderRadius: 999,
+} as const;
+
 interface CricketShiftedScoreboardProps {
   players: CricketPlayer[];
   currentPlayerIndex: number;
@@ -11,6 +20,7 @@ interface CricketShiftedScoreboardProps {
   totalLegs?: number;
   dartsThrownByPlayer: Record<number, number>;
   onSwitchPlayer: () => void;
+  onExit?: () => void;
   onDoubleClick?: () => void;
 }
 
@@ -22,6 +32,7 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
   totalLegs = 0,
   dartsThrownByPlayer,
   onSwitchPlayer,
+  onExit,
   onDoubleClick,
 }) => {
   const theme = useTheme();
@@ -115,6 +126,23 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
           minWidth: 56,
         }}
       >
+        {onExit && (
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExit();
+            }}
+            sx={{
+              ...pillButtonSx,
+              mb: 0.75,
+            }}
+          >
+            Exit
+          </Button>
+        )}
         <Typography
           variant="caption"
           sx={{
@@ -155,16 +183,33 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
             onSwitchPlayer();
           }}
           sx={{
+            ...pillButtonSx,
             mt: 0.75,
-            minWidth: 0,
-            px: 1,
-            py: 0.25,
-            fontSize: { xs: "0.62rem", sm: "0.7rem" },
-            lineHeight: 1.1,
-            borderRadius: 999,
           }}
         >
           Switch
+        </Button>
+      </Box>
+    ) : onExit ? (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: 0.5,
+        }}
+      >
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          onClick={(e) => {
+            e.stopPropagation();
+            onExit();
+          }}
+          sx={pillButtonSx}
+        >
+          Exit
         </Button>
       </Box>
     ) : null;
@@ -190,9 +235,34 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
           {renderPlayerPanel(players[1], 1)}
         </>
       ) : (
-        players.map((player, playerIndex) =>
-          renderPlayerPanel(player, playerIndex),
-        )
+        <>
+          {onExit && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: 0.5,
+              }}
+            >
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExit();
+                }}
+                sx={pillButtonSx}
+              >
+                Exit
+              </Button>
+            </Box>
+          )}
+          {players.map((player, playerIndex) =>
+            renderPlayerPanel(player, playerIndex),
+          )}
+        </>
       )}
     </Box>
   );

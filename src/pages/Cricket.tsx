@@ -405,7 +405,7 @@ const Cricket: React.FC = () => {
                   </IconButton>
                   <TextField
                     fullWidth
-                    label="Number of Legs"
+                    label="Best of Legs"
                     type="number"
                     value={numberOfLegs}
                     onChange={(e) => {

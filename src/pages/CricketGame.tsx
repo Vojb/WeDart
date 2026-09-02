@@ -856,6 +856,7 @@ const CricketGame: React.FC = () => {
             totalLegs={currentGame.totalLegs}
             dartsThrownByPlayer={dartsThrownByPlayer}
             onSwitchPlayer={switchPlayerWithoutAddingDarts}
+            onExit={() => setLeaveDialogOpen(true)}
           />
         </Paper>
 
