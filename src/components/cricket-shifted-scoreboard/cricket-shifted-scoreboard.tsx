@@ -26,6 +26,7 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
 }) => {
   const theme = useTheme();
   const isTwoPlayer = players.length === 2;
+  const firstToLegs = Math.ceil(totalLegs / 2);
 
   const renderPlayerPanel = (player: CricketPlayer, playerIndex: number) => {
     const isCurrent = currentPlayerIndex === playerIndex;
@@ -123,7 +124,7 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
             fontSize: { xs: "0.6rem", sm: "0.7rem" },
           }}
         >
-          First to {totalLegs}
+          First to {firstToLegs}
         </Typography>
         <Typography
           sx={{

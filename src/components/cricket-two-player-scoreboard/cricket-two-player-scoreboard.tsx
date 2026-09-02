@@ -181,7 +181,7 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
   onSwitchPlayer,
 }) => {
   const theme = useTheme();
-  const firstToLegs = totalLegs;
+  const firstToLegs = Math.ceil(totalLegs / 2);
   const leftPlayer = players[0];
   const rightPlayer = players[1];
   const leftMpr = avgMarksPerRoundByPlayer[leftPlayer.id] ?? 0;

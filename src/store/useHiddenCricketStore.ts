@@ -265,9 +265,37 @@ function playerStillHasWonLegHidden(
   return currentPlayerClosedAll;
 }
 
+function ensureHiddenCricketLegFields(
+  game: HiddenCricketGameState,
+  defaultLegs: number
+): void {
+  if (!game.currentLeg || game.currentLeg < 1) {
+    game.currentLeg = 1;
+  }
+  if (!game.totalLegs || game.totalLegs < 1) {
+    game.totalLegs = defaultLegs;
+  }
+  if (!Array.isArray(game.completedLegs)) {
+    game.completedLegs = [];
+  }
+  if (!game.legsWon || typeof game.legsWon !== "object") {
+    game.legsWon = game.players.reduce<Record<number, number>>(
+      (acc, player) => ({ ...acc, [player.id]: 0 }),
+      {}
+    );
+  } else {
+    for (const player of game.players) {
+      if (game.legsWon[player.id] == null) {
+        game.legsWon[player.id] = 0;
+      }
+    }
+  }
+}
+
 function maybeRevertCompletedLegAfterUndoHidden(
   newGame: HiddenCricketGameState
 ): void {
+  ensureHiddenCricketLegFields(newGame, 3);
   if (newGame.completedLegs.length === 0) return;
   const last = newGame.completedLegs[newGame.completedLegs.length - 1];
   const idx = newGame.players.findIndex((p) => p.id === last.winnerId);
@@ -486,6 +514,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
 
             // Create shallow copies to work with
             const newGame = { ...state.currentGame };
+            ensureHiddenCricketLegFields(newGame, state.gameSettings.defaultLegs);
             const players = [...newGame.players];
             const playerIndex = newGame.currentPlayerIndex;
             const currentPlayer = { ...players[playerIndex] };
@@ -724,8 +753,8 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
                 hiddenNumbers: newGame.hiddenNumbers,
               };
 
-              const legsToWin = newGame.totalLegs;
-              const hasMatchWinner = updatedLegsWon[winnerId] >= legsToWin;
+              const hasMatchWinner =
+                updatedLegsWon[winnerId] > newGame.totalLegs / 2;
 
               newGame.completedLegs = [...newGame.completedLegs, completedLeg];
               newGame.legsWon = updatedLegsWon;
@@ -833,7 +862,8 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
       undoLastHit: () => {
         set((state) => {
           if (!state.currentGame) return state;
-          const g = state.currentGame;
+          const g = { ...state.currentGame };
+          ensureHiddenCricketLegFields(g, state.gameSettings.defaultLegs);
 
           // Undo across leg boundary: next leg started but no darts thrown yet
           if (

@@ -12,6 +12,8 @@ import {
   List,
   ListItem,
   ListItemText,
+  Chip,
+  Stack,
   alpha,
   CircularProgress,
   useTheme,
@@ -50,9 +52,11 @@ const CricketGame: React.FC = () => {
     finishTurn,
     switchPlayerWithoutAddingDarts,
     startGame,
+    clearLastLegWon,
   } = useCricketStore();
   const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [legWonDialogOpen, setLegWonDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidGame, setIsValidGame] = useState(true);
@@ -107,6 +111,17 @@ const CricketGame: React.FC = () => {
       setDialogOpen(false);
     }
   }, [dialogOpen, currentGame?.isGameFinished, currentGame]);
+
+  useEffect(() => {
+    if (currentGame?.lastLegWon && !currentGame.isGameFinished) {
+      setLegWonDialogOpen(true);
+    }
+  }, [currentGame?.lastLegWon, currentGame?.isGameFinished]);
+
+  const handleCloseLegWonDialog = useCallback(() => {
+    clearLastLegWon();
+    setLegWonDialogOpen(false);
+  }, [clearLastLegWon]);
 
   useEffect(() => {
     const shouldOpen =
@@ -573,6 +588,60 @@ const CricketGame: React.FC = () => {
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Leg Won Dialog (multi-leg matches) */}
+      <Dialog
+        open={legWonDialogOpen}
+        onClose={handleCloseLegWonDialog}
+        aria-labelledby="cricket-leg-won-dialog-title"
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle id="cricket-leg-won-dialog-title">
+          Leg {currentGame?.lastLegWon?.legNumber} Complete!
+        </DialogTitle>
+        <DialogContent>
+          {currentGame?.lastLegWon && (
+            <>
+              <Typography variant="h6" color="primary" gutterBottom>
+                {
+                  currentGame.players.find(
+                    (p) => p.id === currentGame.lastLegWon?.winnerId,
+                  )?.name
+                }{" "}
+                won the leg!
+              </Typography>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="body2" gutterBottom>
+                Legs won:
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
+                {currentGame.players.map((player) => (
+                  <Chip
+                    key={player.id}
+                    label={`${player.name}: ${currentGame.legsWon[player.id] || 0}`}
+                    color={
+                      player.id === currentGame.lastLegWon?.winnerId
+                        ? "primary"
+                        : "default"
+                    }
+                    size="small"
+                  />
+                ))}
+              </Stack>
+              <Typography variant="caption" color="text.secondary">
+                First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
+                match
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseLegWonDialog} variant="contained">
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Game Summary Dialog */}
       <Dialog
         open={dialogOpen}

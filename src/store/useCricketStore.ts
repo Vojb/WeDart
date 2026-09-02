@@ -62,6 +62,7 @@ interface CricketGameState {
   currentLeg: number;
   legsWon: Record<number, number>;
   completedLegs: CricketLeg[];
+  lastLegWon: { legNumber: number; winnerId: number } | null;
 }
 
 export interface CricketLeg {
@@ -95,6 +96,7 @@ interface CricketStoreState {
   // Add function to advance to next player manually
   finishTurn: () => void;
   switchPlayerWithoutAddingDarts: () => void;
+  clearLastLegWon: () => void;
 
   // Get all players (for integration with main store)
   getCricketPlayers: () => CricketPlayer[];
@@ -291,7 +293,38 @@ function playerStillHasWonLeg(
   return currentPlayerClosedAll;
 }
 
+function ensureCricketLegFields(
+  game: CricketGameState,
+  defaultLegs: number
+): void {
+  if (!game.currentLeg || game.currentLeg < 1) {
+    game.currentLeg = 1;
+  }
+  if (!game.totalLegs || game.totalLegs < 1) {
+    game.totalLegs = defaultLegs;
+  }
+  if (!Array.isArray(game.completedLegs)) {
+    game.completedLegs = [];
+  }
+  if (!game.legsWon || typeof game.legsWon !== "object") {
+    game.legsWon = game.players.reduce<Record<number, number>>(
+      (acc, player) => ({ ...acc, [player.id]: 0 }),
+      {}
+    );
+  } else {
+    for (const player of game.players) {
+      if (game.legsWon[player.id] == null) {
+        game.legsWon[player.id] = 0;
+      }
+    }
+  }
+  if (game.lastLegWon === undefined) {
+    game.lastLegWon = null;
+  }
+}
+
 function maybeRevertCompletedLegAfterUndo(newGame: CricketGameState): void {
+  ensureCricketLegFields(newGame, 3);
   if (newGame.completedLegs.length === 0) return;
   const last = newGame.completedLegs[newGame.completedLegs.length - 1];
   const idx = newGame.players.findIndex((p) => p.id === last.winnerId);
@@ -414,6 +447,7 @@ export const useCricketStore = create<CricketStoreState>()(
               currentLeg: 1,
               legsWon,
               completedLegs: [],
+              lastLegWon: null,
             },
           };
         });
@@ -427,6 +461,7 @@ export const useCricketStore = create<CricketStoreState>()(
 
             // Create shallow copies to work with
             const newGame = { ...state.currentGame };
+            ensureCricketLegFields(newGame, state.gameSettings.defaultLegs);
             const players = [...newGame.players];
             let playerIndex = newGame.currentPlayerIndex;
 
@@ -719,11 +754,15 @@ export const useCricketStore = create<CricketStoreState>()(
                 rounds: legRounds,
               };
 
-              const legsToWin = newGame.totalLegs;
-              const hasMatchWinner = updatedLegsWon[winnerId] >= legsToWin;
+              const hasMatchWinner =
+                updatedLegsWon[winnerId] > newGame.totalLegs / 2;
 
               newGame.completedLegs = [...newGame.completedLegs, completedLeg];
               newGame.legsWon = updatedLegsWon;
+              newGame.lastLegWon = {
+                legNumber: newGame.currentLeg,
+                winnerId,
+              };
 
               if (hasMatchWinner) {
                 players.forEach((player) => {
@@ -827,10 +866,21 @@ export const useCricketStore = create<CricketStoreState>()(
         });
       },
 
+      clearLastLegWon: () => {
+        set((state) => {
+          if (!state.currentGame?.lastLegWon) return state;
+          return {
+            ...state,
+            currentGame: { ...state.currentGame, lastLegWon: null },
+          };
+        });
+      },
+
       undoLastHit: () => {
         set((state) => {
           if (!state.currentGame) return state;
-          const g = state.currentGame;
+          const g = { ...state.currentGame };
+          ensureCricketLegFields(g, state.gameSettings.defaultLegs);
 
           // Undo across leg boundary: next leg started but no darts thrown yet
           if (
@@ -838,7 +888,7 @@ export const useCricketStore = create<CricketStoreState>()(
             g.rounds.length === 0 &&
             (!g.currentRound || g.currentRound.darts.length === 0)
           ) {
-            const lastLeg = g.completedLegs[g.completedLegs.length - 1];
+            const lastLeg = g.completedLegs.at(-1)!;
             const removed = removeLastDartFromCricketLegRounds(lastLeg.rounds);
             if (!removed) return state;
 
@@ -905,11 +955,13 @@ export const useCricketStore = create<CricketStoreState>()(
                 currentRound,
                 currentPlayerIndex,
                 isGameFinished: false,
+                lastLegWon: null,
               },
             };
           }
 
           const newGame = { ...state.currentGame };
+          ensureCricketLegFields(newGame, state.gameSettings.defaultLegs);
           const players = [...newGame.players];
 
           // Find the last dart - either in current round or last completed round
