@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Box, LinearProgress, alpha } from "@mui/material";
-import { NavigateNext } from "@mui/icons-material";
 import VibrationButton from "../VibrationButton";
 
 export interface CricketAutoAdvanceNextButtonProps {
@@ -102,11 +101,17 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
       onFinishTurn();
     };
 
-    const py = buttonSize === "compact" ? 0.75 : 1.5;
-    const fontSize = buttonSize === "compact" ? "1rem" : "1.2rem";
+    const fontSize = buttonSize === "compact" ? "1rem" : "1.1rem";
 
     return (
-      <Box sx={{ position: "relative" }}>
+      <Box
+        sx={{
+          position: "relative",
+          height: "100%",
+          width: "100%",
+          display: "flex",
+        }}
+      >
         <VibrationButton
           variant="contained"
           color={buttonColor}
@@ -115,10 +120,13 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
           onClick={handleClick}
           disabled={disabled ?? isGameFinished}
           vibrationPattern={100}
-          startIcon={<NavigateNext />}
           sx={{
             flex: 1,
-            py,
+            width: "100%",
+            height: "100%",
+            minWidth: 0,
+            px: 1,
+            py: 0,
             fontSize,
             fontWeight: "bold",
             position: "relative",

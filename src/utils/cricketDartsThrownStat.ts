@@ -16,22 +16,15 @@ function countCompletedVisitsInRounds(
   return rounds.filter((r) => r.playerId === playerId).length;
 }
 
-function countCompletedVisitsInLegs(
-  playerId: number,
-  legs: CricketStatLeg[],
-): number {
-  return legs.reduce(
-    (sum, leg) => sum + countCompletedVisitsInRounds(playerId, leg.rounds),
-    0,
-  );
-}
-
 const DARTS_PER_VISIT = 3;
 
 /**
- * Total darts: 3 for each **completed** visit (each time that player’s turn ended — round
- * pushed to history). In-progress `currentRound` does not add darts until the turn finishes
- * (player switches / Next). Matches “3 darts per turn” when players alternate.
+ * Darts thrown for the **current leg only** (resets when a new leg starts).
+ *
+ * Counts 3 darts per completed visit (round pushed to history). In-progress
+ * `currentRound` does not add darts until the turn finishes (Next / player switch).
+ *
+ * When the match is finished, uses the last completed leg’s rounds.
  */
 export function countCricketDartsThrown(
   playerId: number,
@@ -45,11 +38,11 @@ export function countCricketDartsThrown(
   const { isGameFinished, completedLegs, rounds } = args;
 
   if (isGameFinished && completedLegs.length > 0) {
-    return countCompletedVisitsInLegs(playerId, completedLegs) * DARTS_PER_VISIT;
+    const lastLeg = completedLegs[completedLegs.length - 1];
+    return (
+      countCompletedVisitsInRounds(playerId, lastLeg.rounds) * DARTS_PER_VISIT
+    );
   }
 
-  const visits =
-    countCompletedVisitsInLegs(playerId, completedLegs) +
-    countCompletedVisitsInRounds(playerId, rounds);
-  return visits * DARTS_PER_VISIT;
+  return countCompletedVisitsInRounds(playerId, rounds) * DARTS_PER_VISIT;
 }

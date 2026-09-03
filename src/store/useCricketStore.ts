@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { wouldExceedVisitSlotLimit } from "../utils/cricketVisitDarts";
 
 // Interfaces for Cricket Game
 export interface CricketTarget {
@@ -45,6 +46,8 @@ interface GameSettings {
   isHalfIt?: boolean;
   defaultLegs: number;
   cricketVariant?: CricketVariant;
+  /** When true, each visit can only fill the 3 dart slots (S/D/T). */
+  limitVisitToThreeSlots?: boolean;
 }
 
 interface CricketGameState {
@@ -54,6 +57,7 @@ interface CricketGameState {
   gameType: "standard" | "cutthroat" | "no-score";
   winCondition: "first-closed" | "points"; // Win by closing all numbers first or by points
   cricketVariant: CricketVariant;
+  limitVisitToThreeSlots: boolean;
   pendingOshaExtraBonus?: { kind: "Triple" | "Double"; playerId: number } | null;
   // Add round history
   rounds: CricketRound[];
@@ -370,12 +374,20 @@ function ensureCricketLegFields(
   if (game.lastLegWon === undefined) {
     game.lastLegWon = null;
   }
+  if (game.limitVisitToThreeSlots === undefined) {
+    game.limitVisitToThreeSlots = false;
+  }
 }
 
 function maybeRevertCompletedLegAfterUndo(newGame: CricketGameState): void {
   ensureCricketLegFields(newGame, 3);
   if (newGame.completedLegs.length === 0) return;
   const last = newGame.completedLegs[newGame.completedLegs.length - 1];
+  // Already advanced to the next leg — prior leg results are final.
+  // (Board was reset, so win-condition checks would falsely clear legsWon.)
+  if (newGame.currentLeg > last.legNumber) {
+    return;
+  }
   const idx = newGame.players.findIndex((p) => p.id === last.winnerId);
   if (idx === -1) return;
   if (
@@ -419,6 +431,7 @@ export const useCricketStore = create<CricketStoreState>()(
         winCondition: "points",
         defaultLegs: 3,
         cricketVariant: "standard",
+        limitVisitToThreeSlots: false,
       },
       updateGameSettings: (settings) =>
         set((state) => ({
@@ -489,6 +502,8 @@ export const useCricketStore = create<CricketStoreState>()(
               gameType,
               winCondition,
               cricketVariant,
+              limitVisitToThreeSlots:
+                state.gameSettings.limitVisitToThreeSlots ?? false,
               pendingOshaExtraBonus: null,
               rounds: [],
               currentRound: initialRound,
@@ -547,6 +562,17 @@ export const useCricketStore = create<CricketStoreState>()(
             let currentRound = newGame.currentRound
               ? { ...newGame.currentRound, darts: [...newGame.currentRound.darts] }
               : { playerId: currentPlayer.id, darts: [], totalPoints: 0 };
+
+            if (
+              newGame.limitVisitToThreeSlots &&
+              wouldExceedVisitSlotLimit(currentRound.darts, {
+                targetNumber,
+                multiplier,
+                points: 0,
+              })
+            ) {
+              return state;
+            }
 
             // Find the target in the player's targets
             const targetIndex = currentPlayer.targets.findIndex(
@@ -819,7 +845,8 @@ export const useCricketStore = create<CricketStoreState>()(
                     player.isWinner = true;
                   }
                 });
-                newGame.rounds = legRounds;
+                // Keep the winning visit in currentRound only. Copying it into
+                // rounds as well made undo treat them as one visit and wipe history.
                 newGame.isGameFinished = true;
               } else {
                 // Next leg starts with whoever did not lead off this leg (rotate from leg starter, not from winner)
@@ -1112,18 +1139,6 @@ export const useCricketStore = create<CricketStoreState>()(
             } else {
               newGame.currentRound = roundToModify;
             }
-          }
-
-          // Match-end state duplicates the last round in both rounds[] and currentRound
-          if (
-            isCurrentRound &&
-            newGame.rounds.length > 0 &&
-            newGame.currentRound &&
-            newGame.rounds[newGame.rounds.length - 1].playerId ===
-              newGame.currentRound.playerId
-          ) {
-            newGame.rounds = [...newGame.rounds];
-            newGame.rounds[newGame.rounds.length - 1] = { ...roundToModify };
           }
 
           newGame.pendingOshaExtraBonus = null;

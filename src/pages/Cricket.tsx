@@ -18,6 +18,7 @@ import {
   StepLabel,
   TextField,
   IconButton,
+  Switch,
 } from "@mui/material";
 import { Add as AddIcon, Remove as RemoveIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +59,9 @@ const Cricket: React.FC = () => {
   );
   const [numberOfLegs, setNumberOfLegs] = useState<number>(
     gameSettings.defaultLegs || 1,
+  );
+  const [limitVisitToThreeSlots, setLimitVisitToThreeSlots] = useState(
+    gameSettings.limitVisitToThreeSlots ?? false,
   );
 
   // Validation error state
@@ -146,6 +150,7 @@ const Cricket: React.FC = () => {
       winCondition,
       defaultLegs: numberOfLegs,
       cricketVariant: variant,
+      limitVisitToThreeSlots,
     });
 
     // Start a new game
@@ -428,6 +433,38 @@ const Cricket: React.FC = () => {
                     <AddIcon />
                   </IconButton>
                 </Box>
+              </CardContent>
+            </Card>
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={limitVisitToThreeSlots}
+                      onChange={(e) =>
+                        setLimitVisitToThreeSlots(e.target.checked)
+                      }
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        Limit visit to 3 dart slots
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Stop input after three slots are filled (singles,
+                        doubles, and triples count as one slot each)
+                      </Typography>
+                    </Box>
+                  }
+                  sx={{ alignItems: "flex-start", mx: 0, width: "100%" }}
+                />
               </CardContent>
             </Card>
             {error && (

@@ -40,6 +40,7 @@ import MultiplierSelector from "../components/multiplier-selector/multiplier-sel
 import HiddenCricketTwoPlayersLayout from "../components/hidden-cricket-two-players-layout/hidden-cricket-two-players-layout";
 import HiddenCricketMultiPlayersLayout from "../components/hidden-cricket-multi-players-layout/hidden-cricket-multi-players-layout";
 import CricketBackgroundLogo from "../components/cricket-background-logo/cricket-background-logo";
+import CricketTurnDartsDisplay from "../components/cricket-turn-darts-display/cricket-turn-darts-display";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
 import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
 
@@ -1178,167 +1179,67 @@ const HiddenCricketGame: React.FC = () => {
         {/* Bottom Action Bar */}
         <Paper
           sx={{
-            p: 1,
+            px: 1,
+            py: 0.75,
             borderRadius: 0,
             borderTop: 1,
             borderColor: "divider",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "stretch",
             flexDirection: "row",
             gap: 1,
+            minHeight: { xs: 64, sm: 72 },
           }}
         >
+          <Button
+            variant="outlined"
+            color="info"
+            size="large"
+            onClick={handleUndo}
+            sx={{
+              flex: "0 0 auto",
+              width: { xs: 88, sm: 104 },
+              minWidth: { xs: 88, sm: 104 },
+              height: "100%",
+              alignSelf: "stretch",
+              fontSize: { xs: "1rem", sm: "1.1rem" },
+              fontWeight: "bold",
+              px: 1,
+            }}
+          >
+            Undo
+          </Button>
           <Box
             sx={{
               flex: 1,
-              flexDirection: "row",
-              flexWrap: "wrap",
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 1,
+              justifyContent: "center",
+              alignItems: "stretch",
+              minWidth: 0,
+              minHeight: 0,
+              alignSelf: "stretch",
             }}
           >
-            <Button
-              variant="text"
-              color="info"
-              size="large"
-              onClick={handleUndo}
-              sx={{
-                py: 0.75,
-                fontSize: "1rem",
-                fontWeight: "bold",
-                flexShrink: 0,
-              }}
-            >
-              Undo
-            </Button>
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 1,
-                flexWrap: "wrap",
-              }}
-            >
-              {/* Dart count indicator */}
-              {currentGame.currentRound && (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: { xs: "1.05rem", sm: "1.2rem" },
-                    fontWeight: 600,
-                  }}
-                >
-                  Darts: {currentGame.currentRound.darts.length}/3
-                </Typography>
-              )}
-              {currentGame.currentRound &&
-              currentGame.currentRound.darts.length > 0 ? (
-                (() => {
-                  // Get current player's color
-                  const currentPlayerIndex = currentGame.currentPlayerIndex;
-                  const playerColor =
-                    currentPlayerIndex % 2 === 0
-                      ? theme.palette.primary.main
-                      : theme.palette.secondary.main;
-
-                  // Group darts by target number and count occurrences
-                  const groupedDarts = currentGame.currentRound.darts.reduce(
-                    (acc, dart) => {
-                      const key = String(dart.targetNumber);
-                      if (!acc[key]) {
-                        acc[key] = { count: 0, totalPoints: 0 };
-                      }
-                      if (dart.targetNumber === "Miss") {
-                        acc[key].count += 1; // Count misses
-                      } else {
-                        acc[key].count += dart.multiplier;
-                      }
-                      acc[key].totalPoints += dart.points;
-                      return acc;
-                    },
-                    {} as Record<
-                      string,
-                      { count: number; totalPoints: number }
-                    >,
-                  );
-
-                  return Object.entries(groupedDarts).map(
-                    ([targetNumber, data]) => (
-                      <Box
-                        key={targetNumber}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.75,
-                          px: { xs: 1.25, sm: 1.5 },
-                          py: { xs: 0.65, sm: 0.75 },
-                          borderRadius: 1,
-                          backgroundColor: alpha(playerColor, 0.1),
-                          border: `1px solid ${alpha(playerColor, 0.3)}`,
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: { xs: "1.15rem", sm: "1.35rem" },
-                          }}
-                        >
-                          {targetNumber === "Miss" ? (
-                            `Miss${data.count > 1 ? ` (${data.count})` : ""}`
-                          ) : data.count > 1 ? (
-                            <>
-                              {data.count}×
-                              {targetNumber === "Bull" ? (
-                                <BullSymbol />
-                              ) : (
-                                targetNumber
-                              )}
-                            </>
-                          ) : targetNumber === "Bull" ? (
-                            <BullSymbol />
-                          ) : (
-                            targetNumber
-                          )}
-                        </Typography>
-                        {data.totalPoints > 0 && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "secondary.main",
-                              fontWeight: 600,
-                              fontSize: { xs: "1.05rem", sm: "1.2rem" },
-                            }}
-                          >
-                            (+{data.totalPoints})
-                          </Typography>
-                        )}
-                      </Box>
-                    ),
-                  );
-                })()
-              ) : (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: { xs: "1.05rem", sm: "1.2rem" },
-                    fontStyle: "italic",
-                  }}
-                >
-                  No darts thrown yet
-                </Typography>
-              )}
-            </Box>
+            <CricketTurnDartsDisplay
+              darts={currentGame.currentRound?.darts ?? []}
+              accentColor={
+                currentGame.currentPlayerIndex % 2 === 0
+                  ? theme.palette.primary.main
+                  : theme.palette.secondary.main
+              }
+            />
           </Box>
-
-          <Box>
+          <Box
+            sx={{
+              flex: "0 0 auto",
+              width: { xs: 88, sm: 104 },
+              minWidth: { xs: 88, sm: 104 },
+              display: "flex",
+              alignItems: "stretch",
+              alignSelf: "stretch",
+            }}
+          >
             <CricketAutoAdvanceNextButton
               isGameFinished={currentGame.isGameFinished}
               shouldRunAutoAdvanceTimer={shouldRunAutoAdvanceTimer}

@@ -349,6 +349,11 @@ function maybeRevertCompletedLegAfterUndoHidden(
   ensureHiddenCricketLegFields(newGame, 3);
   if (newGame.completedLegs.length === 0) return;
   const last = newGame.completedLegs[newGame.completedLegs.length - 1];
+  // Already advanced to the next leg — prior leg results are final.
+  // (Board was reset, so win-condition checks would falsely clear legsWon.)
+  if (newGame.currentLeg > last.legNumber) {
+    return;
+  }
   const idx = newGame.players.findIndex((p) => p.id === last.winnerId);
   if (idx === -1) return;
   if (
@@ -816,7 +821,8 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
                     player.isWinner = true;
                   }
                 });
-                newGame.rounds = legRounds;
+                // Keep the winning visit in currentRound only — duplicating into
+                // rounds made undo wipe earlier visits for the same player.
                 newGame.isGameFinished = true;
               } else {
                 // Next leg starts with whoever did not lead off this leg (rotate from leg starter, not from winner)
@@ -1084,17 +1090,6 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
             } else {
               newGame.currentRound = roundToModify;
             }
-          }
-
-          if (
-            isCurrentRound &&
-            newGame.rounds.length > 0 &&
-            newGame.currentRound &&
-            newGame.rounds[newGame.rounds.length - 1].playerId ===
-              newGame.currentRound.playerId
-          ) {
-            newGame.rounds = [...newGame.rounds];
-            newGame.rounds[newGame.rounds.length - 1] = { ...roundToModify };
           }
 
           maybeRevertCompletedLegAfterUndoHidden(newGame);

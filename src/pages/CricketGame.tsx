@@ -27,10 +27,12 @@ import { vibrateDevice } from "../theme/ThemeProvider";
 import CricketShiftedScoreboard from "../components/cricket-shifted-scoreboard/cricket-shifted-scoreboard";
 import CricketAutoAdvanceNextButton from "../components/cricket-auto-advance-next-button/cricket-auto-advance-next-button";
 import CricketBackgroundLogo from "../components/cricket-background-logo/cricket-background-logo";
+import CricketTurnDartsDisplay from "../components/cricket-turn-darts-display/cricket-turn-darts-display";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
 import CountUp from "../components/count-up/count-up";
 import { motion } from "framer-motion";
 import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
+import { wouldExceedVisitSlotLimit } from "../utils/cricketVisitDarts";
 
 /** SVG user-space units; scales with cell size (CSS padding 2px on wrapper). */
 const CRICKET_MARK_VIEWBOX = 64;
@@ -222,26 +224,6 @@ const CricketGame: React.FC = () => {
     theme.palette.primary.main,
     theme.palette.secondary.main,
   ]);
-  const groupedDarts = useMemo(() => {
-    if (
-      !currentGame?.currentRound ||
-      currentGame.currentRound.darts.length === 0
-    )
-      return [];
-    const grouped = currentGame.currentRound.darts.reduce(
-      (acc, dart) => {
-        const key = String(dart.targetNumber);
-        if (!acc[key]) {
-          acc[key] = { count: 0, totalPoints: 0 };
-        }
-        acc[key].count += dart.multiplier;
-        acc[key].totalPoints += dart.points;
-        return acc;
-      },
-      {} as Record<string, { count: number; totalPoints: number }>,
-    );
-    return Object.entries(grouped);
-  }, [currentGame?.currentRound]);
   const dartsThrownByPlayer = useMemo(() => {
     if (!currentGame) return {};
     return currentGame.players.reduce<Record<number, number>>(
@@ -334,6 +316,13 @@ const CricketGame: React.FC = () => {
     }));
     setCricketPlayers(simplePlayers);
     updateCachedPlayers(simplePlayers);
+    useCricketStore.getState().updateGameSettings({
+      gameType: currentGame.gameType,
+      winCondition: currentGame.winCondition,
+      defaultLegs: currentGame.totalLegs,
+      cricketVariant: currentGame.cricketVariant,
+      limitVisitToThreeSlots: currentGame.limitVisitToThreeSlots,
+    });
     startGame(
       currentGame.gameType,
       currentGame.winCondition,
@@ -547,6 +536,16 @@ const CricketGame: React.FC = () => {
   // Check if a number can be clicked for the current player (center column / legacy)
   const canClickNumber = (number: number | string) => {
     if (currentGame.isGameFinished) return false;
+    if (
+      currentGame.limitVisitToThreeSlots &&
+      wouldExceedVisitSlotLimit(currentGame.currentRound?.darts ?? [], {
+        targetNumber: number,
+        multiplier: 1,
+        points: 0,
+      })
+    ) {
+      return false;
+    }
     const target = getCurrentPlayerTarget(number);
     if (!target) return false;
 
@@ -564,6 +563,21 @@ const CricketGame: React.FC = () => {
     playerId: number,
   ) => {
     if (currentGame.isGameFinished) return false;
+    if (currentGame.limitVisitToThreeSlots) {
+      const roundDarts =
+        currentGame.currentRound?.playerId === playerId
+          ? (currentGame.currentRound.darts ?? [])
+          : [];
+      if (
+        wouldExceedVisitSlotLimit(roundDarts, {
+          targetNumber: number,
+          multiplier: 1,
+          points: 0,
+        })
+      ) {
+        return false;
+      }
+    }
     const player = currentGame.players.find((p) => p.id === playerId);
     if (!player) return false;
     const target = player.targets.find((t) => t.number === number);
@@ -1404,114 +1418,63 @@ const CricketGame: React.FC = () => {
         {/* Bottom Action Bar - Next Button */}
         <Paper
           sx={{
-            p: 2,
+            px: 1,
+            py: 0.75,
             borderRadius: 0,
             borderTop: 1,
             borderColor: "divider",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "stretch",
             flexDirection: "row",
-            gap: 2,
+            gap: 1,
+            minHeight: { xs: 64, sm: 72 },
           }}
         >
+          <Button
+            variant="outlined"
+            color="info"
+            size="large"
+            onClick={handleUndo}
+            sx={{
+              flex: "0 0 auto",
+              width: { xs: 88, sm: 104 },
+              minWidth: { xs: 88, sm: 104 },
+              height: "100%",
+              alignSelf: "stretch",
+              fontSize: { xs: "1rem", sm: "1.1rem" },
+              fontWeight: "bold",
+              px: 1,
+            }}
+          >
+            Undo
+          </Button>
           <Box
             sx={{
               flex: 1,
-              flexDirection: "row",
-              flexWrap: "wrap",
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 2,
+              justifyContent: "center",
+              alignItems: "stretch",
+              minWidth: 0,
+              minHeight: 0,
+              alignSelf: "stretch",
             }}
           >
-            <Button
-              variant="text"
-              color="info"
-              size="large"
-              onClick={handleUndo}
-              sx={{
-                py: 1.5,
-                fontSize: "1.2rem",
-                fontWeight: "bold",
-                flexShrink: 0,
-              }}
-            >
-              Undo
-            </Button>
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 1,
-                flexWrap: "wrap",
-              }}
-            >
-              {groupedDarts.length > 0 ? (
-                groupedDarts.map(([targetNumber, data]) => (
-                  <Box
-                    key={targetNumber}
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.75,
-                      px: { xs: 1.25, sm: 1.5 },
-                      py: { xs: 0.65, sm: 0.75 },
-                      borderRadius: 1,
-                      backgroundColor: alpha(currentPlayerColor, 0.1),
-                      border: `1px solid ${alpha(currentPlayerColor, 0.3)}`,
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: { xs: "1.15rem", sm: "1.35rem" },
-                      }}
-                    >
-                      {data.count > 1 ? (
-                        <>
-                          {data.count}×{formatCricketTargetLabel(targetNumber)}
-                        </>
-                      ) : (
-                        formatCricketTargetLabel(targetNumber)
-                      )}
-                    </Typography>
-                    {data.totalPoints > 0 && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "secondary.main",
-                          fontWeight: 600,
-                          fontSize: { xs: "1.05rem", sm: "1.2rem" },
-                        }}
-                      >
-                        (+{data.totalPoints})
-                      </Typography>
-                    )}
-                  </Box>
-                ))
-              ) : (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: { xs: "1.05rem", sm: "1.2rem" },
-                    fontStyle: "italic",
-                  }}
-                >
-                  No darts thrown yet
-                </Typography>
-              )}
-            </Box>
+            <CricketTurnDartsDisplay
+              darts={currentGame.currentRound?.darts ?? []}
+              accentColor={currentPlayerColor}
+            />
           </Box>
-
-          {/* Round Summary */}
-
-          <Box>
+          <Box
+            sx={{
+              flex: "0 0 auto",
+              width: { xs: 88, sm: 104 },
+              minWidth: { xs: 88, sm: 104 },
+              display: "flex",
+              alignItems: "stretch",
+              alignSelf: "stretch",
+            }}
+          >
             <CricketAutoAdvanceNextButton
               isGameFinished={currentGame.isGameFinished}
               shouldRunAutoAdvanceTimer={shouldRunAutoAdvanceTimer}
