@@ -151,7 +151,7 @@ const X01NewGame: React.FC = () => {
     window.addEventListener("popstate", handleBackButton);
 
     // Push a new state to the history to enable popstate detection
-    window.history.pushState({ page: "x01-new-game" }, "", location.pathname);
+    window.history.pushState({ page: "x01-new-game" }, "", window.location.href);
 
     // Cleanup
     return () => {
@@ -213,7 +213,7 @@ const X01NewGame: React.FC = () => {
   const handleExitCancel = () => {
     setShowExitDialog(false);
     // Push state again to maintain our back button trap
-    window.history.pushState({ page: "x01-new-game" }, "", location.pathname);
+    window.history.pushState({ page: "x01-new-game" }, "", window.location.href);
   };
 
   const gameTypeOptions = [

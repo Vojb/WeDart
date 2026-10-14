@@ -5,6 +5,7 @@ import {
   GameSession,
   migrateGameSession,
 } from "../utils/gameSession";
+import { legsNeededToWin } from "../utils/legs";
 
 // Interfaces for Hidden Cricket Game
 export interface HiddenCricketTarget {
@@ -818,7 +819,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
               };
 
               const hasMatchWinner =
-                updatedLegsWon[winnerId] > newGame.totalLegs / 2;
+                updatedLegsWon[winnerId] >= legsNeededToWin(newGame.totalLegs);
 
               newGame.completedLegs = [...newGame.completedLegs, completedLeg];
               newGame.legsWon = updatedLegsWon;

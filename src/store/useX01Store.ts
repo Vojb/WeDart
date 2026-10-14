@@ -5,6 +5,7 @@ import {
   GameSession,
   migrateGameSession,
 } from "../utils/gameSession";
+import { legsNeededToWin } from "../utils/legs";
 
 // Interfaces
 export interface Player {
@@ -511,7 +512,7 @@ export const useX01Store = create<X01StoreState>()(
                 (updatedLegsWon[player.id] || 0) + 1;
 
               const isMatchWinner =
-                updatedLegsWon[player.id] > newGame.totalLegs / 2;
+                updatedLegsWon[player.id] >= legsNeededToWin(newGame.totalLegs);
 
               if (isMatchWinner) {
                 newGame.legsWon = updatedLegsWon;
@@ -576,7 +577,7 @@ export const useX01Store = create<X01StoreState>()(
           updatedLegsWon[winnerId] = (updatedLegsWon[winnerId] || 0) + 1;
 
           const isMatchWinner =
-            updatedLegsWon[winnerId] > newGame.totalLegs / 2;
+            updatedLegsWon[winnerId] >= legsNeededToWin(newGame.totalLegs);
 
           if (isMatchWinner) {
             newGame.legsWon = updatedLegsWon;

@@ -4,6 +4,7 @@ import { alpha } from "@mui/material/styles";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { GamePlayer } from "../../store/useX01Store";
 import checkoutGuide from "../../utils/checkoutGuide";
+import { legsNeededToWin } from "../../utils/legs";
 
 interface X01TwoPlayerScoreboardProps {
   players: GamePlayer[];
@@ -193,7 +194,7 @@ const X01TwoPlayerScoreboard: React.FC<X01TwoPlayerScoreboardProps> = ({
   gameType,
 }) => {
   const theme = useTheme();
-  const firstToLegs = Math.ceil(totalLegs / 2);
+  const firstToLegs = legsNeededToWin(totalLegs);
   const leftPlayer = players[0];
   const rightPlayer = players[1];
   const getCheckoutParts = (player: GamePlayer) => {

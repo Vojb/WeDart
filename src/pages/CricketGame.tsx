@@ -18,7 +18,7 @@ import {
   CircularProgress,
   useTheme,
 } from "@mui/material";
-import { EmojiEvents, ExitToApp } from "@mui/icons-material";
+import { EmojiEvents } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   CricketPlayer,
@@ -42,6 +42,8 @@ import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
 import { GAME_PATHS } from "../utils/gameSession";
 import { useHistoryStore } from "../store/useHistoryStore";
 import { toCricketCompletedGame } from "../utils/cricketHistory";
+import LeaveGameDialog from "../components/leave-game-dialog/leave-game-dialog";
+import { legsNeededToWin } from "../utils/legs";
 
 /** SVG user-space units; scales with cell size (CSS padding 2px on wrapper). */
 const CRICKET_MARK_VIEWBOX = 64;
@@ -203,12 +205,12 @@ const CricketGame: React.FC = () => {
         // Show confirmation dialog
         setLeaveDialogOpen(true);
         // Push the current state again to prevent navigation
-        window.history.pushState(null, "", location.pathname);
+        window.history.pushState(null, "", window.location.href);
       }
     };
 
     // Push initial state to history stack
-    window.history.pushState(null, "", location.pathname);
+    window.history.pushState(null, "", window.location.href);
 
     // Add event listener for popstate (back button)
     window.addEventListener("popstate", handleBackButton);
@@ -320,6 +322,11 @@ const CricketGame: React.FC = () => {
     setLeaveDialogOpen(false);
     navigate("/cricket");
   }, [endGame, navigate]);
+
+  const handleSaveAndLeave = () => {
+    setLeaveDialogOpen(false);
+    navigate("/");
+  };
 
   const handleCancelLeave = useCallback(() => {
     setLeaveDialogOpen(false);
@@ -761,7 +768,7 @@ const CricketGame: React.FC = () => {
                 ))}
               </Stack>
               <Typography variant="caption" color="text.secondary">
-                First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
+                First to {legsNeededToWin(currentGame.totalLegs)} legs wins the
                 match
               </Typography>
             </>
@@ -867,37 +874,12 @@ const CricketGame: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Leave Game Confirmation Dialog */}
-      <Dialog
+      <LeaveGameDialog
         open={leaveDialogOpen}
-        onClose={handleCancelLeave}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
-          <ExitToApp color="warning" sx={{ mr: 1 }} />
-          Leave Game?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Are you sure you want to leave the current game? All progress will
-            be lost.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <VibrationButton onClick={handleCancelLeave} vibrationPattern={50}>
-            Cancel
-          </VibrationButton>
-          <VibrationButton
-            onClick={handleLeaveGame}
-            variant="contained"
-            color="error"
-            vibrationPattern={[50, 100, 50]}
-          >
-            Leave Game
-          </VibrationButton>
-        </DialogActions>
-      </Dialog>
+        onCancel={handleCancelLeave}
+        onSaveAndLeave={handleSaveAndLeave}
+        onDelete={handleLeaveGame}
+      />
 
       {/* OSHA: Extra Double/Triple bonus dialog */}
       <Dialog

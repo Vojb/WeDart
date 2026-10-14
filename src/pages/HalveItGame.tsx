@@ -20,7 +20,6 @@ import {
 import {
   Undo,
   EmojiEvents,
-  ExitToApp,
   Cancel,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -34,6 +33,7 @@ import TargetScoreInput from "../components/target-score-input/target-score-inpu
 import CountUp from "../components/count-up/count-up";
 import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
 import { GAME_PATHS } from "../utils/gameSession";
+import LeaveGameDialog from "../components/leave-game-dialog/leave-game-dialog";
 
 const HalveItGame: React.FC = () => {
   const navigate = useNavigate();
@@ -201,11 +201,11 @@ const HalveItGame: React.FC = () => {
       if (currentGame && !currentGame.isGameFinished) {
         e.preventDefault();
         setLeaveDialogOpen(true);
-        window.history.pushState(null, "", location.pathname);
+        window.history.pushState(null, "", window.location.href);
       }
     };
 
-    window.history.pushState(null, "", location.pathname);
+    window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handleBackButton);
 
     return () => {
@@ -552,6 +552,11 @@ const HalveItGame: React.FC = () => {
     navigate("/halveit");
   };
 
+  const handleSaveAndLeave = () => {
+    setLeaveDialogOpen(false);
+    navigate("/");
+  };
+
   const handleCancelLeave = () => {
     setLeaveDialogOpen(false);
   };
@@ -699,37 +704,12 @@ const HalveItGame: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Leave Game Confirmation Dialog */}
-      <Dialog
+      <LeaveGameDialog
         open={leaveDialogOpen}
-        onClose={handleCancelLeave}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
-          <ExitToApp color="warning" sx={{ mr: 1 }} />
-          Leave Game?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Are you sure you want to leave the current game? All progress will
-            be lost.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <VibrationButton onClick={handleCancelLeave} vibrationPattern={50}>
-            Cancel
-          </VibrationButton>
-          <VibrationButton
-            onClick={handleLeaveGame}
-            variant="contained"
-            color="error"
-            vibrationPattern={[50, 100, 50]}
-          >
-            Leave Game
-          </VibrationButton>
-        </DialogActions>
-      </Dialog>
+        onCancel={handleCancelLeave}
+        onSaveAndLeave={handleSaveAndLeave}
+        onDelete={handleLeaveGame}
+      />
 
       {/* Main Game Interface */}
       <Box

@@ -4,6 +4,7 @@ import { alpha } from "@mui/material/styles";
 import { CricketPlayer } from "../../store/useCricketStore";
 import CountUp from "../count-up/count-up";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { legsNeededToWin } from "../../utils/legs";
 
 interface CricketTwoPlayerScoreboardProps {
   players: CricketPlayer[];
@@ -181,7 +182,7 @@ const CricketTwoPlayerScoreboard: React.FC<CricketTwoPlayerScoreboardProps> = ({
   onSwitchPlayer,
 }) => {
   const theme = useTheme();
-  const firstToLegs = Math.ceil(totalLegs / 2);
+  const firstToLegs = legsNeededToWin(totalLegs);
   const leftPlayer = players[0];
   const rightPlayer = players[1];
   const leftMpr = avgMarksPerRoundByPlayer[leftPlayer.id] ?? 0;

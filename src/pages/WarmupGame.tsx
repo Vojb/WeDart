@@ -16,7 +16,7 @@ import {
   CircularProgress,
   useTheme,
 } from "@mui/material";
-import { Undo, EmojiEvents, ExitToApp } from "@mui/icons-material";
+import { Undo, EmojiEvents } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWarmupStore } from "../store/useWarmupStore";
 import {
@@ -28,6 +28,7 @@ import VibrationButton from "../components/VibrationButton";
 import WarmupInput from "../components/warmup-input/warmup-input";
 import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
 import { GAME_PATHS } from "../utils/gameSession";
+import LeaveGameDialog from "../components/leave-game-dialog/leave-game-dialog";
 
 const WarmupGame: React.FC = () => {
   const navigate = useNavigate();
@@ -107,11 +108,11 @@ const WarmupGame: React.FC = () => {
       if (currentGame && !currentGame.isGameFinished) {
         e.preventDefault();
         setLeaveDialogOpen(true);
-        window.history.pushState(null, "", location.pathname);
+        window.history.pushState(null, "", window.location.href);
       }
     };
 
-    window.history.pushState(null, "", location.pathname);
+    window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handleBackButton);
 
     return () => {
@@ -147,6 +148,11 @@ const WarmupGame: React.FC = () => {
     endGame();
     setLeaveDialogOpen(false);
     navigate("/warmup");
+  };
+
+  const handleSaveAndLeave = () => {
+    setLeaveDialogOpen(false);
+    navigate("/");
   };
 
   const handleCancelLeave = () => {
@@ -236,37 +242,12 @@ const WarmupGame: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Leave Game Confirmation Dialog */}
-      <Dialog
+      <LeaveGameDialog
         open={leaveDialogOpen}
-        onClose={handleCancelLeave}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
-          <ExitToApp color="warning" sx={{ mr: 1 }} />
-          Leave Game?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Are you sure you want to leave the current game? All progress will
-            be lost.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <VibrationButton onClick={handleCancelLeave} vibrationPattern={50}>
-            Cancel
-          </VibrationButton>
-          <VibrationButton
-            onClick={handleLeaveGame}
-            variant="contained"
-            color="error"
-            vibrationPattern={[50, 100, 50]}
-          >
-            Leave Game
-          </VibrationButton>
-        </DialogActions>
-      </Dialog>
+        onCancel={handleCancelLeave}
+        onSaveAndLeave={handleSaveAndLeave}
+        onDelete={handleLeaveGame}
+      />
 
       {/* Main Game Interface */}
       <Box

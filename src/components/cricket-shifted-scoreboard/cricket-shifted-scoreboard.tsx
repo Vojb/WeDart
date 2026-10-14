@@ -3,6 +3,7 @@ import { Box, Button, Typography, useTheme, alpha } from "@mui/material";
 import { CricketPlayer } from "../../store/useCricketStore";
 import CountUp from "../count-up/count-up";
 import { fitScoreFontSize } from "../../utils/fitScoreFontSize";
+import { legsNeededToWin } from "../../utils/legs";
 
 const pillButtonSx = {
   minWidth: 0,
@@ -38,7 +39,7 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
 }) => {
   const theme = useTheme();
   const isTwoPlayer = players.length === 2;
-  const firstToLegs = Math.ceil(totalLegs / 2);
+  const firstToLegs = legsNeededToWin(totalLegs);
 
   const renderPlayerPanel = (player: CricketPlayer, playerIndex: number) => {
     const isCurrent = currentPlayerIndex === playerIndex;

@@ -26,6 +26,8 @@ import {
   People,
   Settings,
   Close,
+  PlayCircleOutline,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 import { useStore } from "../store/useStore";
 import { Link, useLocation } from "react-router-dom";
@@ -50,6 +52,8 @@ const Navbar: React.FC = () => {
     { text: "X01", icon: <SportsEsports />, path: "/x01" },
     { text: "Cricket", icon: <SportsEsports />, path: "/cricket" },
     { text: "Halve It", icon: <SportsEsports />, path: "/halveit" },
+    { text: "Ongoing games", icon: <PlayCircleOutline />, path: "/ongoing" },
+    { text: "History", icon: <HistoryIcon />, path: "/history" },
     { text: "Players", icon: <People />, path: "/players" },
     {
       text: "Leaderboards",

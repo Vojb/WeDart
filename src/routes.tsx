@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import X01NewGame from "./pages/X01NewGame";
 import X01Game from "./pages/X01Game";
 import History from "./pages/History";
+import OngoingGames from "./pages/OngoingGames";
 import Highscore from "./pages/Highscore";
 import Players from "./pages/Players";
 import Cricket from "./pages/Cricket";
@@ -73,6 +74,10 @@ export const router = createHashRouter([
       {
         path: "history",
         element: <History />,
+      },
+      {
+        path: "ongoing",
+        element: <OngoingGames />,
       },
       {
         path: "highscore",

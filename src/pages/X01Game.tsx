@@ -12,7 +12,6 @@ import {
   Stack,
   Chip,
   Button,
-  DialogContentText,
   LinearProgress,
   Divider,
   Table,
@@ -50,6 +49,8 @@ import VoiceInput from "../components/VoiceInput";
 import VibrationButton from "../components/VibrationButton";
 import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
 import { GAME_PATHS } from "../utils/gameSession";
+import LeaveGameDialog from "../components/leave-game-dialog/leave-game-dialog";
+import { legsNeededToWin } from "../utils/legs";
 
 type InputMode = "numeric" | "board" | "voice";
 
@@ -87,6 +88,7 @@ const X01Game: React.FC = () => {
   // Track game start time
   // Track if game is saved to history
   const gameSavedToHistoryRef = useRef<boolean>(false);
+  const leavingWithSaveRef = useRef(false);
   // Add new state for leg won dialog
   const [legWonDialogOpen, setLegWonDialogOpen] = useState(false);
   const [cleanStatsDialogOpen, setCleanStatsDialogOpen] = useState(false);
@@ -266,30 +268,10 @@ const X01Game: React.FC = () => {
     addCompletedGame(completedGame);
   };
 
-  // Handle back button and navigation attempts
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (
-        currentGame &&
-        !currentGame.isGameFinished &&
-        !gameSavedToHistoryRef.current
-      ) {
-        // Standard way to show a confirmation dialog before closing the window
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [currentGame]);
-
   // Use useBlocker to handle navigation attempts
   const blocker: BlockerFunction = ({ nextLocation }) => {
     if (nextLocation.pathname.startsWith(GAME_PATHS.x01)) return false;
+    if (leavingWithSaveRef.current) return false;
     if (
       currentGame &&
       !currentGame.isGameFinished &&
@@ -384,6 +366,12 @@ const X01Game: React.FC = () => {
     navigate("/x01");
   };
 
+
+  const handleSaveAndLeave = () => {
+    leavingWithSaveRef.current = true;
+    setLeaveDialogOpen(false);
+    navigate("/");
+  };
 
   const handleCancelLeave = () => {
     setLeaveDialogOpen(false);
@@ -700,16 +688,12 @@ const X01Game: React.FC = () => {
             <Button onClick={handleNewGame} variant="contained" color="primary">Play Again</Button>
           </DialogActions>
         </Dialog>
-        <Dialog open={leaveDialogOpen} onClose={handleCancelLeave} aria-labelledby="leave-dialog-title">
-          <DialogTitle id="leave-dialog-title">Leave Game?</DialogTitle>
-          <DialogContent>
-            <DialogContentText>Are you sure you want to leave? Your current game progress will be lost.</DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCancelLeave}>Cancel</Button>
-            <Button onClick={handleReturnToSetup} color="error">Leave Game</Button>
-          </DialogActions>
-        </Dialog>
+        <LeaveGameDialog
+          open={leaveDialogOpen}
+          onCancel={handleCancelLeave}
+          onSaveAndLeave={handleSaveAndLeave}
+          onDelete={handleReturnToSetup}
+        />
         <Dialog
           open={cleanStatsDialogOpen}
           onClose={() => setCleanStatsDialogOpen(false)}
@@ -983,26 +967,12 @@ const X01Game: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Navigation Confirmation Dialog */}
-      <Dialog
+      <LeaveGameDialog
         open={leaveDialogOpen}
-        onClose={handleCancelLeave}
-        aria-labelledby="leave-dialog-title"
-      >
-        <DialogTitle id="leave-dialog-title">Leave Game?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to leave? Your current game progress will be
-            lost.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelLeave}>Cancel</Button>
-          <Button onClick={handleReturnToSetup} color="error">
-            Leave Game
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onCancel={handleCancelLeave}
+        onSaveAndLeave={handleSaveAndLeave}
+        onDelete={handleReturnToSetup}
+      />
 
       {/* Leg Won Dialog */}
       <Dialog
@@ -1107,8 +1077,8 @@ const X01Game: React.FC = () => {
                     key={player.id}
                     label={`${player.name}: ${currentGame.legsWon[player.id] || 0}`}
                     color={
-                      currentGame.legsWon[player.id] >
-                      Math.floor(currentGame.totalLegs / 2)
+                      (currentGame.legsWon[player.id] || 0) >=
+                      legsNeededToWin(currentGame.totalLegs)
                         ? "success"
                         : "default"
                     }
@@ -1122,7 +1092,7 @@ const X01Game: React.FC = () => {
                 color="text.secondary"
                 sx={{ display: "block" }}
               >
-                First to {Math.ceil(currentGame.totalLegs / 2)} legs wins the
+                First to {legsNeededToWin(currentGame.totalLegs)} legs wins the
                 match
               </Typography>
             </>

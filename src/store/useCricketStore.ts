@@ -6,6 +6,7 @@ import {
   migrateGameSession,
 } from "../utils/gameSession";
 import { wouldExceedVisitSlotLimit } from "../utils/cricketVisitDarts";
+import { legsNeededToWin } from "../utils/legs";
 
 // Interfaces for Cricket Game
 export interface CricketTarget {
@@ -838,7 +839,7 @@ export const useCricketStore = create<CricketStoreState>()(
               };
 
               const hasMatchWinner =
-                updatedLegsWon[winnerId] > newGame.totalLegs / 2;
+                updatedLegsWon[winnerId] >= legsNeededToWin(newGame.totalLegs);
 
               newGame.completedLegs = [...newGame.completedLegs, completedLeg];
               newGame.legsWon = updatedLegsWon;
