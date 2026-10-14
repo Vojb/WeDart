@@ -43,6 +43,10 @@ import CricketBackgroundLogo from "../components/cricket-background-logo/cricket
 import CricketTurnDartsDisplay from "../components/cricket-turn-darts-display/cricket-turn-darts-display";
 import BullSymbol from "../components/bull-symbol/bull-symbol";
 import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
+import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
+import { GAME_PATHS } from "../utils/gameSession";
+import { useHistoryStore } from "../store/useHistoryStore";
+import { toCricketCompletedGame } from "../utils/cricketHistory";
 
 const HiddenCricketGame: React.FC = () => {
   const navigate = useNavigate();
@@ -59,6 +63,8 @@ const HiddenCricketGame: React.FC = () => {
     isHiddenNumber,
     startGame,
   } = useHiddenCricketStore();
+  const { addCompletedGame } = useHistoryStore();
+  useGameSessionRoute(currentGame?.id, GAME_PATHS.hiddenCricket);
   const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -136,11 +142,12 @@ const HiddenCricketGame: React.FC = () => {
       } else if (currentGame.isGameFinished && !dialogOpen) {
         // Open dialog when game is finished
         setDialogOpen(true);
+        addCompletedGame(toCricketCompletedGame(currentGame, "hidden-cricket"));
       }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [currentGame, navigate, dialogOpen]);
+  }, [currentGame, navigate, dialogOpen, addCompletedGame]);
 
   // Close the finished-game dialog if undo reopens the match (no longer finished)
   useEffect(() => {

@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  createGameSession,
+  GameSession,
+  migrateGameSession,
+} from "../utils/gameSession";
 import { wouldExceedVisitSlotLimit } from "../utils/cricketVisitDarts";
 
 // Interfaces for Cricket Game
@@ -50,7 +55,7 @@ interface GameSettings {
   limitVisitToThreeSlots?: boolean;
 }
 
-interface CricketGameState {
+interface CricketGameState extends GameSession {
   players: CricketPlayer[];
   currentPlayerIndex: number;
   isGameFinished: boolean;
@@ -88,7 +93,7 @@ interface CricketStoreState {
     playerIds: number[],
     totalLegs: number,
     cricketVariant?: CricketVariant
-  ) => void;
+  ) => string | null;
   recordHit: (
     targetNumber: number | string,
     multiplier: number,
@@ -444,6 +449,7 @@ export const useCricketStore = create<CricketStoreState>()(
         console.log("Cached players:", cachedPlayers);
 
         // Create a new game with the selected settings
+        const session = createGameSession();
         set((state) => {
           // Find the selected players from the cached players in selection order
           const selectedPlayers = playerIds
@@ -496,6 +502,7 @@ export const useCricketStore = create<CricketStoreState>()(
           return {
             ...state,
             currentGame: {
+              ...session,
               players: cricketPlayers,
               currentPlayerIndex: 0,
               isGameFinished: false,
@@ -515,6 +522,7 @@ export const useCricketStore = create<CricketStoreState>()(
             },
           };
         });
+        return get().currentGame?.id === session.id ? session.id : null;
       },
 
       recordHit: (targetNumber, multiplier, forPlayerId) => {
@@ -1243,9 +1251,12 @@ export const useCricketStore = create<CricketStoreState>()(
     }),
     {
       name: "wedart-cricket-storage",
-      version: 1,
+      version: 2,
+      migrate: (persistedState) =>
+        migrateGameSession(persistedState) as CricketStoreState,
       partialize: (state) => ({
         gameSettings: state.gameSettings,
+        currentGame: state.currentGame,
       }),
     }
   )

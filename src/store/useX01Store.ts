@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  createGameSession,
+  GameSession,
+  migrateGameSession,
+} from "../utils/gameSession";
 
 // Interfaces
 export interface Player {
@@ -35,7 +40,7 @@ export interface GamePlayer extends Player {
 
 export type X01ViewMode = "standard" | "clean";
 
-interface GameState {
+interface GameState extends GameSession {
   gameType: string;
   players: GamePlayer[];
   playerPositions: Record<number, number>; // Maps player ID to position (1-based)
@@ -98,7 +103,7 @@ interface X01StoreState {
     totalLegs: number,
     startingPlayerIndex?: number,
     viewMode?: X01ViewMode
-  ) => void;
+  ) => string;
   recordScore: (
     score: number,
     dartsUsed: number,
@@ -319,6 +324,7 @@ export const useX01Store = create<X01StoreState>()(
       history: [],
 
       startGame: (gameType, playerIds, totalLegs, startingPlayerIndex = 0, viewMode = "standard") => {
+        const session = createGameSession();
         set((state) => {
           const selectedPlayers = playerIds
             .map((id) => cachedPlayers.find((player) => player.id === id))
@@ -347,6 +353,7 @@ export const useX01Store = create<X01StoreState>()(
           });
 
           const newGame: GameState = {
+            ...session,
             gameType,
             players: gamePlayers,
             playerPositions,
@@ -369,6 +376,7 @@ export const useX01Store = create<X01StoreState>()(
             history: [],
           };
         });
+        return session.id;
       },
 
       setInputMode: (mode) =>
@@ -809,11 +817,14 @@ export const useX01Store = create<X01StoreState>()(
     }),
     {
       name: "wedart-x01-storage",
-      version: 1,
+      version: 2,
+      migrate: (persistedState) =>
+        migrateGameSession(persistedState) as X01StoreState,
       partialize: (state) => ({
         gameSettings: state.gameSettings,
         currentGame: state.currentGame,
         lastDartNotations: state.lastDartNotations,
+        history: state.history,
       }),
     }
   )

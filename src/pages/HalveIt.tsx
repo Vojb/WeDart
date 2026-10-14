@@ -20,6 +20,7 @@ import { useStore } from "../store/useStore";
 import { useHalveItStore, updateCachedHalveItPlayers } from "../store/useHalveItStore";
 import PlayerSelector from "../components/PlayerSelector";
 import VibrationButton from "../components/VibrationButton";
+import { GAME_PATHS, gameUrl } from "../utils/gameSession";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -90,9 +91,9 @@ const HalveIt: React.FC = () => {
     setHalveItPlayers(simplePlayers);
     updateCachedHalveItPlayers(simplePlayers);
 
-    startGame(mode, selectedPlayerIds);
-
-    navigate("/halveit/game");
+    const gameId = startGame(mode, selectedPlayerIds);
+    if (!gameId) return;
+    navigate(gameUrl(GAME_PATHS.halveit, gameId));
   };
 
   return (

@@ -26,6 +26,7 @@ import { useStore } from "../store/useStore";
 import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
 import PlayerSelector from "../components/PlayerSelector";
 import VibrationButton from "../components/VibrationButton";
+import { GAME_PATHS, gameUrl } from "../utils/gameSession";
 
 const Cricket: React.FC = () => {
   const navigate = useNavigate();
@@ -154,7 +155,7 @@ const Cricket: React.FC = () => {
     });
 
     // Start a new game
-    startGame(
+    const gameId = startGame(
       gameType as "standard" | "cutthroat" | "no-score",
       winCondition,
       selectedPlayerIds,
@@ -162,8 +163,8 @@ const Cricket: React.FC = () => {
       variant,
     );
 
-    // Navigate to game screen
-    navigate("/cricket/game");
+    if (!gameId) return;
+    navigate(gameUrl(GAME_PATHS.cricket, gameId));
   };
 
   const renderStepContent = (step: number) => {

@@ -37,6 +37,7 @@ import {
 } from "../store/useWarmupStore";
 import PlayerSelector from "../components/PlayerSelector";
 import VibrationButton from "../components/VibrationButton";
+import { GAME_PATHS, gameUrl } from "../utils/gameSession";
 
 const Warmup: React.FC = () => {
   const navigate = useNavigate();
@@ -244,20 +245,12 @@ const Warmup: React.FC = () => {
     setPlayers(simplePlayers);
 
     // Start the game with players passed directly
-    startGame(dartCount, targets, selectedPlayerIds, simplePlayers);
-
-    // Small delay to ensure state is set
-    setTimeout(() => {
-      const gameState = useWarmupStore.getState();
-
-      if (!gameState.currentGame) {
-        setError("Failed to start game. Please try again.");
-        return;
-      }
-
-      // Navigate to game page
-      navigate("/warmup/game");
-    }, 10);
+    const gameId = startGame(dartCount, targets, selectedPlayerIds, simplePlayers);
+    if (!gameId) {
+      setError("Failed to start game. Please try again.");
+      return;
+    }
+    navigate(gameUrl(GAME_PATHS.warmup, gameId));
   };
 
   const getTargetDisplay = (target: WarmupTarget): string => {

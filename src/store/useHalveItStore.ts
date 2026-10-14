@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  createGameSession,
+  GameSession,
+  migrateGameSession,
+} from "../utils/gameSession";
 
 export type HalveItMode = "default" | "41";
 
@@ -25,7 +30,7 @@ export interface HalveItPlayer {
   orderIndex: number;
 }
 
-interface HalveItGameState {
+interface HalveItGameState extends GameSession {
   mode: HalveItMode;
   players: HalveItPlayer[];
   currentPlayerIndex: number;
@@ -40,7 +45,7 @@ interface HalveItGameState {
 
 interface HalveItStoreState {
   currentGame: HalveItGameState | null;
-  startGame: (mode: HalveItMode, playerIds: number[]) => void;
+  startGame: (mode: HalveItMode, playerIds: number[]) => string | null;
   recordRoundScore: (playerId: number, roundIndex: number, data: {
     hits?: number;
     points?: number;
@@ -185,7 +190,7 @@ export const useHalveItStore = create<HalveItStoreState>()(
 
         if (halveItPlayers.length === 0) {
           console.error("No players found for the selected IDs");
-          return;
+          return null;
         }
 
         const gameRounds: HalveItRound[] = rounds.map((round, index) => ({
@@ -195,8 +200,10 @@ export const useHalveItStore = create<HalveItStoreState>()(
           playerScores: {},
         }));
 
+        const session = createGameSession();
         set({
           currentGame: {
+            ...session,
             mode,
             players: halveItPlayers,
             currentPlayerIndex: 0,
@@ -206,6 +213,7 @@ export const useHalveItStore = create<HalveItStoreState>()(
             lastScore: undefined,
           },
         });
+        return session.id;
       },
 
       recordRoundScore: (playerId, roundIndex, data) => {
@@ -468,7 +476,9 @@ export const useHalveItStore = create<HalveItStoreState>()(
     }),
     {
       name: "wedart-halveit-storage",
-      version: 1,
+      version: 2,
+      migrate: (persistedState) =>
+        migrateGameSession(persistedState) as HalveItStoreState,
     }
   )
 );

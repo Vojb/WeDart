@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import React from "react";
 import { VERSION } from "../constants/version";
+import ResumeGames from "../components/resume-games/resume-games";
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -96,6 +97,8 @@ const Home: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4, height: "100%" }}>
       <Stack spacing={4} sx={{ height: "100%" }}>
+        <ResumeGames />
+
         {/* Game Modes Section */}
         <Box>
           <Grid container spacing={3}>

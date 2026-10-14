@@ -30,6 +30,7 @@ import { useX01Store } from "../store/useX01Store";
 import React from "react";
 import VibrationButton from "../components/VibrationButton";
 import PlayerSelector from "../components/PlayerSelector";
+import { GAME_PATHS, gameUrl } from "../utils/gameSession";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -199,8 +200,8 @@ const X01NewGame: React.FC = () => {
 
     // Start game with ordered player IDs and number of legs; Clean mode only for 2 players
     const viewMode = selectedPlayers.length === 2 && cleanMode ? "clean" : "standard";
-    startGame(finalGameType, orderedPlayerIds, numberOfLegs, 0, viewMode);
-    navigate("/x01/game");
+    const gameId = startGame(finalGameType, orderedPlayerIds, numberOfLegs, 0, viewMode);
+    navigate(gameUrl(GAME_PATHS.x01, gameId));
   };
 
   const handleExitConfirm = () => {

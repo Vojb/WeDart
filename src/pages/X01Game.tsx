@@ -35,7 +35,6 @@ import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store/useStore";
 import { useX01Store } from "../store/useX01Store";
 import { useHistoryStore } from "../store/useHistoryStore";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate, useBlocker, BlockerFunction } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import NumericInput from "../components/NumericInput";
@@ -49,6 +48,8 @@ import X01CleanView, {
 } from "../components/x01-clean-view/x01-clean-view";
 import VoiceInput from "../components/VoiceInput";
 import VibrationButton from "../components/VibrationButton";
+import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
+import { GAME_PATHS } from "../utils/gameSession";
 
 type InputMode = "numeric" | "board" | "voice";
 
@@ -68,6 +69,7 @@ const X01Game: React.FC = () => {
     setPlayers,
     lastLegStats,
   } = useX01Store();
+  useGameSessionRoute(currentGame?.id, GAME_PATHS.x01);
   const { addCompletedGame } = useHistoryStore();
   const [inputMode, setInputMode] = useState<InputMode>("numeric");
   const [showRoundAvg, setShowRoundAvg] = useState(false);
@@ -83,7 +85,6 @@ const X01Game: React.FC = () => {
   // Add flag to prevent infinite loop
   const [isInitialized, setIsInitialized] = useState(false);
   // Track game start time
-  const gameStartTimeRef = useRef<number>(Date.now());
   // Track if game is saved to history
   const gameSavedToHistoryRef = useRef<boolean>(false);
   // Add new state for leg won dialog
@@ -169,7 +170,6 @@ const X01Game: React.FC = () => {
   // Reset game start time and history flag when a new game starts
   useEffect(() => {
     if (currentGame && !currentGame.isGameFinished) {
-      gameStartTimeRef.current = Date.now();
       gameSavedToHistoryRef.current = false;
     }
   }, [currentGame]);
@@ -221,12 +221,12 @@ const X01Game: React.FC = () => {
 
     // Calculate game duration in seconds
     const gameDuration = Math.floor(
-      (Date.now() - gameStartTimeRef.current) / 1000
+      (Date.now() - currentGame.startedAt) / 1000
     );
 
     // Create the X01CompletedGame object
     const completedGame = {
-      id: uuidv4(),
+      id: currentGame.id,
       gameType: currentGame.gameType,
       timestamp: Date.now(),
       isDoubleOut: currentGame.isDoubleOut,
@@ -288,7 +288,8 @@ const X01Game: React.FC = () => {
   }, [currentGame]);
 
   // Use useBlocker to handle navigation attempts
-  const blocker: BlockerFunction = () => {
+  const blocker: BlockerFunction = ({ nextLocation }) => {
+    if (nextLocation.pathname.startsWith(GAME_PATHS.x01)) return false;
     if (
       currentGame &&
       !currentGame.isGameFinished &&
@@ -380,7 +381,7 @@ const X01Game: React.FC = () => {
     // End the current game and navigate back to setup
     endGame();
     setDialogOpen(false);
-    navigate(-1);
+    navigate("/x01");
   };
 
 

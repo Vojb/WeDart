@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  createGameSession,
+  GameSession,
+  migrateGameSession,
+} from "../utils/gameSession";
 
 export interface WarmupTarget {
   number: number | "Bull";
@@ -30,7 +35,7 @@ export interface WarmupPlayer {
   hitPercentage: number;
 }
 
-interface WarmupGameState {
+interface WarmupGameState extends GameSession {
   dartCount: number;
   targets: WarmupTarget[];
   players: WarmupPlayer[];
@@ -54,7 +59,7 @@ interface WarmupStoreState {
     targets: WarmupTarget[],
     playerIds: number[],
     players?: Array<{ id: number; name: string }>
-  ) => void;
+  ) => string | null;
   recordHit: (isHit: boolean) => void;
   undoLastScore: () => void;
   endGame: () => void;
@@ -102,10 +107,12 @@ export const useWarmupStore = create<WarmupStoreState>()(
             cachedPlayers,
             providedPlayers: players,
           });
-          return;
+          return null;
         }
 
-        const newGameState = {
+        const session = createGameSession();
+        const newGameState: WarmupGameState = {
+          ...session,
           dartCount,
           targets: sortedTargets,
           players: warmupPlayers,
@@ -131,6 +138,7 @@ export const useWarmupStore = create<WarmupStoreState>()(
         } else {
           console.log("Game state set successfully", verifyState.currentGame);
         }
+        return session.id;
       },
 
       recordHit: (isHit: boolean) => {
@@ -359,7 +367,9 @@ export const useWarmupStore = create<WarmupStoreState>()(
     }),
     {
       name: "wedart-warmup-storage",
-      version: 1,
+      version: 2,
+      migrate: (persistedState) =>
+        migrateGameSession(persistedState) as WarmupStoreState,
       partialize: (state) => ({
         savedConfigs: state.savedConfigs,
         currentGame: state.currentGame,

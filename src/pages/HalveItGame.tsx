@@ -27,12 +27,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useHalveItStore, type HalveItRound } from "../store/useHalveItStore";
 import { useHistoryStore } from "../store/useHistoryStore";
 import { useStore } from "../store/useStore";
-import { v4 as uuidv4 } from "uuid";
 import VibrationButton from "../components/VibrationButton";
 import HitCounterInput from "../components/hit-counter-input/hit-counter-input";
 import PointsInput from "../components/points-input/points-input";
 import TargetScoreInput from "../components/target-score-input/target-score-input";
 import CountUp from "../components/count-up/count-up";
+import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
+import { GAME_PATHS } from "../utils/gameSession";
 
 const HalveItGame: React.FC = () => {
   const navigate = useNavigate();
@@ -44,6 +45,7 @@ const HalveItGame: React.FC = () => {
     undoLastScore,
     endGame,
   } = useHalveItStore();
+  useGameSessionRoute(currentGame?.id, GAME_PATHS.halveit);
   const { addCompletedGame } = useHistoryStore();
   const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -67,7 +69,6 @@ const HalveItGame: React.FC = () => {
     roundIndex: number;
     data: { hits?: number; points?: number; totalScore?: number };
   } | null>(null);
-  const gameStartTimeRef = useRef<number>(Date.now());
   const gameSavedToHistoryRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -93,7 +94,6 @@ const HalveItGame: React.FC = () => {
   // Reset game start time and saved flag when a new game starts
   useEffect(() => {
     if (currentGame && !currentGame.isGameFinished) {
-      gameStartTimeRef.current = Date.now();
       gameSavedToHistoryRef.current = false;
     }
   }, [currentGame]);
@@ -109,7 +109,7 @@ const HalveItGame: React.FC = () => {
 
     // Calculate game duration in seconds
     const gameDuration = Math.floor(
-      (Date.now() - gameStartTimeRef.current) / 1000
+      (Date.now() - currentGame.startedAt) / 1000
     );
 
     // Helper function to calculate points gained in a round
@@ -153,7 +153,7 @@ const HalveItGame: React.FC = () => {
 
     // Create the HalveItCompletedGame object
     const completedGame = {
-      id: uuidv4(),
+      id: currentGame.id,
       gameType: "halveit" as const,
       timestamp: Date.now(),
       mode: currentGame.mode,

@@ -101,6 +101,10 @@ export const router = createHashRouter([
         index: true,
         element: <X01Game />,
       },
+      {
+        path: ":id",
+        element: <X01Game />,
+      },
     ],
   },
   {
@@ -109,6 +113,10 @@ export const router = createHashRouter([
     children: [
       {
         index: true,
+        element: <CricketGame />,
+      },
+      {
+        path: ":id",
         element: <CricketGame />,
       },
     ],
@@ -121,6 +129,10 @@ export const router = createHashRouter([
         index: true,
         element: <HiddenCricketGame />,
       },
+      {
+        path: ":id",
+        element: <HiddenCricketGame />,
+      },
     ],
   },
   {
@@ -131,6 +143,10 @@ export const router = createHashRouter([
         index: true,
         element: <HalveItGame />,
       },
+      {
+        path: ":id",
+        element: <HalveItGame />,
+      },
     ],
   },
   {
@@ -139,6 +155,10 @@ export const router = createHashRouter([
     children: [
       {
         index: true,
+        element: <WarmupGame />,
+      },
+      {
+        path: ":id",
         element: <WarmupGame />,
       },
     ],

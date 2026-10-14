@@ -31,6 +31,9 @@ import {
   KeyboardArrowRight,
   SportsScore,
   GpsFixed,
+  VisibilityOff,
+  CallSplit,
+  FitnessCenter,
 } from "@mui/icons-material";
 import React, { useState } from "react";
 import {
@@ -39,25 +42,32 @@ import {
   isX01Game,
   isCricketGame,
   isHalveItGame,
-  GameType,
+  isWarmupGame,
+  getGameTitle,
+  getHistoryCategory,
+  HistoryCategory,
+  HISTORY_CATEGORY_LABELS,
 } from "../store/useHistoryStore";
 import { alpha } from "@mui/material/styles";
-import { useNavigate } from "react-router-dom";
 import VibrationButton from "../components/VibrationButton";
+import GamePickerDialog from "../components/game-picker-dialog/game-picker-dialog";
 
 const History: React.FC = () => {
-  const { completedGames, clearHistory, getGamesByType } = useHistoryStore();
-  const navigate = useNavigate();
+  const { completedGames, clearHistory } = useHistoryStore();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [gameDetailsOpen, setGameDetailsOpen] = useState(false);
-  const [gameTypeFilter, setGameTypeFilter] = useState<GameType | "all">("all");
+  const [gamePickerOpen, setGamePickerOpen] = useState(false);
+  const [gameTypeFilter, setGameTypeFilter] = useState<HistoryCategory | "all">(
+    "all"
+  );
 
-  // Get filtered games based on the selected game type
   const filteredGames =
     gameTypeFilter === "all"
       ? completedGames
-      : getGamesByType(gameTypeFilter as GameType);
+      : completedGames.filter(
+          (game) => getHistoryCategory(game) === gameTypeFilter
+        );
 
   // Handle clear history confirmation
   const handleClearHistory = () => {
@@ -90,20 +100,23 @@ const History: React.FC = () => {
   };
 
   // Get game icon based on game type
-  const getGameIcon = (gameType: string) => {
-    switch (gameType) {
-      case "301":
-      case "501":
-      case "701":
+  const getGameIcon = (game: CompletedGame) => {
+    switch (getHistoryCategory(game)) {
+      case "x01":
         return <SportsScore fontSize="small" />;
       case "cricket":
         return <GpsFixed fontSize="small" />;
+      case "hidden-cricket":
+        return <VisibilityOff fontSize="small" />;
       case "halveit":
-        return <SportsCricket fontSize="small" />;
-      default:
-        return <SportsCricket fontSize="small" />;
+        return <CallSplit fontSize="small" />;
+      case "warmup":
+        return <FitnessCenter fontSize="small" />;
     }
   };
+
+  const formatCricketTarget = (target: number | string) =>
+    target === "Triple" ? "T" : target === "Double" ? "D" : String(target);
 
   // Find a selected game by ID
   const getSelectedGame = () => {
@@ -120,7 +133,7 @@ const History: React.FC = () => {
   // Handle filter change
   const handleFilterChange = (
     _event: React.SyntheticEvent,
-    newValue: GameType | "all"
+    newValue: HistoryCategory | "all"
   ) => {
     setGameTypeFilter(newValue);
   };
@@ -257,7 +270,12 @@ const History: React.FC = () => {
             <Grid item xs={6} sm={4}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <GpsFixed fontSize="small" color="primary" />
-                <Typography variant="body2">Game: Cricket</Typography>
+                <Typography variant="body2">
+                  Game: {getGameTitle(game)}
+                  {game.variant && game.variant !== "standard"
+                    ? ` (${game.variant})`
+                    : ""}
+                </Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4}>
@@ -328,7 +346,9 @@ const History: React.FC = () => {
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="body2">
                       Closed numbers:{" "}
-                      {player.closedNumbers.sort((a, b) => a - b).join(", ")}
+                      {player.closedNumbers.length
+                        ? player.closedNumbers.map(formatCricketTarget).join(", ")
+                        : "None"}
                     </Typography>
                   </Box>
                 </CardContent>
@@ -353,7 +373,7 @@ const History: React.FC = () => {
             <Grid item xs={6} sm={4}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <SportsCricket fontSize="small" color="primary" />
-                <Typography variant="body2">Game: HalveIt</Typography>
+                <Typography variant="body2">Game: Halve It</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} sm={4}>
@@ -427,6 +447,96 @@ const History: React.FC = () => {
     );
   };
 
+  const renderWarmupGameDetails = (game: CompletedGame) => {
+    if (!isWarmupGame(game)) return null;
+
+    return (
+      <>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Game Information
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={6} sm={4}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <FitnessCenter fontSize="small" color="primary" />
+                <Typography variant="body2">Game: Warmup</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} sm={4}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <AccessTime fontSize="small" color="primary" />
+                <Typography variant="body2">
+                  Duration: {formatDuration(game.duration)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={6} sm={4}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <FunctionsOutlined fontSize="small" color="primary" />
+                <Typography variant="body2">
+                  Darts per target: {game.dartCount}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Typography variant="subtitle1" gutterBottom>
+          Player Performance
+        </Typography>
+        <Grid container spacing={2}>
+          {[...game.players]
+            .sort((a, b) => b.finalScore - a.finalScore)
+            .map((player) => {
+              const hits = player.rounds.reduce((sum, r) => sum + r.hits, 0);
+              const attempts = player.rounds.reduce(
+                (sum, r) => sum + r.attempts,
+                0
+              );
+              return (
+                <Grid item xs={12} sm={6} md={4} key={player.id}>
+                  <Card
+                    variant="outlined"
+                    sx={{
+                      bgcolor:
+                        player.id === game.winnerId
+                          ? (theme) => alpha(theme.palette.success.main, 0.1)
+                          : "background.paper",
+                      borderColor:
+                        player.id === game.winnerId ? "success.main" : "divider",
+                    }}
+                  >
+                    <CardHeader
+                      avatar={
+                        <Avatar
+                          sx={{
+                            bgcolor:
+                              player.id === game.winnerId
+                                ? "success.main"
+                                : "primary.main",
+                          }}
+                        >
+                          {player.name.charAt(0)}
+                        </Avatar>
+                      }
+                      title={player.name}
+                      subheader={`Hit rate: ${player.finalScore.toFixed(1)}%`}
+                    />
+                    <CardContent>
+                      <Typography variant="body2">
+                        Hits: {hits} / {attempts}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
+        </Grid>
+      </>
+    );
+  };
+
   const gameDetailsDialog = () => {
     const game = getSelectedGame();
     if (!game) return null;
@@ -447,15 +557,8 @@ const History: React.FC = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {getGameIcon(game.gameType)}
-              <Typography variant="h6">
-                {game.gameType === "cricket"
-                  ? "Cricket"
-                  : game.gameType === "halveit"
-                  ? "HalveIt"
-                  : `${game.gameType} Game`}{" "}
-                Details
-              </Typography>
+              {getGameIcon(game)}
+              <Typography variant="h6">{getGameTitle(game)} Details</Typography>
             </Box>
             <Typography variant="body2" color="text.secondary">
               {formatDate(game.timestamp)}
@@ -466,6 +569,7 @@ const History: React.FC = () => {
           {isX01Game(game) && renderX01GameDetails(game)}
           {isCricketGame(game) && renderCricketGameDetails(game)}
           {isHalveItGame(game) && renderHalveItGameDetails(game)}
+          {isWarmupGame(game) && renderWarmupGameDetails(game)}
         </DialogContent>
         <DialogActions>
           <VibrationButton
@@ -514,10 +618,14 @@ const History: React.FC = () => {
               scrollButtons="auto"
             >
               <Tab label="All Games" value="all" />
-              <Tab label="301" value="301" />
-              <Tab label="501" value="501" />
-              <Tab label="701" value="701" />
-              <Tab label="Cricket" value="cricket" />
+              {(
+                Object.entries(HISTORY_CATEGORY_LABELS) as [
+                  HistoryCategory,
+                  string,
+                ][]
+              ).map(([category, label]) => (
+                <Tab key={category} label={label} value={category} />
+              ))}
             </Tabs>
           </Box>
         )}
@@ -535,7 +643,7 @@ const History: React.FC = () => {
             <Typography sx={{ mb: 2 }}>No game history yet.</Typography>
             <Button
               variant="contained"
-              onClick={() => navigate("/x01")}
+              onClick={() => setGamePickerOpen(true)}
               startIcon={<SportsCricket />}
             >
               Start a New Game
@@ -552,7 +660,11 @@ const History: React.FC = () => {
             }}
           >
             <Typography sx={{ mb: 2 }}>
-              No {gameTypeFilter} games in history.
+              No{" "}
+              {gameTypeFilter === "all"
+                ? ""
+                : HISTORY_CATEGORY_LABELS[gameTypeFilter]}{" "}
+              games in history.
             </Typography>
           </Box>
         ) : (
@@ -581,11 +693,9 @@ const History: React.FC = () => {
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
-                        {getGameIcon(game.gameType)}
+                        {getGameIcon(game)}
                         <Typography variant="body1">
-                          {game.gameType === "cricket"
-                            ? "Cricket Game"
-                            : `${game.gameType} Game`}
+                          {getGameTitle(game)}
                         </Typography>
                         <Chip
                           size="small"
@@ -670,6 +780,11 @@ const History: React.FC = () => {
 
         {/* Game Details Dialog */}
         {gameDetailsDialog()}
+
+        <GamePickerDialog
+          open={gamePickerOpen}
+          onClose={() => setGamePickerOpen(false)}
+        />
       </Paper>
     </Box>
   );

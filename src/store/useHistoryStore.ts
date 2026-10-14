@@ -3,7 +3,12 @@ import { persist } from "zustand/middleware";
 
 // Define game types enum
 export type X01GameType = "301" | "501" | "701" | (string & {});
-export type GameType = X01GameType | "cricket" | "halveit" | "warmup";
+export type GameType =
+  | X01GameType
+  | "cricket"
+  | "hidden-cricket"
+  | "halveit"
+  | "warmup";
 
 // Define the base completed game interface with common properties
 export interface BaseCompletedGame {
@@ -49,18 +54,19 @@ export interface X01CompletedGamePlayer extends BaseCompletedGamePlayer {
 
 // Cricket specific game properties
 export interface CricketCompletedGame extends BaseCompletedGame {
-  gameType: "cricket";
+  gameType: "cricket" | "hidden-cricket";
   cutThroat: boolean; // Whether the game was played in cut-throat mode
+  variant?: string; // e.g. "standard", "osha"
   players: CricketCompletedGamePlayer[];
 }
 
 // Cricket player stats
 export interface CricketCompletedGamePlayer extends BaseCompletedGamePlayer {
   marks: number; // Total marks scored
-  closedNumbers: number[]; // Numbers that were closed by this player
+  closedNumbers: (number | string)[]; // Targets closed by this player (15-20, "Bull", "Triple", "Double")
   totalPoints: number;
   scores: {
-    number: number;
+    number: number | string;
     marks: number;
     points: number;
   }[];
@@ -118,18 +124,22 @@ export type CompletedGame =
   | WarmupCompletedGame;
 
 // Type guard functions to check game types
+const NON_X01_GAME_TYPES: readonly string[] = [
+  "cricket",
+  "hidden-cricket",
+  "halveit",
+  "warmup",
+];
+
+// X01 games store their starting score (301, 501, custom...) as the game type
 export function isX01Game(game: CompletedGame): game is X01CompletedGame {
-  return (
-    game.gameType === "301" ||
-    game.gameType === "501" ||
-    game.gameType === "701"
-  );
+  return !NON_X01_GAME_TYPES.includes(game.gameType);
 }
 
 export function isCricketGame(
   game: CompletedGame
 ): game is CricketCompletedGame {
-  return game.gameType === "cricket";
+  return game.gameType === "cricket" || game.gameType === "hidden-cricket";
 }
 
 export function isHalveItGame(
@@ -142,6 +152,32 @@ export function isWarmupGame(
   game: CompletedGame
 ): game is WarmupCompletedGame {
   return game.gameType === "warmup";
+}
+
+export type HistoryCategory =
+  | "x01"
+  | "cricket"
+  | "hidden-cricket"
+  | "halveit"
+  | "warmup";
+
+export const HISTORY_CATEGORY_LABELS: Record<HistoryCategory, string> = {
+  x01: "X01",
+  cricket: "Cricket",
+  "hidden-cricket": "Hidden Cricket",
+  halveit: "Halve It",
+  warmup: "Warmup",
+};
+
+export function getHistoryCategory(game: CompletedGame): HistoryCategory {
+  return isX01Game(game) ? "x01" : (game.gameType as HistoryCategory);
+}
+
+/** Display name for a game, e.g. "501", "Cricket", "Halve It". */
+export function getGameTitle(game: CompletedGame): string {
+  return isX01Game(game)
+    ? game.gameType
+    : HISTORY_CATEGORY_LABELS[getHistoryCategory(game)];
 }
 
 interface HistoryState {
@@ -161,7 +197,11 @@ export const useHistoryStore = create<HistoryState>()(
 
       addCompletedGame: (game) =>
         set((state) => ({
-          completedGames: [game, ...state.completedGames], // Add to the beginning for chronological order (newest first)
+          // Same id means the same match was saved again (reload or undo + re-finish), so replace it
+          completedGames: [
+            game,
+            ...state.completedGames.filter((g) => g.id !== game.id),
+          ],
         })),
 
       getGameById: (id) => {

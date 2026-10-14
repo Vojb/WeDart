@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  createGameSession,
+  GameSession,
+  migrateGameSession,
+} from "../utils/gameSession";
 
 // Interfaces for Hidden Cricket Game
 export interface HiddenCricketTarget {
@@ -45,7 +50,7 @@ interface HiddenCricketGameSettings {
   defaultLegs: number;
 }
 
-interface HiddenCricketGameState {
+interface HiddenCricketGameState extends GameSession {
   players: HiddenCricketPlayer[];
   currentPlayerIndex: number;
   isGameFinished: boolean;
@@ -83,7 +88,7 @@ interface HiddenCricketStoreState {
     lastBull: boolean,
     playerIds: number[],
     totalLegs: number
-  ) => void;
+  ) => string | null;
   recordHit: (targetNumber: number | string, multiplier: number) => void;
   recordMiss: () => void;
   undoLastHit: () => void;
@@ -425,6 +430,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
         const hiddenNumbers = generateHiddenNumbers();
 
         // Create a new game with the selected settings
+        const session = createGameSession();
         set((state) => {
           // Find the selected players from the cached players
           const selectedPlayers = cachedPlayers.filter((player) =>
@@ -474,6 +480,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
           return {
             ...state,
             currentGame: {
+              ...session,
               players: hiddenCricketPlayers,
               currentPlayerIndex: 0,
               isGameFinished: false,
@@ -490,6 +497,7 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
             },
           };
         });
+        return get().currentGame?.id === session.id ? session.id : null;
       },
 
       isHiddenNumber: (number: number | string) => {
@@ -1157,9 +1165,12 @@ export const useHiddenCricketStore = create<HiddenCricketStoreState>()(
     }),
     {
       name: "wedart-hidden-cricket-storage",
-      version: 1,
+      version: 2,
+      migrate: (persistedState) =>
+        migrateGameSession(persistedState) as HiddenCricketStoreState,
       partialize: (state) => ({
         gameSettings: state.gameSettings,
+        currentGame: state.currentGame,
       }),
     }
   )

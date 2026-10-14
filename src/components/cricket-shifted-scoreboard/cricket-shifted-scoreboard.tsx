@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Button, Typography, useTheme, alpha } from "@mui/material";
 import { CricketPlayer } from "../../store/useCricketStore";
 import CountUp from "../count-up/count-up";
+import { fitScoreFontSize } from "../../utils/fitScoreFontSize";
 
 const pillButtonSx = {
   minWidth: 0,
@@ -93,23 +94,33 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
         >
           Darts: {darts}
         </Typography>
-        <Typography
-          component="div"
-          sx={{
-            fontSize: { xs: "5.15rem", sm: "5.25rem", md: "5.85rem" },
-            fontWeight: 700,
-            color,
-            lineHeight: 1.05,
-          }}
+        <Box
+          sx={
+            isTwoPlayer
+              ? undefined
+              : { width: "100%", containerType: "inline-size", textAlign: "center" }
+          }
         >
-          <CountUp
-            to={player.totalScore}
-            duration={0.5}
-            delay={0}
-            animateOnChange={true}
-            startWhen={true}
-          />
-        </Typography>
+          <Typography
+            component="div"
+            sx={{
+              fontSize: isTwoPlayer
+                ? { xs: "5.15rem", sm: "5.25rem", md: "5.85rem" }
+                : fitScoreFontSize(player.totalScore, "5.15rem"),
+              fontWeight: 700,
+              color,
+              lineHeight: 1.05,
+            }}
+          >
+            <CountUp
+              to={player.totalScore}
+              duration={0.5}
+              delay={0}
+              animateOnChange={true}
+              startWhen={true}
+            />
+          </Typography>
+        </Box>
       </Box>
     );
   };
@@ -236,6 +247,9 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
         </>
       ) : (
         <>
+          {players.map((player, playerIndex) =>
+            renderPlayerPanel(player, playerIndex),
+          )}
           {onExit && (
             <Box
               sx={{
@@ -258,9 +272,6 @@ const CricketShiftedScoreboard: React.FC<CricketShiftedScoreboardProps> = ({
                 Exit
               </Button>
             </Box>
-          )}
-          {players.map((player, playerIndex) =>
-            renderPlayerPanel(player, playerIndex),
           )}
         </>
       )}

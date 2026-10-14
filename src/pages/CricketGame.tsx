@@ -20,7 +20,12 @@ import {
 } from "@mui/material";
 import { EmojiEvents, ExitToApp } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useCricketStore, updateCachedPlayers } from "../store/useCricketStore";
+import {
+  CricketPlayer,
+  useCricketStore,
+  updateCachedPlayers,
+} from "../store/useCricketStore";
+import CricketMultiPlayerColumns from "../components/cricket-multi-player-columns/cricket-multi-player-columns";
 import { useStore } from "../store/useStore";
 import VibrationButton from "../components/VibrationButton";
 import { vibrateDevice } from "../theme/ThemeProvider";
@@ -33,6 +38,10 @@ import CountUp from "../components/count-up/count-up";
 import { motion } from "framer-motion";
 import { countCricketDartsThrown } from "../utils/cricketDartsThrownStat";
 import { wouldExceedVisitSlotLimit } from "../utils/cricketVisitDarts";
+import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
+import { GAME_PATHS } from "../utils/gameSession";
+import { useHistoryStore } from "../store/useHistoryStore";
+import { toCricketCompletedGame } from "../utils/cricketHistory";
 
 /** SVG user-space units; scales with cell size (CSS padding 2px on wrapper). */
 const CRICKET_MARK_VIEWBOX = 64;
@@ -57,6 +66,8 @@ const CricketGame: React.FC = () => {
     startGame,
     clearLastLegWon,
   } = useCricketStore();
+  const { addCompletedGame } = useHistoryStore();
+  useGameSessionRoute(currentGame?.id, GAME_PATHS.cricket);
   const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [legWonDialogOpen, setLegWonDialogOpen] = useState(false);
@@ -102,11 +113,12 @@ const CricketGame: React.FC = () => {
       } else if (currentGame.isGameFinished && !dialogOpen) {
         // Open dialog when game is finished
         setDialogOpen(true);
+        addCompletedGame(toCricketCompletedGame(currentGame, "cricket"));
       }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [currentGame, navigate, dialogOpen]);
+  }, [currentGame, navigate, dialogOpen, addCompletedGame]);
 
   // Close the finished-game dialog if undo reopens the match (no longer finished)
   useEffect(() => {
@@ -147,6 +159,11 @@ const CricketGame: React.FC = () => {
     },
     [awardOshaExtraBonus, currentGame],
   );
+
+  const handleCancelOshaExtraBonus = useCallback(() => {
+    undoLastHit();
+    vibrateDevice(50);
+  }, [undoLastHit]);
 
   // Validation effect - must be at the top level with other effects
   useEffect(() => {
@@ -349,12 +366,14 @@ const CricketGame: React.FC = () => {
     }, 100);
   }, [currentGame?.players, endGame, navigate, setCricketPlayers]);
 
+  // 3+ players: rows are shorter, so marks fill their cell with 2px padding
+  const markPadding = (currentGame?.players.length ?? 0) > 2 ? "2px" : "16px";
   const markBoxSx = {
     width: "100%",
     height: "100%",
     flex: 1,
     minHeight: 0,
-    p: "16px",
+    p: markPadding,
     boxSizing: "border-box" as const,
     display: "flex",
     alignItems: "center",
@@ -421,7 +440,7 @@ const CricketGame: React.FC = () => {
         </Box>
       );
     },
-    [theme.palette.primary.main],
+    [theme.palette.primary.main, markPadding],
   );
 
   // Marks (0–3) for a player's target with animation
@@ -480,7 +499,7 @@ const CricketGame: React.FC = () => {
         </Box>
       );
     },
-    [renderClosedMark, theme.palette.primary.main],
+    [renderClosedMark, theme.palette.primary.main, markPadding],
   );
 
   // Display loading state
@@ -600,6 +619,104 @@ const CricketGame: React.FC = () => {
       return target?.closed || false;
     });
   };
+
+  const renderPlayerCell = (
+    player: CricketPlayer,
+    playerIndex: number,
+    number: number | string,
+  ) => {
+    const playerColor = playerColors[playerIndex] || theme.palette.primary.main;
+    const target = player.targets.find((t) => t.number === number);
+    const isCurrentPlayer = player.id === currentPlayer?.id;
+    const isClosed = target?.closed || false;
+    const isClickable = canClickNumberForPlayer(number, player.id);
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          alignSelf: "stretch",
+          minHeight: 0,
+          height: "100%",
+          cursor: isClickable ? "pointer" : "default",
+          backgroundColor: isCurrentPlayer
+            ? alpha(playerColor, 0.06)
+            : "transparent",
+          transition: "all 0.2s ease",
+          "&:hover": isClickable
+            ? {
+                backgroundColor: alpha(playerColor, 0.15),
+                transform: "scale(1.02)",
+              }
+            : {},
+        }}
+        onClick={() => isClickable && handleHit(number, player.id)}
+      >
+        {target && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "stretch",
+              justifyContent: "center",
+              gap: 0.25,
+              flex: 1,
+              width: "100%",
+              minHeight: 0,
+            }}
+          >
+            {isClosed
+              ? renderClosedMark(playerColor)
+              : renderMarks(target.hits, playerColor)}
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
+  const renderTargetLabel = (number: number | string) => {
+    const canClick = canClickNumber(number);
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          // Size container: label scales to the cell without affecting row height
+          containerType: "size",
+          minWidth: 0,
+          minHeight: 0,
+          cursor: canClick ? "pointer" : "default",
+          transition: "all 0.2s ease",
+          "&:hover": canClick
+            ? {
+                backgroundColor: alpha(theme.palette.primary.main, 0.15),
+                transform: "scale(1.05)",
+              }
+            : {},
+        }}
+        onClick={() => canClick && handleHit(number)}
+      >
+        <Typography
+          variant="h5"
+          component="div"
+          sx={{
+            fontWeight: "bold",
+            // 2px padding on every side; two bold digits are ~1.15em wide
+            fontSize: "min(calc(100cqh - 4px), calc((100cqw - 4px) / 1.15))",
+            lineHeight: 1,
+          }}
+        >
+          {formatCricketTargetLabel(number)}
+        </Typography>
+      </Box>
+    );
+  };
+
+  const isMultiPlayerLayout = currentGame.players.length > 2;
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -785,7 +902,7 @@ const CricketGame: React.FC = () => {
       {/* OSHA: Extra Double/Triple bonus dialog */}
       <Dialog
         open={oshaExtraBonusDialogOpen}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
         onClose={() => {}}
       >
@@ -795,7 +912,7 @@ const CricketGame: React.FC = () => {
             : "Extra Triple"}
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
             {currentGame.pendingOshaExtraBonus?.kind === "Triple"
               ? "Pick bonus points (1–20). Score added = 3× the number you choose."
               : "Pick bonus points (1–20 or 25). Score added = 2× the number you choose."}
@@ -804,7 +921,7 @@ const CricketGame: React.FC = () => {
             sx={{
               display: "grid",
               gridTemplateColumns: "repeat(5, 1fr)",
-              gap: 1,
+              gap: 0.75,
             }}
           >
             {[
@@ -816,19 +933,17 @@ const CricketGame: React.FC = () => {
                 variant="contained"
                 color={n === 25 ? "secondary" : "primary"}
                 onClick={() => handleSelectOshaExtraBonusPoints(n)}
-                sx={{ py: 2, fontSize: "1.25rem", fontWeight: 700 }}
+                sx={{ minWidth: 0, py: 0.75, fontSize: "1rem", fontWeight: 700 }}
               >
                 {n}
               </Button>
             ))}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Typography variant="caption" sx={{ px: 2, pb: 1, color: "text.secondary" }}>
-            {currentGame.pendingOshaExtraBonus?.kind === "Triple"
-              ? "Score added = 3× the number you choose."
-              : "Score added = 2× the number you choose."}
-          </Typography>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCancelOshaExtraBonus} color="inherit">
+            Cancel
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -853,6 +968,21 @@ const CricketGame: React.FC = () => {
             overflow: "hidden",
           }}
         >
+        {isMultiPlayerLayout ? (
+          <CricketMultiPlayerColumns
+            players={currentGame.players}
+            currentPlayerIndex={currentGame.currentPlayerIndex}
+            targets={cricketNumbers}
+            playerColors={playerColors}
+            avgMarksPerRoundByPlayer={avgMarksPerRoundByPlayer}
+            dartsThrownByPlayer={dartsThrownByPlayer}
+            isTargetClosedByAll={isNumberClosedByAll}
+            renderPlayerCell={renderPlayerCell}
+            renderTargetLabel={renderTargetLabel}
+            onExit={() => setLeaveDialogOpen(true)}
+          />
+        ) : (
+        <>
         {/* Top Bar - Header with Player Names and Scores */}
         <Paper
           sx={{
@@ -917,8 +1047,7 @@ const CricketGame: React.FC = () => {
                         const secondHalf = playerCount - firstHalf;
                         return `repeat(${firstHalf}, 1fr) 76px repeat(${secondHalf}, 1fr)`;
                       }
-                      // For 3+ players, number goes last
-                      return `repeat(${playerCount}, 1fr) 76px`;
+                      return `1fr 76px`;
                     })(),
                     gap: 0.5,
                     p: 0.5,
@@ -1107,104 +1236,7 @@ const CricketGame: React.FC = () => {
                       );
                     }
 
-                    // For 3+ players, all players first, then number
-                    return (
-                      <>
-                        {currentGame.players.map((player, playerIndex) => {
-                          const playerColor =
-                            playerColors[playerIndex] ||
-                            theme.palette.primary.main;
-                          const target = player.targets.find(
-                            (t) => t.number === number,
-                          );
-                          const isCurrentPlayer =
-                            player.id === currentPlayer?.id;
-                          const isClosed = target?.closed || false;
-                          const isClickable = canClickNumberForPlayer(
-                            number,
-                            player.id,
-                          );
-
-                          return (
-                            <Box
-                              key={`${player.id}-${number}`}
-                              sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                alignSelf: "stretch",
-                                minHeight: 0,
-                                height: "100%",
-                                cursor: isClickable ? "pointer" : "default",
-                                backgroundColor: isCurrentPlayer
-                                  ? alpha(playerColor, 0.06)
-                                  : "transparent",
-                                transition: "all 0.2s ease",
-                                "&:hover": isClickable
-                                  ? {
-                                      backgroundColor: alpha(playerColor, 0.15),
-                                      transform: "scale(1.02)",
-                                    }
-                                  : {},
-                              }}
-                              onClick={() =>
-                                isClickable && handleHit(number, player.id)
-                              }
-                            >
-                              {target && (
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "stretch",
-                                    justifyContent: "center",
-                                    gap: 0.25,
-                                    flex: 1,
-                                    width: "100%",
-                                    minHeight: 0,
-                                  }}
-                                >
-                                  {isClosed
-                                    ? renderClosedMark(playerColor)
-                                    : renderMarks(target.hits, playerColor)}
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
-
-                        {/* Number Label - positioned last */}
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: canClick ? "pointer" : "default",
-                            transition: "all 0.2s ease",
-                            "&:hover": canClick
-                              ? {
-                                  backgroundColor: (theme) =>
-                                    alpha(theme.palette.primary.main, 0.15),
-                                  transform: "scale(1.05)",
-                                }
-                              : {},
-                          }}
-                          onClick={() => canClick && handleHit(number)}
-                        >
-                          <Typography
-                            variant="h5"
-                            component="div"
-                            sx={{
-                              fontWeight: "bold",
-                              fontSize: numberLabelFontSize,
-                            }}
-                          >
-                            {formatCricketTargetLabel(number)}
-                          </Typography>
-                        </Box>
-                      </>
-                    );
+                    return null;
                   })()}
                 </Box>
               </Box>
@@ -1212,7 +1244,7 @@ const CricketGame: React.FC = () => {
           })}
 
           {/* Total Score Row - below all numbers */}
-          {currentGame.players.length !== 2 && (
+          {currentGame.players.length === 1 && (
             <Box
               sx={{
                 display: "grid",
@@ -1224,7 +1256,7 @@ const CricketGame: React.FC = () => {
                     const secondHalf = playerCount - firstHalf;
                     return `repeat(${firstHalf}, 1fr) 76px repeat(${secondHalf}, 1fr)`;
                   }
-                  return `repeat(${playerCount}, 1fr) 76px`;
+                  return `1fr 76px`;
                 })(),
                 gap: 0.5,
                 p: { xs: 2, sm: 3, md: 4 },
@@ -1349,71 +1381,13 @@ const CricketGame: React.FC = () => {
                   );
                 }
 
-                // For 3+ players, all players first, then label
-                return (
-                  <>
-                    {currentGame.players.map((player, playerIndex) => {
-                      const playerColor =
-                        playerColors[playerIndex] || theme.palette.primary.main;
-                      return (
-                        <Box
-                          key={`score-${player.id}`}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <Typography
-                            variant="h6"
-                            component="div"
-                            sx={{
-                              fontWeight: 700,
-                              color: playerColor,
-                              fontSize: {
-                                xs: "1.75rem",
-                                sm: "2.1rem",
-                                md: "2.45rem",
-                              },
-                            }}
-                          >
-                            <CountUp
-                              to={player.totalScore}
-                              duration={0.5}
-                              delay={0}
-                              animateOnChange={true}
-                              startWhen={true}
-                            />
-                          </Typography>
-                        </Box>
-                      );
-                    })}
-
-                    {/* Score label */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: "bold",
-                          fontSize: { xs: "0.95rem", sm: "1.1rem" },
-                          color: theme.palette.text.secondary,
-                        }}
-                      >
-                        Score
-                      </Typography>
-                    </Box>
-                  </>
-                );
+                return null;
               })()}
             </Box>
           )}
         </Box>
+        </>
+        )}
 
         {/* Bottom Action Bar - Next Button */}
         <Paper

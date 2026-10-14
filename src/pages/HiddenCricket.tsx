@@ -29,6 +29,7 @@ import {
 } from "../store/useHiddenCricketStore";
 import PlayerSelector from "../components/PlayerSelector";
 import VibrationButton from "../components/VibrationButton";
+import { GAME_PATHS, gameUrl } from "../utils/gameSession";
 
 const HiddenCricket: React.FC = () => {
   const navigate = useNavigate();
@@ -143,10 +144,9 @@ const HiddenCricket: React.FC = () => {
     });
 
     // Start a new game
-    startGame(gameType, winCondition, lastBull, selectedPlayerIds, numberOfLegs);
-
-    // Navigate to game screen
-    navigate("/hidden-cricket/game");
+    const gameId = startGame(gameType, winCondition, lastBull, selectedPlayerIds, numberOfLegs);
+    if (!gameId) return;
+    navigate(gameUrl(GAME_PATHS.hiddenCricket, gameId));
   };
 
   const renderStepContent = (step: number) => {

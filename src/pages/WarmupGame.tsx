@@ -24,21 +24,22 @@ import {
   WarmupCompletedGame,
 } from "../store/useHistoryStore";
 import { useStore } from "../store/useStore";
-import { v4 as uuidv4 } from "uuid";
 import VibrationButton from "../components/VibrationButton";
 import WarmupInput from "../components/warmup-input/warmup-input";
+import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
+import { GAME_PATHS } from "../utils/gameSession";
 
 const WarmupGame: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const { currentGame, recordHit, undoLastScore, endGame } = useWarmupStore();
+  useGameSessionRoute(currentGame?.id, GAME_PATHS.warmup);
   const { addCompletedGame } = useHistoryStore();
   const { countdownDuration } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const gameStartTimeRef = useRef<number>(Date.now());
   const gameSavedToHistoryRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -62,7 +63,6 @@ const WarmupGame: React.FC = () => {
 
   useEffect(() => {
     if (currentGame && !currentGame.isGameFinished) {
-      gameStartTimeRef.current = Date.now();
       gameSavedToHistoryRef.current = false;
     }
   }, [currentGame]);
@@ -75,11 +75,11 @@ const WarmupGame: React.FC = () => {
     );
 
     const gameDuration = Math.floor(
-      (Date.now() - gameStartTimeRef.current) / 1000,
+      (Date.now() - currentGame.startedAt) / 1000,
     );
 
     const completedGame: WarmupCompletedGame = {
-      id: uuidv4(),
+      id: currentGame.id,
       gameType: "warmup",
       timestamp: Date.now(),
       dartCount: currentGame.dartCount,
