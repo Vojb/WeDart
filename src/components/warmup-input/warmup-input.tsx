@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, Paper, LinearProgress } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
 import VibrationButton from "../VibrationButton";
+import { useStore } from "../../store/useStore";
 import DartboardVisualization from "../dartboard-visualization/dartboard-visualization";
 
 interface WarmupInputProps {
@@ -29,6 +30,7 @@ const WarmupInput: React.FC<WarmupInputProps> = ({
     null,
   ]);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const performanceMode = useStore((state) => state.performanceMode);
   const [progress, setProgress] = useState<number>(0);
   const countdownTimerRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
@@ -95,19 +97,20 @@ const WarmupInput: React.FC<WarmupInputProps> = ({
       });
     }, 1000) as unknown as number;
 
-    // Update progress bar every 50ms for smooth animation
-    progressIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / durationMs) * 100, 100);
-      setProgress(newProgress);
+    if (!useStore.getState().performanceMode) {
+      progressIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - progressStartTimeRef.current;
+        const newProgress = Math.min((elapsed / durationMs) * 100, 100);
+        setProgress(newProgress);
 
-      if (newProgress >= 100) {
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
+        if (newProgress >= 100) {
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
         }
-      }
-    }, 50) as unknown as number;
+      }, 50) as unknown as number;
+    }
   };
 
   const handleHit = (isHit: boolean) => {
@@ -291,14 +294,16 @@ const WarmupInput: React.FC<WarmupInputProps> = ({
               <Typography variant="h5" color="primary" sx={{ mb: 1 }}>
                 {countdown}s
               </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                sx={{
-                  height: 8,
-                  borderRadius: 1,
-                }}
-              />
+              {!performanceMode && (
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
+                  sx={{
+                    height: 8,
+                    borderRadius: 1,
+                  }}
+                />
+              )}
             </>
           )}
         </Box>

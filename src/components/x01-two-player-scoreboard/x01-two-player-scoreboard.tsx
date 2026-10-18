@@ -3,6 +3,7 @@ import { Box, Chip, Paper, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { GamePlayer } from "../../store/useX01Store";
+import { useStore } from "../../store/useStore";
 import checkoutGuide from "../../utils/checkoutGuide";
 import { legsNeededToWin } from "../../utils/legs";
 
@@ -110,6 +111,7 @@ const ScoreRing: React.FC<ScoreRingProps> = ({
     theme.palette.success.main,
     theme.palette.text.primary,
   ]);
+  const performanceMode = useStore((state) => state.performanceMode);
   const scorePercent = Math.max(
     0,
     Math.min(100, (player.score / player.initialScore) * 100)
@@ -129,9 +131,21 @@ const ScoreRing: React.FC<ScoreRingProps> = ({
     return `conic-gradient(from 0deg, ${color} 0% ${clamped}%, ${ringTrackColor} ${clamped}% 100%), ${dartboardBackground}`;
   });
 
+  const staticRingBackground = useMemo(() => {
+    const clamped = scorePercent;
+    if (direction === "reverse") {
+      const start = Math.max(0, Math.min(100, 100 - clamped));
+      return `conic-gradient(from 0deg, ${ringTrackColor} 0% ${start}%, ${color} ${start}% 100%), ${dartboardBackground}`;
+    }
+    return `conic-gradient(from 0deg, ${color} 0% ${clamped}%, ${ringTrackColor} ${clamped}% 100%), ${dartboardBackground}`;
+  }, [scorePercent, direction, ringTrackColor, color, dartboardBackground]);
+
   useEffect(() => {
+    if (performanceMode) {
+      return;
+    }
     percentMotion.set(scorePercent);
-  }, [scorePercent, percentMotion]);
+  }, [scorePercent, percentMotion, performanceMode]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -148,7 +162,7 @@ const ScoreRing: React.FC<ScoreRingProps> = ({
           position: "relative",
         }}
         style={{
-          backgroundImage: ringBackground,
+          backgroundImage: performanceMode ? staticRingBackground : ringBackground,
         }}
       >
         <Box

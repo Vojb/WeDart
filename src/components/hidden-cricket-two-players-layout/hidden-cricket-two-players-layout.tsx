@@ -74,6 +74,7 @@ const HiddenCricketTwoPlayersLayout: React.FC<HiddenCricketTwoPlayersLayoutProps
           >
             {/* Main row with players and number */}
             <Box
+              className={allClosed ? "perf-heavy-blur" : undefined}
               sx={{
                 display: "grid",
                 gridTemplateColumns: "1fr 60px 1fr",
@@ -82,7 +83,7 @@ const HiddenCricketTwoPlayersLayout: React.FC<HiddenCricketTwoPlayersLayoutProps
                 height: "100%",
                 alignItems: "stretch",
                 filter: allClosed ? "blur(4px)" : "none",
-                transition: "filter 0.3s ease",
+                transition: "opacity 0.3s ease",
               }}
             >
               {/* First player */}

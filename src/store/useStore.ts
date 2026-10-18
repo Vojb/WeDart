@@ -379,6 +379,10 @@ interface StoreState {
   countdownDuration: number; // Duration in seconds for countdown timers
   setCountdownDuration: (duration: number) => void;
 
+  // Skips animations, blurs, and motion so scoring stays responsive
+  performanceMode: boolean;
+  setPerformanceMode: (enabled: boolean) => void;
+
   // Sticky activation state - tracks if user has interacted with the page
   hasUserActivation: boolean;
   setUserActivation: (activated: boolean) => void;
@@ -516,6 +520,10 @@ export const useStore = create<StoreState>()(
       setCountdownDuration: (duration: number) =>
         set({ countdownDuration: Math.max(1, Math.min(30, duration)) }), // Clamp between 1 and 30 seconds
 
+      performanceMode: false,
+      setPerformanceMode: (enabled: boolean) =>
+        set({ performanceMode: enabled }),
+
       // Sticky activation state
       hasUserActivation: false,
       setUserActivation: (activated: boolean) =>
@@ -544,6 +552,7 @@ export const useStore = create<StoreState>()(
         vibrationEnabled: state.vibrationEnabled,
         permissionSettings: state.permissionSettings,
         countdownDuration: state.countdownDuration,
+        performanceMode: state.performanceMode,
         hasUserActivation: state.hasUserActivation,
         cricketBackgroundLogoEnabled: state.cricketBackgroundLogoEnabled,
         cricketBackgroundLogoId: state.cricketBackgroundLogoId,

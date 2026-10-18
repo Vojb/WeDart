@@ -76,7 +76,7 @@ const X01Game: React.FC = () => {
   const [showRoundAvg, setShowRoundAvg] = useState(false);
 
   // Get microphone permission status and countdown duration from store
-  const { permissionSettings, countdownDuration } = useStore();
+  const { permissionSettings, countdownDuration, performanceMode } = useStore();
   const isMicrophoneEnabled = permissionSettings.microphone.enabled;
 
   // Handle game finished dialog
@@ -471,19 +471,20 @@ const X01Game: React.FC = () => {
       });
     }, 1000) as unknown as number;
 
-    // Update progress bar every 50ms for smooth animation
-    progressIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / durationMs) * 100, 100);
-      setProgress(newProgress);
+    if (!performanceMode) {
+      progressIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - progressStartTimeRef.current;
+        const newProgress = Math.min((elapsed / durationMs) * 100, 100);
+        setProgress(newProgress);
 
-      if (newProgress >= 100) {
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
+        if (newProgress >= 100) {
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
         }
-      }
-    }, 50) as unknown as number;
+      }, 50) as unknown as number;
+    }
 
     // Record score after countdown completes
     countdownTimerRef.current = setTimeout(() => {
@@ -628,11 +629,20 @@ const X01Game: React.FC = () => {
           </Typography>
           {countdown !== null && countdown > 0 ? (
             <>
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                sx={{ flex: 1, minWidth: 0, height: 6, borderRadius: 1 }}
-              />
+              {performanceMode ? (
+                <Typography
+                  variant="caption"
+                  sx={{ flex: 1, minWidth: 0, textAlign: "center" }}
+                >
+                  {countdown}s
+                </Typography>
+              ) : (
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
+                  sx={{ flex: 1, minWidth: 0, height: 6, borderRadius: 1 }}
+                />
+              )}
               <VibrationButton
                 variant="contained"
                 color="error"
@@ -864,14 +874,20 @@ const X01Game: React.FC = () => {
         {/* Progress Bar */}
         {countdown !== null && countdown > 0 && (
           <Box sx={{ width: "100%" }}>
-            <LinearProgress 
-              variant="determinate" 
-              value={progress} 
-              sx={{ 
-                height: 6,
-                borderRadius: 1,
-              }} 
-            />
+            {performanceMode ? (
+              <Typography variant="caption" sx={{ display: "block", textAlign: "center" }}>
+                Submitting in {countdown}s
+              </Typography>
+            ) : (
+              <LinearProgress
+                variant="determinate"
+                value={progress}
+                sx={{
+                  height: 6,
+                  borderRadius: 1,
+                }}
+              />
+            )}
           </Box>
         )}
 

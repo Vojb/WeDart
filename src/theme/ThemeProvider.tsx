@@ -1,6 +1,7 @@
-import React, { ReactNode, useEffect } from "react";
+import React, { ReactNode, useEffect, useLayoutEffect } from "react";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
+import { MotionConfig } from "framer-motion";
 import { useStore } from "../store/useStore";
 import { createAppTheme } from "./theme";
 
@@ -56,8 +57,20 @@ interface ThemeProviderProps {
 }
 
 const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const { themeColors, themeMode, setUserActivation, hasUserActivation } =
-    useStore();
+  const {
+    themeColors,
+    themeMode,
+    setUserActivation,
+    hasUserActivation,
+    performanceMode,
+  } = useStore();
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle(
+      "performance-mode",
+      performanceMode,
+    );
+  }, [performanceMode]);
 
   // Verify theme loading on component mount (for debugging)
   useEffect(() => {
@@ -174,12 +187,14 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }, []);
 
   // Create the theme using our new theme creator
-  const theme = createAppTheme(themeMode, themeColors);
+  const theme = createAppTheme(themeMode, themeColors, performanceMode);
 
   return (
     <MuiThemeProvider theme={theme}>
       <CssBaseline />
-      {children}
+      <MotionConfig reducedMotion={performanceMode ? "always" : "user"}>
+        {children}
+      </MotionConfig>
     </MuiThemeProvider>
   );
 };

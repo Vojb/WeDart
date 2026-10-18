@@ -38,6 +38,7 @@ import MicOffIcon from "@mui/icons-material/MicOff";
 import InfoIcon from "@mui/icons-material/Info";
 import ImageIcon from "@mui/icons-material/Image";
 import UploadIcon from "@mui/icons-material/Upload";
+import SpeedIcon from "@mui/icons-material/Speed";
 import { useNavigate } from "react-router-dom";
 import { useStore, predefinedThemes } from "../store/useStore";
 import {
@@ -292,6 +293,8 @@ const Settings: React.FC = () => {
     setCricketBackgroundLogoEnabled,
     setCricketBackgroundLogoId,
     setCricketBackgroundLogoCustomUrl,
+    performanceMode,
+    setPerformanceMode,
   } = useStore();
 
   // State for color values
@@ -332,6 +335,7 @@ const Settings: React.FC = () => {
   const [expandedPreview, setExpandedPreview] = useState<boolean>(false);
   const [expandedPermissions, setExpandedPermissions] = useState<boolean>(true);
   const [expandedCricketLogo, setExpandedCricketLogo] = useState<boolean>(true);
+  const [expandedPerformance, setExpandedPerformance] = useState<boolean>(true);
 
   // Microphone permission state
   const [micPermissionStatus, setMicPermissionStatus] = useState<
@@ -661,6 +665,52 @@ const Settings: React.FC = () => {
           Settings
         </Typography>
       </Box>
+
+      <Accordion
+        expanded={expandedPerformance}
+        onChange={() => setExpandedPerformance(!expandedPerformance)}
+        sx={{ mb: 2 }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="performance-content"
+          id="performance-header"
+          sx={{
+            backgroundColor:
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.05)"
+                : "rgba(0, 0, 0, 0.03)",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6">Performance</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Typography variant="subtitle1" gutterBottom>
+            Performance mode
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={performanceMode}
+                  onChange={(_, checked) => setPerformanceMode(checked)}
+                  color="primary"
+                />
+              }
+              label=""
+            />
+            <SpeedIcon color={performanceMode ? "primary" : "disabled"} />
+            <Typography sx={{ ml: 1 }}>
+              {performanceMode ? "Performance mode on" : "Performance mode off"}
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary">
+            Turns off animations, blurs, and moving score effects. Cricket and
+            Osha stay easier to follow on slower phones.
+          </Typography>
+        </AccordionDetails>
+      </Accordion>
 
       {/* Permissions Accordion */}
       <Accordion

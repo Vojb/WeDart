@@ -47,7 +47,7 @@ const HalveItGame: React.FC = () => {
   } = useHalveItStore();
   useGameSessionRoute(currentGame?.id, GAME_PATHS.halveit);
   const { addCompletedGame } = useHistoryStore();
-  const { countdownDuration } = useStore();
+  const { countdownDuration, performanceMode } = useStore();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -463,19 +463,20 @@ const HalveItGame: React.FC = () => {
       });
     }, 1000) as unknown as number;
     
-    // Update progress bar every 50ms for smooth animation
-    progressIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - progressStartTimeRef.current;
-      const newProgress = Math.min((elapsed / durationMs) * 100, 100);
-      setProgress(newProgress);
-      
-      if (newProgress >= 100) {
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
+    if (!performanceMode) {
+      progressIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - progressStartTimeRef.current;
+        const newProgress = Math.min((elapsed / durationMs) * 100, 100);
+        setProgress(newProgress);
+
+        if (newProgress >= 100) {
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
         }
-      }
-    }, 50) as unknown as number;
+      }, 50) as unknown as number;
+    }
     
     // Record score after countdown completes
     countdownTimerRef.current = setTimeout(() => {
@@ -919,14 +920,20 @@ const HalveItGame: React.FC = () => {
           {/* Progress Bar */}
           {countdown !== null && countdown > 0 && (
             <Box sx={{ width: "100%", mb: 1 }}>
-              <LinearProgress 
-                variant="determinate" 
-                value={progress} 
-                sx={{ 
-                  height: 6,
-                  borderRadius: 1,
-                }} 
-              />
+              {performanceMode ? (
+                <Typography variant="caption" sx={{ display: "block", textAlign: "center" }}>
+                  Submitting in {countdown}s
+                </Typography>
+              ) : (
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
+                  sx={{
+                    height: 6,
+                    borderRadius: 1,
+                  }}
+                />
+              )}
             </Box>
           )}
           

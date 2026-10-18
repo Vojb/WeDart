@@ -57,7 +57,7 @@ const CricketMultiPlayerColumns: React.FC<CricketMultiPlayerColumnsProps> = ({
       borderColor: "divider",
       filter: allClosed ? "blur(4px)" : "none",
       opacity: allClosed ? 0.5 : 1,
-      transition: "filter 0.3s ease, opacity 0.3s ease",
+      transition: "opacity 0.3s ease",
     };
   };
 
@@ -151,7 +151,13 @@ const CricketMultiPlayerColumns: React.FC<CricketMultiPlayerColumnsProps> = ({
         </Box>
 
         {targets.map((target) => (
-          <Box key={`${player.id}-${target}`} sx={rowSx(target)}>
+          <Box
+            key={`${player.id}-${target}`}
+            className={
+              isTargetClosedByAll(target) ? "perf-heavy-blur" : undefined
+            }
+            sx={rowSx(target)}
+          >
             {renderPlayerCell(player, playerIndex, target)}
           </Box>
         ))}
@@ -237,7 +243,13 @@ const CricketMultiPlayerColumns: React.FC<CricketMultiPlayerColumnsProps> = ({
         </Box>
 
         {targets.map((target) => (
-          <Box key={`label-${target}`} sx={rowSx(target)}>
+          <Box
+            key={`label-${target}`}
+            className={
+              isTargetClosedByAll(target) ? "perf-heavy-blur" : undefined
+            }
+            sx={rowSx(target)}
+          >
             {renderTargetLabel(target)}
           </Box>
         ))}

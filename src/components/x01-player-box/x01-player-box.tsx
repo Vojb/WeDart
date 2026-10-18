@@ -4,6 +4,7 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { alpha } from "@mui/material/styles";
 import checkoutGuide from "../../utils/checkoutGuide";
 import { GamePlayer } from "../../store/useX01Store";
+import { useStore } from "../../store/useStore";
 
 interface X01PlayerBoxProps {
   player: GamePlayer;
@@ -58,6 +59,7 @@ const X01PlayerBox: React.FC<X01PlayerBoxProps> = ({
     theme.palette.success.main,
     theme.palette.text.primary,
   ]);
+  const performanceMode = useStore((state) => state.performanceMode);
   const scorePercent = Math.max(
     0,
     Math.min(100, (player.score / player.initialScore) * 100)
@@ -73,9 +75,18 @@ const X01PlayerBox: React.FC<X01PlayerBoxProps> = ({
     return `conic-gradient(from 0deg, ${ringColor} 0% ${clamped}%, ${ringTrackColor} ${clamped}% 100%), ${dartboardBackground}`;
   });
 
+  const staticRingBackground = useMemo(
+    () =>
+      `conic-gradient(from 0deg, ${ringColor} 0% ${scorePercent}%, ${ringTrackColor} ${scorePercent}% 100%), ${dartboardBackground}`,
+    [ringColor, scorePercent, ringTrackColor, dartboardBackground],
+  );
+
   useEffect(() => {
+    if (performanceMode) {
+      return;
+    }
     percentMotion.set(scorePercent);
-  }, [scorePercent, percentMotion]);
+  }, [scorePercent, percentMotion, performanceMode]);
 
   return (
     <Paper
@@ -188,7 +199,9 @@ const X01PlayerBox: React.FC<X01PlayerBoxProps> = ({
               position: "relative",
             }}
             style={{
-              backgroundImage: ringBackground,
+              backgroundImage: performanceMode
+                ? staticRingBackground
+                : ringBackground,
             }}
           >
             <Box

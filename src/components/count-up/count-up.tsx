@@ -1,10 +1,11 @@
-import { useInView, useMotionValue, useSpring } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useInView, useMotionValue, useSpring } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useStore } from "../../store/useStore";
 
 interface CountUpProps {
   to: number;
   from?: number;
-  direction?: 'up' | 'down';
+  direction?: "up" | "down";
   delay?: number;
   duration?: number;
   className?: string;
@@ -12,24 +13,59 @@ interface CountUpProps {
   separator?: string;
   onStart?: () => void;
   onEnd?: () => void;
-  animateOnChange?: boolean; // If true, re-animate whenever 'to' changes
+  animateOnChange?: boolean;
 }
 
-const CountUp: React.FC<CountUpProps> = ({
+const decimalPlaces = (num: number): number => {
+  const str = num.toString();
+  if (str.includes(".")) {
+    const decimals = str.split(".")[1];
+    if (parseInt(decimals, 10) !== 0) {
+      return decimals.length;
+    }
+  }
+  return 0;
+};
+
+const formatCount = (
+  value: number,
+  from: number,
+  to: number,
+  separator: string,
+) => {
+  const maxDecimals = Math.max(decimalPlaces(from), decimalPlaces(to));
+  const formattedNumber = Intl.NumberFormat("en-US", {
+    useGrouping: !!separator,
+    minimumFractionDigits: maxDecimals > 0 ? maxDecimals : 0,
+    maximumFractionDigits: maxDecimals > 0 ? maxDecimals : 0,
+  }).format(value);
+  return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+};
+
+const CountUpStatic: React.FC<CountUpProps> = ({
   to,
   from = 0,
-  direction = 'up',
+  separator = "",
+  className = "",
+}) => {
+  return <span className={className}>{formatCount(to, from, to, separator)}</span>;
+};
+
+const CountUpAnimated: React.FC<CountUpProps> = ({
+  to,
+  from = 0,
+  direction = "up",
   delay = 0,
   duration = 2,
-  className = '',
+  className = "",
   startWhen = true,
-  separator = '',
+  separator = "",
   onStart,
   onEnd,
   animateOnChange = false,
 }) => {
   const ref = useRef<HTMLSpanElement>(null);
-  const initialValue = animateOnChange ? to : (direction === 'down' ? to : from);
+  const initialValue = animateOnChange ? to : direction === "down" ? to : from;
   const motionValue = useMotionValue(initialValue);
   const springConfig = useMemo(
     () => ({
@@ -39,22 +75,11 @@ const CountUp: React.FC<CountUpProps> = ({
     [duration],
   );
   const springValue = useSpring(motionValue, springConfig);
-  const isInView = useInView(ref, { once: !animateOnChange, margin: '0px' });
+  const isInView = useInView(ref, { once: !animateOnChange, margin: "0px" });
   const previousToRef = useRef<number>(to);
   const hasInitializedRef = useRef<boolean>(false);
 
-  const getDecimalPlaces = (num: number): number => {
-    const str = num.toString();
-    if (str.includes('.')) {
-      const decimals = str.split('.')[1];
-      if (parseInt(decimals) !== 0) {
-        return decimals.length;
-      }
-    }
-    return 0;
-  };
-
-  const maxDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(to));
+  const maxDecimals = Math.max(decimalPlaces(from), decimalPlaces(to));
 
   const formatValue = useCallback(
     (latest: number) => {
@@ -64,16 +89,17 @@ const CountUp: React.FC<CountUpProps> = ({
         minimumFractionDigits: hasDecimals ? maxDecimals : 0,
         maximumFractionDigits: hasDecimals ? maxDecimals : 0,
       };
-      const formattedNumber = Intl.NumberFormat('en-US', options).format(latest);
+      const formattedNumber = Intl.NumberFormat("en-US", options).format(latest);
       return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
     },
-    [maxDecimals, separator]
+    [maxDecimals, separator],
   );
 
-  // Initialize the display value
   useEffect(() => {
     if (ref.current && !hasInitializedRef.current) {
-      ref.current.textContent = formatValue(animateOnChange ? to : (direction === 'down' ? to : from));
+      ref.current.textContent = formatValue(
+        animateOnChange ? to : direction === "down" ? to : from,
+      );
       if (animateOnChange) {
         motionValue.set(to);
         previousToRef.current = to;
@@ -83,17 +109,14 @@ const CountUp: React.FC<CountUpProps> = ({
   }, [from, to, direction, formatValue, animateOnChange, motionValue]);
 
   useEffect(() => {
-    // If animateOnChange is true, trigger animation whenever 'to' changes
     if (animateOnChange) {
-      // Skip initial render if not initialized yet
       if (!hasInitializedRef.current) {
         return;
       }
 
-      // Only animate if value actually changed
       if (previousToRef.current !== to && startWhen) {
-        if (typeof onStart === 'function') onStart();
-        
+        if (typeof onStart === "function") onStart();
+
         const timeoutId = setTimeout(() => {
           motionValue.set(to);
           previousToRef.current = to;
@@ -101,9 +124,9 @@ const CountUp: React.FC<CountUpProps> = ({
 
         const durationTimeoutId = setTimeout(
           () => {
-            if (typeof onEnd === 'function') onEnd();
+            if (typeof onEnd === "function") onEnd();
           },
-          delay * 1000 + duration * 1000
+          delay * 1000 + duration * 1000,
         );
 
         return () => {
@@ -111,32 +134,41 @@ const CountUp: React.FC<CountUpProps> = ({
           clearTimeout(durationTimeoutId);
         };
       }
-    } else {
-      // Original behavior: animate once when in view
-      if (isInView && startWhen) {
-        if (typeof onStart === 'function') onStart();
+    } else if (isInView && startWhen) {
+      if (typeof onStart === "function") onStart();
 
-        const timeoutId = setTimeout(() => {
-          motionValue.set(direction === 'down' ? from : to);
-        }, delay * 1000);
+      const timeoutId = setTimeout(() => {
+        motionValue.set(direction === "down" ? from : to);
+      }, delay * 1000);
 
-        const durationTimeoutId = setTimeout(
-          () => {
-            if (typeof onEnd === 'function') onEnd();
-          },
-          delay * 1000 + duration * 1000
-        );
+      const durationTimeoutId = setTimeout(
+        () => {
+          if (typeof onEnd === "function") onEnd();
+        },
+        delay * 1000 + duration * 1000,
+      );
 
-        return () => {
-          clearTimeout(timeoutId);
-          clearTimeout(durationTimeoutId);
-        };
-      }
+      return () => {
+        clearTimeout(timeoutId);
+        clearTimeout(durationTimeoutId);
+      };
     }
-  }, [isInView, startWhen, motionValue, direction, from, to, delay, onStart, onEnd, duration, animateOnChange]);
+  }, [
+    isInView,
+    startWhen,
+    motionValue,
+    direction,
+    from,
+    to,
+    delay,
+    onStart,
+    onEnd,
+    duration,
+    animateOnChange,
+  ]);
 
   useEffect(() => {
-    const unsubscribe = springValue.on('change', (latest: number) => {
+    const unsubscribe = springValue.on("change", (latest: number) => {
       if (ref.current) {
         ref.current.textContent = formatValue(latest);
       }
@@ -148,5 +180,12 @@ const CountUp: React.FC<CountUpProps> = ({
   return <span className={className} ref={ref} />;
 };
 
-export default CountUp;
+const CountUp: React.FC<CountUpProps> = (props) => {
+  const performanceMode = useStore((state) => state.performanceMode);
+  if (performanceMode) {
+    return <CountUpStatic {...props} />;
+  }
+  return <CountUpAnimated {...props} />;
+};
 
+export default CountUp;

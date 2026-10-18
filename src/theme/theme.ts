@@ -180,7 +180,11 @@ const getDarkPalette = (themeColors: ThemeColors) => ({
 });
 
 // Create the theme based on mode and colors
-export const createAppTheme = (mode: PaletteMode, themeColors: ThemeColors) => {
+export const createAppTheme = (
+  mode: PaletteMode,
+  themeColors: ThemeColors,
+  performanceMode = false,
+) => {
   // Select the appropriate palette based on mode
   const palette =
     mode === "light"
@@ -192,6 +196,21 @@ export const createAppTheme = (mode: PaletteMode, themeColors: ThemeColors) => {
     palette,
     typography,
     shape,
+    ...(performanceMode
+      ? {
+          transitions: {
+            duration: {
+              shortest: 0,
+              shorter: 0,
+              short: 0,
+              standard: 0,
+              complex: 0,
+              enteringScreen: 0,
+              leavingScreen: 0,
+            },
+          },
+        }
+      : {}),
   });
 
   // Add component overrides

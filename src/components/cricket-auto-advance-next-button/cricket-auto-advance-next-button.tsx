@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Box, LinearProgress, alpha } from "@mui/material";
+import { Box, alpha } from "@mui/material";
 import VibrationButton from "../VibrationButton";
+import { useStore } from "../../store/useStore";
 
 export interface CricketAutoAdvanceNextButtonProps {
   isGameFinished: boolean;
@@ -31,10 +32,13 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
     disabled,
     buttonSize = "default",
   }) => {
+    const performanceMode = useStore((state) => state.performanceMode);
     const autoAdvanceTimerRef = useRef<number | null>(null);
     const progressIntervalRef = useRef<number | null>(null);
+    const fillFrameRef = useRef<number | null>(null);
     const progressStartTimeRef = useRef<number>(Date.now());
-    const [progress, setProgress] = useState(0);
+    const [fill, setFill] = useState(false);
+    const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
     const clearTimers = useCallback(() => {
       if (autoAdvanceTimerRef.current !== null) {
@@ -45,17 +49,23 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
+      if (fillFrameRef.current !== null) {
+        cancelAnimationFrame(fillFrameRef.current);
+        fillFrameRef.current = null;
+      }
     }, []);
 
     useEffect(() => {
       if (isGameFinished || !shouldRunAutoAdvanceTimer) {
         clearTimers();
-        setProgress(0);
+        setFill(false);
+        setSecondsLeft(null);
         return;
       }
 
       clearTimers();
-      setProgress(0);
+      setFill(false);
+      setSecondsLeft(null);
       progressStartTimeRef.current = Date.now();
 
       const durationMs = countdownDurationSec * 1000;
@@ -63,11 +73,20 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
         onFinishTurn();
       }, durationMs);
 
-      progressIntervalRef.current = window.setInterval(() => {
-        const elapsed = Date.now() - progressStartTimeRef.current;
-        const newProgress = Math.min((elapsed / durationMs) * 100, 100);
-        setProgress(newProgress);
-      }, 50);
+      if (useStore.getState().performanceMode) {
+        const tick = () => {
+          const elapsed = Date.now() - progressStartTimeRef.current;
+          const left = Math.ceil((durationMs - elapsed) / 1000);
+          setSecondsLeft(left > 0 ? left : null);
+        };
+        tick();
+        progressIntervalRef.current = window.setInterval(tick, 1000);
+      } else {
+        fillFrameRef.current = requestAnimationFrame(() => {
+          fillFrameRef.current = null;
+          setFill(true);
+        });
+      }
 
       return () => {
         clearTimers();
@@ -86,7 +105,8 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
       const isNewTurn = currentRoundDartCount === 0;
       if (isNewTurn) {
         clearTimers();
-        setProgress(0);
+        setFill(false);
+        setSecondsLeft(null);
       }
     }, [
       currentPlayerIndex,
@@ -97,11 +117,13 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
 
     const handleClick = () => {
       clearTimers();
-      setProgress(0);
+      setFill(false);
+      setSecondsLeft(null);
       onFinishTurn();
     };
 
     const fontSize = buttonSize === "compact" ? "1rem" : "1.1rem";
+    const showSeconds = performanceMode && secondsLeft !== null;
 
     return (
       <Box
@@ -131,39 +153,48 @@ const CricketAutoAdvanceNextButton: React.FC<CricketAutoAdvanceNextButtonProps> 
             fontWeight: "bold",
             position: "relative",
             overflow: "hidden",
-            "&::before":
-              !isGameFinished && progress > 0
-                ? {
-                    content: '""',
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    height: "100%",
-                    width: `${progress}%`,
-                    backgroundColor: (t) => alpha(t.palette.common.white, 0.3),
-                    transition: "width 0.05s linear",
-                  }
-                : {},
           }}
         >
-          Next
+          {showSeconds ? `Next ${secondsLeft}` : "Next"}
         </VibrationButton>
-        {!isGameFinished && progress > 0 && (
-          <LinearProgress
-            variant="determinate"
-            value={progress}
+        {!performanceMode && !isGameFinished && (
+          <Box
+            aria-hidden
             sx={{
               position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 4,
-              backgroundColor: "transparent",
-              "& .MuiLinearProgress-bar": {
-                backgroundColor: (t) => t.palette.common.white,
-              },
+              inset: 0,
+              pointerEvents: "none",
+              overflow: "hidden",
+              borderRadius: 1,
             }}
-          />
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                height: "100%",
+                width: fill ? "100%" : "0%",
+                backgroundColor: (t) => alpha(t.palette.common.white, 0.3),
+                transition: fill
+                  ? `width ${countdownDurationSec}s linear`
+                  : "none",
+              }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                height: 4,
+                width: fill ? "100%" : "0%",
+                backgroundColor: "common.white",
+                transition: fill
+                  ? `width ${countdownDurationSec}s linear`
+                  : "none",
+              }}
+            />
+          </Box>
         )}
       </Box>
     );
