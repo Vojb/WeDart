@@ -906,7 +906,6 @@ export const useCricketStore = create<CricketStoreState>()(
           const pending = g.pendingOshaExtraBonus;
           if (!pending) return state;
           const pid = pending.playerId;
-          if (!g.currentRound || g.currentRound.playerId !== pid) return state;
           if (!Number.isFinite(points) || points <= 0) return state;
           if (points === 25) {
             if (pending.kind !== "Double") return state;
@@ -922,14 +921,6 @@ export const useCricketStore = create<CricketStoreState>()(
           if (playerIndex === -1) return state;
 
           const player = { ...players[playerIndex] };
-          const existingRound = g.currentRound;
-          if (!existingRound) return state;
-          const currentRound: CricketRound = {
-            playerId: existingRound.playerId,
-            darts: [...existingRound.darts],
-            totalPoints: existingRound.totalPoints,
-          };
-
           const bonusDart: CricketDart = {
             targetNumber: "Bonus",
             multiplier: 1,
@@ -938,13 +929,31 @@ export const useCricketStore = create<CricketStoreState>()(
             previousPlayerScore: player.totalScore,
           };
 
-          player.totalScore += pointsAwarded;
-          currentRound.darts.push(bonusDart);
-          currentRound.totalPoints += pointsAwarded;
+          const withBonus = (round: CricketRound): CricketRound => ({
+            playerId: round.playerId,
+            darts: [...round.darts, bonusDart],
+            totalPoints: round.totalPoints + pointsAwarded,
+          });
 
+          if (g.currentRound?.playerId === pid) {
+            newGame.currentRound = withBonus(g.currentRound);
+          } else {
+            const rounds = [...(g.rounds ?? [])];
+            let roundIndex = -1;
+            for (let i = rounds.length - 1; i >= 0; i -= 1) {
+              if (rounds[i].playerId === pid) {
+                roundIndex = i;
+                break;
+              }
+            }
+            if (roundIndex === -1) return state;
+            rounds[roundIndex] = withBonus(rounds[roundIndex]);
+            newGame.rounds = rounds;
+          }
+
+          player.totalScore += pointsAwarded;
           players[playerIndex] = player;
           newGame.players = players;
-          newGame.currentRound = currentRound;
           newGame.pendingOshaExtraBonus = null;
 
           return { ...state, currentGame: newGame };
@@ -1164,6 +1173,7 @@ export const useCricketStore = create<CricketStoreState>()(
       finishTurn: () => {
         set((state) => {
           if (!state.currentGame) return state;
+          if (state.currentGame.pendingOshaExtraBonus) return state;
 
           const newGame = { ...state.currentGame };
           const players = [...newGame.players];
@@ -1202,6 +1212,7 @@ export const useCricketStore = create<CricketStoreState>()(
       switchPlayerWithoutAddingDarts: () => {
         set((state) => {
           if (!state.currentGame) return state;
+          if (state.currentGame.pendingOshaExtraBonus) return state;
 
           const newGame = { ...state.currentGame };
           const players = [...newGame.players];

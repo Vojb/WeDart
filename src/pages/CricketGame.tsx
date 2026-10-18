@@ -314,8 +314,12 @@ const CricketGame: React.FC = () => {
   }, [currentGame, finishTurn]);
 
   const currentRoundDartCount = currentGame?.currentRound?.darts.length ?? 0;
+  const oshaExtraBonusPending = !!currentGame?.pendingOshaExtraBonus;
   const shouldRunAutoAdvanceTimer =
-    !!currentGame && !currentGame.isGameFinished && currentRoundDartCount > 0;
+    !!currentGame &&
+    !currentGame.isGameFinished &&
+    currentRoundDartCount > 0 &&
+    !oshaExtraBonusPending;
 
   const handleLeaveGame = useCallback(() => {
     endGame();
@@ -1444,7 +1448,9 @@ const CricketGame: React.FC = () => {
                   ? "primary"
                   : "secondary"
               }
-              disabled={currentGame.isGameFinished}
+              disabled={
+                currentGame.isGameFinished || oshaExtraBonusPending
+              }
             />
           </Box>
         </Paper>
