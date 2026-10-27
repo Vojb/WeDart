@@ -327,84 +327,83 @@ const PointsInput: React.FC<PointsInputProps> = ({
         flexDirection: "column",
         height: "100%",
         minHeight: 0,
-        p: 2,
-        gap: 2,
+        p: { xs: 1, sm: 1.5 },
+        gap: 1,
       }}
     >
       <Paper
         sx={{
-          p: 3,
+          px: { xs: 1.25, sm: 2 },
+          py: { xs: 1, sm: 1.5 },
           textAlign: "center",
-          flex: "0.3 1 0%",
+          flex: previewData ? "0 0 auto" : "0 1 auto",
+          maxHeight: previewData ? "42%" : "28%",
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          overflow: "auto",
+          overflow: "hidden",
         }}
       >
         <Typography
           variant="h4"
           fontWeight={700}
-          gutterBottom
-          sx={{ fontSize: { xs: "1.5rem", sm: "1.85rem" } }}
+          sx={{ fontSize: { xs: "1rem", sm: "1.25rem" }, mb: 0.25 }}
         >
           {getRoundLabel()}
         </Typography>
-        <Typography
-          variant="h1"
-          sx={{
-            fontWeight: "bold",
-            fontSize: { xs: "3.85rem", sm: "4.75rem" },
-            lineHeight: 1.08,
-            my: 0.5,
-          }}
-        >
-          {displayValue}
-        </Typography>
-        <Typography
-          variant="h6"
-          color="text.secondary"
-          fontWeight={500}
-          sx={{ fontSize: { xs: "1.15rem", sm: "1.3rem" } }}
-        >
-          Enter points scored
-        </Typography>
-        {previewData && (
-          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: "divider" }}>
+        {!previewData && (
+          <>
             <Typography
-              variant="body1"
-              color="text.secondary"
-              gutterBottom
-              sx={{ fontSize: "1.1rem" }}
+              variant="h1"
+              sx={{
+                fontWeight: "bold",
+                fontSize: { xs: "2.25rem", sm: "3rem" },
+                lineHeight: 1.05,
+                my: 0.25,
+              }}
             >
-              Current: {previewData.currentScore}
+              {displayValue}
             </Typography>
-            {previewData.isHalved ? (
-              <Typography
-                variant="h5"
-                color="error"
-                fontWeight={600}
-                sx={{ fontSize: { xs: "1.15rem", sm: "1.3rem" } }}
-              >
-                Score Halved! {previewData.pointsGained > 0 ? "+" : ""}
-                {previewData.pointsGained}
-              </Typography>
-            ) : (
-              <Typography
-                variant="h5"
-                color="success.main"
-                fontWeight={600}
-                sx={{ fontSize: { xs: "1.15rem", sm: "1.3rem" } }}
-              >
-                +{previewData.pointsGained} points
-              </Typography>
-            )}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              fontWeight={500}
+              sx={{ fontSize: { xs: "0.85rem", sm: "0.95rem" } }}
+            >
+              Enter points scored
+            </Typography>
+          </>
+        )}
+        {previewData && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 0.35,
+              mt: 0.25,
+            }}
+          >
             <Typography
               variant="h4"
-              sx={{ fontWeight: "bold", mt: 1, fontSize: { xs: "1.4rem", sm: "1.6rem" } }}
+              sx={{
+                fontWeight: 800,
+                fontSize: { xs: "1.75rem", sm: "2.25rem" },
+                lineHeight: 1.1,
+                color: previewData.isHalved ? "error.main" : "success.main",
+              }}
             >
-              New Total: {previewData.newScore}
+              {previewData.isHalved
+                ? `Halved −${previewData.pointsGained}`
+                : `+${previewData.pointsGained}`}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: { xs: "0.85rem", sm: "0.95rem" }, lineHeight: 1.2 }}
+            >
+              {previewData.currentScore} → {previewData.newScore}
             </Typography>
           </Box>
         )}
@@ -446,7 +445,7 @@ const PointsInput: React.FC<PointsInputProps> = ({
           <VibrationButton
             fullWidth
             variant="contained"
-            color="error"
+            color="primary"
             onClick={() => handleNumericInput("0")}
             disabled={disabled}
             vibrationPattern={30}

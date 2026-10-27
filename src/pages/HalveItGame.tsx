@@ -34,6 +34,16 @@ import CountUp from "../components/count-up/count-up";
 import { useGameSessionRoute } from "../hooks/useGameSessionRoute";
 import { GAME_PATHS } from "../utils/gameSession";
 import LeaveGameDialog from "../components/leave-game-dialog/leave-game-dialog";
+import { fitScoreFontSize } from "../utils/fitScoreFontSize";
+
+/** Even grid columns for 3+ players so leftover boxes never stretch unevenly. */
+const getPlayerGridColumns = (playerCount: number): number => {
+  if (playerCount <= 2) return playerCount;
+  if (playerCount === 3) return 3;
+  if (playerCount === 4) return 2;
+  if (playerCount <= 6) return 3;
+  return 4;
+};
 
 const HalveItGame: React.FC = () => {
   const navigate = useNavigate();
@@ -265,8 +275,7 @@ const HalveItGame: React.FC = () => {
       }
       return a.id - b.id;
     });
-    const hasScrollablePlayers = sortedPlayers.length > 4;
-    if (!hasScrollablePlayers) return;
+    if (sortedPlayers.length <= 6) return;
     const currentPlayer = sortedPlayers[currentGame.currentPlayerIndex] || sortedPlayers[0];
     if (!currentPlayer) return;
     const currentPlayerHeader = playerHeaderRefs.current[currentPlayer.id];
@@ -322,8 +331,11 @@ const HalveItGame: React.FC = () => {
     return a.id - b.id;
   });
 
-  const hasManyPlayers = sortedPlayers.length > 3;
-  const hasScrollablePlayers = sortedPlayers.length > 4;
+  const playerCount = sortedPlayers.length;
+  const isCompactPlayerGrid = playerCount > 2;
+  const playerGridColumns = getPlayerGridColumns(playerCount);
+  const playerGridRows = Math.ceil(playerCount / playerGridColumns);
+  const hasScrollablePlayers = playerCount > 6;
 
   // Use the store's currentPlayerIndex directly on the sorted array
   // The store maintains players sorted by orderIndex, so the index should match
@@ -724,31 +736,37 @@ const HalveItGame: React.FC = () => {
         {/* Top Bar - Header with Round Info and Player Names */}
         <Paper
           sx={{
-            p: 1,
+            p: isCompactPlayerGrid ? 0.75 : 1,
             borderRadius: 0,
             borderBottom: 1,
             borderColor: "divider",
-            height: hasManyPlayers ? "30%" : "auto",
+            height: isCompactPlayerGrid
+              ? playerGridRows >= 3
+                ? "34%"
+                : "28%"
+              : "auto",
+            minHeight: isCompactPlayerGrid ? 140 : undefined,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
+            gap: 0.5,
           }}
         >
           <Box
             sx={{
-              mb: 0.5,
               display: "flex",
               flexDirection: "row",
               alignItems: "flex-start",
               justifyContent: "space-between",
               gap: 1.5,
+              flexShrink: 0,
             }}
           >
             <Typography
               variant="h5"
               fontWeight="bold"
               sx={{
-                fontSize: { xs: "1.1rem", sm: "1.5rem" },
+                fontSize: { xs: "1.05rem", sm: "1.4rem" },
                 textAlign: "left",
                 flex: "1 1 0",
                 minWidth: 0,
@@ -782,7 +800,7 @@ const HalveItGame: React.FC = () => {
                 variant="h5"
                 fontWeight="bold"
                 sx={{
-                  fontSize: { xs: "1.05rem", sm: "1.35rem" },
+                  fontSize: { xs: "0.95rem", sm: "1.25rem" },
                   lineHeight: 1.25,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -796,29 +814,39 @@ const HalveItGame: React.FC = () => {
             </Box>
           </Box>
 
-          {/* Player Headers */}
+          {/* Player Headers — equal grid cells for precise multi-player sizing */}
           <Box
             sx={{
-              display: hasManyPlayers ? "flex" : "grid",
-              gridTemplateColumns: hasManyPlayers
-                ? undefined
-                : `repeat(${sortedPlayers.length}, 1fr)`,
-              flexWrap: hasManyPlayers ? "wrap" : "nowrap",
-              alignContent: hasManyPlayers ? "flex-start" : undefined,
-              gap: 0.5,
-              height: hasManyPlayers ? "100%" : "auto",
+              display: "grid",
+              gridTemplateColumns: `repeat(${playerGridColumns}, minmax(0, 1fr))`,
+              gridTemplateRows: isCompactPlayerGrid
+                ? `repeat(${playerGridRows}, minmax(0, 1fr))`
+                : "auto",
+              gap: isCompactPlayerGrid ? 0.5 : 0.75,
               flex: 1,
+              minHeight: 0,
               overflowY: hasScrollablePlayers ? "auto" : "hidden",
+              alignContent: "stretch",
             }}
           >
-            {/* Display players sorted by orderIndex to ensure correct order */}
             {sortedPlayers.map((player) => {
               const isCurrentPlayer = player.id === currentPlayer.id;
-              // Use player ID to determine color so it stays consistent for each player
               const playerColor =
                 player.id % 2 === 0
                   ? theme.palette.primary.main
                   : theme.palette.secondary.main;
+              const nameFontSize = !isCompactPlayerGrid
+                ? { xs: "1.4rem", sm: "1.65rem" }
+                : playerCount <= 4
+                ? { xs: "0.95rem", sm: "1.15rem" }
+                : { xs: "0.8rem", sm: "0.95rem" };
+              const scoreMaxSize = !isCompactPlayerGrid
+                ? "3.25rem"
+                : playerCount <= 4
+                ? "2.1rem"
+                : playerCount <= 6
+                ? "1.75rem"
+                : "1.45rem";
 
               return (
                 <Box
@@ -828,33 +856,38 @@ const HalveItGame: React.FC = () => {
                       element as HTMLDivElement | null;
                   }}
                   sx={{
+                    minWidth: 0,
+                    minHeight: 0,
                     backgroundColor: isCurrentPlayer
-                      ? alpha(playerColor, 0.1)
-                      : "transparent",
-                    borderRadius: 1,
-                    p: hasScrollablePlayers ? 0.5 : 1,
+                      ? alpha(playerColor, 0.12)
+                      : alpha(theme.palette.background.paper, 0.5),
+                    borderRadius: 1.5,
+                    px: isCompactPlayerGrid ? 0.5 : 1,
+                    py: isCompactPlayerGrid ? 0.4 : 1,
                     textAlign: "center",
-                    border: isCurrentPlayer
-                      ? `2px solid ${playerColor}`
-                      : "2px solid transparent",
-                    flex: hasManyPlayers ? "1 1 calc(50% - 4px)" : undefined,
-                    minHeight: hasManyPlayers ? "34px" : "auto",
+                    border: `2px solid ${
+                      isCurrentPlayer
+                        ? playerColor
+                        : alpha(theme.palette.divider, 0.55)
+                    }`,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "center",
+                    alignItems: "center",
+                    gap: 0.15,
+                    overflow: "hidden",
+                    containerType: "inline-size",
+                    transition:
+                      "border-color 0.2s ease, background-color 0.2s ease",
                   }}
                 >
                   <Typography
                     variant="subtitle1"
                     sx={{
                       fontWeight: isCurrentPlayer ? 700 : 600,
-                      mb: 0.5,
-                      lineHeight: 1.2,
-                      fontSize: hasScrollablePlayers
-                        ? "1.1rem"
-                        : hasManyPlayers
-                        ? "1.25rem"
-                        : { xs: "1.4rem", sm: "1.65rem" },
+                      lineHeight: 1.15,
+                      fontSize: nameFontSize,
+                      maxWidth: "100%",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -863,18 +896,16 @@ const HalveItGame: React.FC = () => {
                     {player.name}
                   </Typography>
                   <Typography
-                    variant={
-                      hasScrollablePlayers ? "h4" : hasManyPlayers ? "h3" : "h2"
-                    }
+                    component="div"
                     sx={{
-                      fontWeight: "bold",
+                      fontWeight: 800,
                       color: theme.palette.info.main,
-                      fontSize: hasScrollablePlayers
-                        ? "1.65rem"
-                        : hasManyPlayers
-                        ? "2rem"
-                        : { xs: "2.65rem", sm: "3.25rem" },
-                      lineHeight: 1.15,
+                      fontSize: isCompactPlayerGrid
+                        ? fitScoreFontSize(player.totalScore, scoreMaxSize)
+                        : { xs: "2.65rem", sm: scoreMaxSize },
+                      lineHeight: 1.1,
+                      width: "100%",
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     <CountUp
